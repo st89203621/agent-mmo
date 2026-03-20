@@ -63,11 +63,10 @@ public class RebirthService {
             return null;
         }
 
-        List<WorldRecord> worlds = playerWorld.getWorlds();
-        if (worlds == null) {
-            worlds = new ArrayList<>();
-            playerWorld.setWorlds(worlds);
+        if (playerWorld.getWorlds() == null) {
+            playerWorld.setWorlds(new ArrayList<>());
         }
+        final List<WorldRecord> worlds = playerWorld.getWorlds();
 
         // 检查是否已有该世界的预选记录
         WorldRecord nextRecord = worlds.stream()
@@ -115,7 +114,7 @@ public class RebirthService {
         playerWorld.setLastRebirthTime(System.currentTimeMillis());
 
         // 激活或创建下一世记录
-        List<WorldRecord> worlds = playerWorld.getWorlds();
+        final List<WorldRecord> worlds = playerWorld.getWorlds();
         WorldRecord nextRecord = worlds.stream()
                 .filter(w -> w.getWorldIndex() == nextIndex)
                 .findFirst()

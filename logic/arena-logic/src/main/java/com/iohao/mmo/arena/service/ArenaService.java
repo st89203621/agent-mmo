@@ -36,8 +36,8 @@ public class ArenaService {
         ArenaPlayer opponent = getArenaInfo(opponentId);
 
         // 基于战力计算胜率：胜率 = playerPower / (playerPower + opponentPower)
-        int playerPower = Math.max(player.getPower(), 1);
-        int opponentPower = Math.max(opponent.getPower(), 1);
+        long playerPower = Math.max(player.getPower(), 1L);
+        long opponentPower = Math.max(opponent.getPower(), 1L);
         double winChance = (double) playerPower / (playerPower + opponentPower);
         boolean win = Math.random() < winChance;
 

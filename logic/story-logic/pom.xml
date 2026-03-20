@@ -40,12 +40,13 @@
         <dependency>
             <groupId>com.volcengine</groupId>
             <artifactId>volcengine-java-sdk-ark-runtime</artifactId>
-            <version>LATEST</version>
+            <version>1.0.16</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
+            <version>${fastjson2.version}</version>
         </dependency>
     </dependencies>
 </project>
