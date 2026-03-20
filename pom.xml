@@ -69,6 +69,16 @@
         <module>logic/adventure-logic</module>
         <module>provide/event-provide</module>
         <module>logic/event-logic</module>
+        <module>provide/bookworld-provide</module>
+        <module>logic/bookworld-logic</module>
+        <module>provide/rebirth-provide</module>
+        <module>logic/rebirth-logic</module>
+        <module>provide/fate-provide</module>
+        <module>logic/fate-logic</module>
+        <module>provide/story-provide</module>
+        <module>logic/story-logic</module>
+        <module>provide/memory-provide</module>
+        <module>logic/memory-logic</module>
 
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>

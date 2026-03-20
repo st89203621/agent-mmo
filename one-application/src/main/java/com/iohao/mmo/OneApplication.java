@@ -44,6 +44,11 @@ import com.iohao.mmo.arena.ArenaLogicServer;
 import com.iohao.mmo.quest.QuestLogicServer;
 import com.iohao.mmo.enchant.EnchantLogicServer;
 import com.iohao.mmo.adventure.AdventureLogicServer;
+import com.iohao.mmo.bookworld.BookWorldLogicServer;
+import com.iohao.mmo.rebirth.RebirthLogicServer;
+import com.iohao.mmo.fate.FateLogicServer;
+import com.iohao.mmo.story.StoryLogicServer;
+import com.iohao.mmo.memory.MemoryLogicServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -123,6 +128,16 @@ public class OneApplication {
                 , new EnchantLogicServer()
                 // 冒险
                 , new AdventureLogicServer()
+                // 书籍世界
+                , new BookWorldLogicServer()
+                // 七世轮回
+                , new RebirthLogicServer()
+                // 缘分关系
+                , new FateLogicServer()
+                // 剧情对话
+                , new StoryLogicServer()
+                // 记忆碎片
+                , new MemoryLogicServer()
         );
     }
 

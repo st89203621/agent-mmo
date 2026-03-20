@@ -32,8 +32,32 @@ public class ArenaService {
     
     public Map<String, Object> getBattleResult(long playerId, long opponentId) {
         Map<String, Object> result = new HashMap<>();
-        boolean win = Math.random() > 0.5;
+        ArenaPlayer player = getArenaInfo(playerId);
+        ArenaPlayer opponent = getArenaInfo(opponentId);
+
+        // 基于战力计算胜率：胜率 = playerPower / (playerPower + opponentPower)
+        int playerPower = Math.max(player.getPower(), 1);
+        int opponentPower = Math.max(opponent.getPower(), 1);
+        double winChance = (double) playerPower / (playerPower + opponentPower);
+        boolean win = Math.random() < winChance;
+
+        // 更新积分（ELO简化版）
+        int ratingChange = win ? 25 : -20;
+        player.setRating(Math.max(0, player.getRating() + ratingChange));
+        if (win) {
+            player.setWins(player.getWins() + 1);
+            opponent.setLosses(opponent.getLosses() + 1);
+            opponent.setRating(Math.max(0, opponent.getRating() - 15));
+        } else {
+            player.setLosses(player.getLosses() + 1);
+            opponent.setWins(opponent.getWins() + 1);
+            opponent.setRating(opponent.getRating() + 15);
+        }
+        player.setCanBattle(true);
+
         result.put("win", win);
+        result.put("ratingChange", ratingChange);
+        result.put("newRating", player.getRating());
         result.put("reward", win ? 100 : 10);
         return result;
     }

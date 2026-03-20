@@ -65,4 +65,14 @@ public interface CmdModule {
     int enchantCmd = 21;
     /** 冒险 */
     int adventureCmd = 22;
+    /** 书籍世界 */
+    int bookWorldCmd = 23;
+    /** 七世轮回 */
+    int rebirthCmd = 24;
+    /** 缘分关系 */
+    int fateCmd = 25;
+    /** 剧情对话 */
+    int storyCmd = 26;
+    /** 记忆碎片 */
+    int memoryCmd = 27;
 }
