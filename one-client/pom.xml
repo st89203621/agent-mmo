@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.iohao.mmo</groupId>
+        <artifactId>mxd-mmo</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>org.example</groupId>
+    <artifactId>one-client</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>all-provide</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!-- 模拟客户端请求模块 https://www.yuque.com/iohao/game/tc83ud -->
+        <dependency>
+            <groupId>com.iohao.game</groupId>
+            <artifactId>light-client</artifactId>
+            <version>${ioGame.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>gift-provide</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+</project>

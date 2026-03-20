@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter -->
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.3</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.iohao.mmo</groupId>
+    <artifactId>mxd-mmo</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <modules>
+        <!-- 公共模块，存放一些所有模块都要使用的 -->
+        <module>common/common-core</module>
+        <!-- 游戏对外服 -->
+        <module>external</module>
+        <!-- Broker（游戏网关） -->
+        <module>broker</module>
+
+        <module>logic/a-logic-common</module>
+        <module>logic/all-logic</module>
+        <!-- 游戏逻辑服 - 登录 -->
+        <module>logic/login-logic</module>
+
+        <module>provide/all-provide</module>
+        <module>provide/common-provide</module>
+        <!-- 对外提供的模块数据 - 登录 -->
+        <module>provide/login-provide</module>
+        <module>logic/person-logic</module>
+        <module>provide/person-provide</module>
+        <module>logic/map-logic</module>
+        <module>provide/map-provide</module>
+        <module>logic/level-logic</module>
+        <module>provide/level-provide</module>
+        <module>logic/bag-logic</module>
+        <module>provide/bag-provide</module>
+        <module>logic/mail-logic</module>
+        <module>provide/mail-provide</module>
+        <module>logic/equip-logic</module>
+        <module>provide/equip-provide</module>
+        <module>provide/pet-provide</module>
+        <module>logic/pet-logic</module>
+        <module>provide/companion-provide</module>
+        <module>logic/companion-logic</module>
+        <module>logic/excel-logic</module>
+        <module>logic/gift-logic</module>
+        <module>provide/gift-provide</module>
+        <module>logic/chat-logic</module>
+        <module>provide/chat-provide</module>
+        <module>provide/worldboss-provide</module>
+        <module>logic/worldboss-logic</module>
+        <module>provide/shop-provide</module>
+        <module>logic/shop-logic</module>
+        <module>provide/rank-provide</module>
+        <module>logic/rank-logic</module>
+        <module>provide/quest-provide</module>
+        <module>logic/quest-logic</module>
+        <module>provide/enchant-provide</module>
+        <module>logic/enchant-logic</module>
+        <module>provide/arena-provide</module>
+        <module>logic/arena-logic</module>
+        <module>provide/adventure-provide</module>
+        <module>logic/adventure-logic</module>
+        <module>provide/event-provide</module>
+        <module>logic/event-logic</module>
+
+        <!-- 多服单进程启动模块 -->
+        <module>one-application</module>
+        <module>one-client</module>
+        <module>one-temp-application</module>
+
+    </modules>
+
+    <properties>
+        <!-- jdk 版本 -->
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <encoding>UTF-8</encoding>
+
+        <!-- 项目版本 -->
+        <ioGame.version>21.25</ioGame.version>
+        <!-- lombok 消除冗长的 Java 代码 https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+        <lombok.version>1.18.34</lombok.version>
+        <!-- redis internal : https://mvnrepository.com/artifact/org.redisson/redisson -->
+        <redisson.version>3.17.3</redisson.version>
+
+        <!-- JSR380 bean 验证框架 https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
+        <hibernate-validator.version>7.0.4.Final</hibernate-validator.version>
+        <!-- JSR380 https://mvnrepository.com/artifact/jakarta.validation/jakarta.validation-api -->
+        <jakarta.validation-api.version>3.0.2</jakarta.validation-api.version>
+        <!-- JSR380 https://mvnrepository.com/artifact/org.glassfish/jakarta.el -->
+        <jakarta.el.version>4.0.2</jakarta.el.version>
+
+        <!-- Java 实体映射工具 https://mvnrepository.com/artifact/org.mapstruct/mapstruct https://mapstruct.org/documentation/reference-guide/ -->
+        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+
+        <!--  junit https://mvnrepository.com/artifact/junit/junit  -->
+        <junit.version>4.13.2</junit.version>
+        <!-- 演示用的假数据 https://mvnrepository.com/artifact/com.github.javafaker/javafaker -->
+        <javafaker.version>1.0.2</javafaker.version>
+        <!-- https://mvnrepository.com/artifact/com.alibaba.fastjson2/fastjson2 -->
+        <fastjson2.version>2.0.46</fastjson2.version>
+
+        <!-- slf4j https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
+        <logback.version>1.4.14</logback.version>
+
+        <!--  junit https://mvnrepository.com/artifact/junit/junit  -->
+        <junit.version>4.13.2</junit.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/junit/junit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-clean-plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+            </plugin>
+
+            <!--
+            编译插件
+            mvn compile
+            To compile your test sources, you'll do:
+            mvn test-compile
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+                <configuration>
+                    <release>${java.version}</release>
+                    
+                    <!-- maven 3.6.2及之后加上编译参数，可以让我们在运行期获取方法参数名称 -->
+                    <parameters>true</parameters>
+                    <skip>true</skip>
+                    <!-- JDK9+ with module-info.java -->
+                    <annotationProcessorPaths>
+                        <!-- 实体映射工具 -->
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${org.mapstruct.version}</version>
+                        </path>
+
+                        <!-- lombok 消除冗长的 Java 代码 -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <!-- additional annotation processor required as of Lombok 1.18.16 -->
+                        <!-- mapStruct 支持 lombok -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>0.2.0</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- 打包时跳过单元测试 https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+
+            <!-- 打包源码 https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-source-plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <configuration>
+                    <attach>true</attach>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 资源配置插件 - 确保使用UTF-8编码处理资源文件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>

@@ -1,0 +1,120 @@
+### other dir ###
+classes/
+.temp/
+logs/
+log/
+.svn/
+svn/
+lib/
+.act.*
+
+system/
+
+HELP.md
+!**/src/main/**
+!**/src/test/**
+
+*.class
+
+### jreble config ###
+rebel.xml
+
+### Package Files ###
+*.jar
+*.war
+*.ear
+*.zip
+*.cache
+
+# tcp 与前端通讯的 api
+tcp-api/
+
+# gradle #
+build/
+.gradle/
+out/
+
+### maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn
+mvnw
+mvnw.cmd
+### intellj file type ###
+bin/
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### STS ###
+.apt_generated
+.factorypath
+.settings
+.springBeans
+.sts4-cache
+
+### eclipse file type ###
+.settings/
+.classpath
+.project
+
+### ---- Mac OS X ###
+.DS_Store
+Icon?
+
+### ---- Windows ###
+
+### Windows image file caches ###
+Thumbs.db
+
+### Folder integration file ###
+Desktop.ini
+
+### ---- Javadoc ###
+docs.tar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+/target/
+
+doc_game.txt
+
+# 大型媒体文件
+*.mp3
+*.wav
+*.ogg
+*.avi
+*.mp4
+*.mov
+*.wmv
+*.flv
+
+# 大型图片文件
+*.psd
+*.ai
+*.eps
+*.tiff
+*.tif
+
+# AI生成的临时文件
+**/ai-generated/**
+**/temp/**
+**/tmp/**
+
+# 预加载器和大型动画文件
+preloader.gif
+background*.png
+tilesets.png
+sliceEffect.png
+map_enemy_show_effect*.png
