@@ -22,15 +22,22 @@ import HudScene        from './scenes/HudScene.js';
 // ──────────────────────────────────────────────
 //  Phaser 3 配置
 // ──────────────────────────────────────────────
+// 设备像素比（iPhone = 3, 普通安卓 = 2），限制最大 3 倍避免内存过高
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
+
 const config = {
     type: Phaser.AUTO,
     width:  390,
     height: 680,
     backgroundColor: '#0e0b09',
     parent: 'game-container',
+    // resolution 让 Text 纹理按 DPR 生成，是移动端文字清晰的关键
+    resolution: DPR,
     scale: {
-        mode: Phaser.Scale.NONE,
+        mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
+        width:  390,
+        height: 680,
     },
     scene: [
         BootScene,
@@ -56,7 +63,7 @@ const config = {
     render: {
         antialias: true,
         pixelArt: false,
-        roundPixels: false,
+        roundPixels: true,    // 文字/图形对齐像素，减少亚像素模糊
     },
     fps: {
         target: 60,

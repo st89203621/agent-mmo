@@ -4,7 +4,8 @@
  * 使用标准 JSON/fetch 通信，无需实现 ioGame 二进制协议
  */
 
-const API_BASE = 'http://localhost:8090/api';
+// 自动跟随访问源的主机名，PC 用 localhost，手机用本机 IP 均可
+const API_BASE = `${window.location.protocol}//${window.location.hostname}:8090/api`;
 
 class GameClient {
     constructor() {

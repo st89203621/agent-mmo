@@ -68,7 +68,16 @@
       "Bash(export JAVA_HOME=\"/c/Users/90832/.jdks/ms-21.0.10\" export PATH=\"$JAVA_HOME/bin:/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/plugins/maven/lib/maven3/bin:$PATH\" cd /c/deye-6.4/agent-mmo mvn package -pl one-application --also-make -DskipTests --no-transfer-progress)",
       "Bash(jar tf:*)",
       "Bash(unzip -l /c/deye-6.4/agent-mmo/one-application/target/one-application-1.0-SNAPSHOT.jar)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ipconfig)",
+      "Bash(mvn package:*)",
+      "Bash(where mvn:*)",
+      "Bash(find /c -name mvn -type f)",
+      "Bash(/c/apache-maven-3.9.8/bin/mvn package:*)",
+      "Bash(JAVA_HOME=\"/c/Users/90832/.jdks/ms-21.0.10\" /c/apache-maven-3.9.8/bin/mvn package -pl one-application -am -DskipTests -q)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8090/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8090/game/index.html)",
+      "Bash(curl -L \"https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js\" -o \"/c/deye-6.4/agent-mmo/my-phaser-game/phaser.min.js\")"
     ]
   }
 }

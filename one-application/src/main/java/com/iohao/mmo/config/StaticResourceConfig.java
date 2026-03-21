@@ -19,8 +19,8 @@
 package com.iohao.mmo.config;
 
 import com.iohao.mmo.pet.util.VolcengineConfig;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -34,33 +34,34 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Slf4j
 @Configuration
-@AllArgsConstructor
 public class StaticResourceConfig implements WebMvcConfigurer {
 
     private final VolcengineConfig volcengineConfig;
 
+    @Value("${game.frontend-path:C:/deye-6.4/agent-mmo/my-phaser-game}")
+    private String gameFrontendPath;
+
+    public StaticResourceConfig(VolcengineConfig volcengineConfig) {
+        this.volcengineConfig = volcengineConfig;
+    }
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置AI生成的宠物图片静态资源访问
+        // 前端游戏文件由 spring.web.resources.static-locations 直接托管，无需在此配置
+        log.info("🎮 游戏前端: http://<IP>:8090/ (由 spring.web.resources.static-locations 托管)");
+
+        // ── AI生成的宠物图片 ──────────────────────────────────────
         String assetsPath = volcengineConfig.getFrontendAssetsPath();
-        
-        // 确保路径以file:///开头（Windows系统）
         String resourceLocation;
         if (assetsPath.matches("^[A-Za-z]:.*")) {
-            // Windows路径，例如: D:/path/to/assets
             resourceLocation = "file:///" + assetsPath.replace("\\", "/") + "/";
         } else {
-            // Unix路径
             resourceLocation = "file://" + assetsPath + "/";
         }
-        
-        log.info("🌐 配置静态资源访问:");
-        log.info("   - URL路径: /assets/pets/ai-generated/**");
-        log.info("   - 文件路径: {}", resourceLocation);
-        
+        log.info("🌐 宠物图片路径: {} → {}", "/assets/pets/ai-generated/**", resourceLocation);
         registry.addResourceHandler("/assets/pets/ai-generated/**")
                 .addResourceLocations(resourceLocation)
-                .setCachePeriod(3600); // 缓存1小时
+                .setCachePeriod(3600);
     }
 
     @Override

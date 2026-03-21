@@ -36,7 +36,7 @@
             position: relative;
             width: 390px;
             height: 680px;
-            overflow: hidden;
+            overflow: visible;  /* 允许 zoom 过渡期画布超出 */
         }
 
         canvas {
@@ -306,7 +306,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script src="phaser.min.js"></script>
 <script type="module" src="src/main.js"></script>
 </body>
 </html>
