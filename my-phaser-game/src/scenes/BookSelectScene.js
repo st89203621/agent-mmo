@@ -53,7 +53,9 @@ export default class BookSelectScene extends Phaser.Scene {
         const searchInput = document.getElementById('book-search-input');
         if (searchInput) {
             searchInput.value = '';
-            searchInput.addEventListener('input', () => this._onSearch(searchInput.value));
+            this._onSearchInput = () => this._onSearch(searchInput.value);
+            searchInput.addEventListener('input', this._onSearchInput);
+            this._searchInputEl = searchInput;
         }
 
         // 书单使用本地 DEMO 数据（服务端尚未实现书单接口）
@@ -113,6 +115,7 @@ export default class BookSelectScene extends Phaser.Scene {
             c.eraT.destroy();
             c.coverGfx.destroy();
             c.zone.destroy();
+            if (c.extraTexts) c.extraTexts.forEach(t => t.destroy());
         });
         this._cardObjs = [];
 
@@ -155,14 +158,16 @@ export default class BookSelectScene extends Phaser.Scene {
         // 书名竖排效果
         coverGfx.setDepth(4);
 
-        // 竖排书名（取前4字）
+        // 竖排书名（取前4字）—— 收集引用方便销毁
+        const extraTexts = [];
         const shortTitle = book.name.slice(0, 4);
         for (let ci = 0; ci < shortTitle.length; ci++) {
-            this.add.text(x + 8 + coverW / 2, y + 10 + 10 + ci * 18, shortTitle[ci], {
+            const ct = this.add.text(x + 8 + coverW / 2, y + 10 + 10 + ci * 18, shortTitle[ci], {
                 fontFamily: '"Microsoft YaHei", sans-serif',
                 fontSize: '12px',
                 color: isSelected ? '#c9a84c' : 'rgba(201,168,76,0.45)',
             }).setOrigin(0.5, 0).setDepth(5);
+            extraTexts.push(ct);
         }
 
         // 书名
@@ -195,9 +200,10 @@ export default class BookSelectScene extends Phaser.Scene {
 
         // 选中标记
         if (isSelected) {
-            this.add.text(x + w - 10, y + 10, '✓', {
+            const checkT = this.add.text(x + w - 10, y + 10, '✓', {
                 fontFamily: '"Microsoft YaHei", sans-serif', fontSize: '16px', color: '#c9a84c',
             }).setOrigin(1, 0).setDepth(6);
+            extraTexts.push(checkT);
         }
 
         const zone = this.add.zone(x + w / 2, y + h / 2, w, h)
@@ -207,7 +213,7 @@ export default class BookSelectScene extends Phaser.Scene {
             this._buildGrid(this.scale.width, this.scale.height);
         });
 
-        return { bg, nameT, tagT, eraT, coverGfx, zone };
+        return { bg, nameT, tagT, eraT, coverGfx, zone, extraTexts };
     }
 
     _buildConfirmBtn(W, H) {
@@ -258,5 +264,10 @@ export default class BookSelectScene extends Phaser.Scene {
     shutdown() {
         const searchArea = document.getElementById('book-search-area');
         if (searchArea) searchArea.style.display = 'none';
+        if (this._searchInputEl && this._onSearchInput) {
+            this._searchInputEl.removeEventListener('input', this._onSearchInput);
+            this._searchInputEl = null;
+            this._onSearchInput = null;
+        }
     }
 }

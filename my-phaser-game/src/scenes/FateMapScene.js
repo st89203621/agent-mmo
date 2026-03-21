@@ -127,6 +127,7 @@ export default class FateMapScene extends Phaser.Scene {
             n.line.destroy();
             n.circle.destroy();
             n.label.destroy();
+            n.fateText.destroy();
             n.zone.destroy();
         });
         this._nodeObjs = [];
@@ -174,7 +175,7 @@ export default class FateMapScene extends Phaser.Scene {
             }).setOrigin(0.5, 0).setDepth(4);
 
             // 缘分值文字
-            this.add.text(nx, ny, `${fate.fateValue}`, {
+            const fateText = this.add.text(nx, ny, `${fate.fateValue}`, {
                 fontFamily: '"Microsoft YaHei", sans-serif',
                 fontSize: '10px',
                 color: '#f5ede0',
@@ -198,7 +199,7 @@ export default class FateMapScene extends Phaser.Scene {
                 circle.strokeCircle(nx, ny, nodeR);
             });
 
-            this._nodeObjs.push({ fate, line, circle, label, zone, nx, ny });
+            this._nodeObjs.push({ fate, line, circle, label, fateText, zone, nx, ny });
         });
     }
 

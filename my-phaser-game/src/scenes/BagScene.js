@@ -152,9 +152,10 @@ export default class BagScene extends Phaser.Scene {
     _buildGrid(W, H) {
         this._cellObjs.forEach(c => {
             c.bg.destroy();
-            if (c.icon) c.icon.destroy();
-            if (c.qtyText) c.qtyText.destroy();
-            if (c.zone) c.zone.destroy();
+            if (c.icon)     c.icon.destroy();
+            if (c.nameText) c.nameText.destroy();
+            if (c.qtyText)  c.qtyText.destroy();
+            if (c.zone)     c.zone.destroy();
         });
         this._cellObjs = [];
 
@@ -199,7 +200,7 @@ export default class BagScene extends Phaser.Scene {
 
             // 名字（缩写）
             const shortName = item.name.slice(0, 2);
-            this.add.text(x + size / 2, y + size / 2 - 3, shortName, {
+            const nameText = this.add.text(x + size / 2, y + size / 2 - 3, shortName, {
                 fontFamily: '"Microsoft YaHei", sans-serif',
                 fontSize: '12px',
                 color: rarityColor,
@@ -231,7 +232,7 @@ export default class BagScene extends Phaser.Scene {
             });
         }
 
-        return { bg, icon, qtyText, zone };
+        return { bg, icon, nameText, qtyText, zone };
     }
 
     _showItemDetail(item, cellX, cellY) {

@@ -236,9 +236,16 @@ export default class StoryScene extends Phaser.Scene {
             input.value = '';
             this._sendFreeText(text);
         };
+        const onKeydown = e => { if (e.key === 'Enter') doSend(); };
 
         if (btnSend) btnSend.addEventListener('click', doSend);
-        if (input)   input.addEventListener('keydown', e => { if (e.key === 'Enter') doSend(); });
+        if (input)   input.addEventListener('keydown', onKeydown);
+
+        // 保存引用，shutdown 时清理
+        this._freeInputCleanup = () => {
+            if (btnSend) btnSend.removeEventListener('click', doSend);
+            if (input)   input.removeEventListener('keydown', onKeydown);
+        };
     }
 
     _showChoices(choices) {
@@ -329,6 +336,11 @@ export default class StoryScene extends Phaser.Scene {
         }
         const inputArea = document.getElementById('story-input-area');
         if (inputArea) inputArea.style.display = 'none';
+        if (this._freeInputCleanup) {
+            this._freeInputCleanup();
+            this._freeInputCleanup = null;
+        }
+        this._clearChoices();
         if (this._dialogBox) this._dialogBox.destroy();
         if (this._fateBar)   this._fateBar.destroy();
     }

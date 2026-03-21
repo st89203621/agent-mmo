@@ -26,14 +26,19 @@ export default class HudScene extends Phaser.Scene {
         this._nav = new BottomNav(this, H - NAV_H);
 
         // 监听主场景切换事件（其他场景可以广播这个事件）
-        this.game.events.on('setNavActive', (key) => {
+        this._onSetNavActive = (key) => {
             if (this._nav) this._nav.setActive(key);
-        });
+        };
+        this.game.events.on('setNavActive', this._onSetNavActive);
     }
 
     update() {}
 
-    destroy() {
+    shutdown() {
+        if (this._onSetNavActive) {
+            this.game.events.off('setNavActive', this._onSetNavActive);
+            this._onSetNavActive = null;
+        }
         if (this._nav) {
             this._nav.destroy();
             this._nav = null;

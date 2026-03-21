@@ -22,22 +22,25 @@ import HudScene        from './scenes/HudScene.js';
 // ──────────────────────────────────────────────
 //  Phaser 3 配置
 // ──────────────────────────────────────────────
-// 设备像素比（iPhone = 3, 普通安卓 = 2），限制最大 3 倍避免内存过高
-const DPR = Math.min(window.devicePixelRatio || 1, 3);
+// 设备像素比取整（非整数 DPR 会造成 CSS 亚像素缩放导致模糊），限制最大 3 倍
+const DPR = Math.min(Math.round(window.devicePixelRatio || 1), 3);
 
 const config = {
-    type: Phaser.AUTO,
+    // Canvas2D 渲染器：文字由浏览器原生字体引擎直接输出到 canvas，
+    // 完全绕开 WebGL 纹理采样，中文字体清晰度最高
+    type: Phaser.CANVAS,
     width:  390,
     height: 680,
     backgroundColor: '#0e0b09',
     parent: 'game-container',
-    // resolution 让 Text 纹理按 DPR 生成，是移动端文字清晰的关键
-    resolution: DPR,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width:  390,
         height: 680,
+        // zoom 让 canvas 物理像素 = 390*DPR × 680*DPR
+        // Scale.FIT 把 CSS 尺寸缩回屏幕，实现 1:1 物理像素映射
+        zoom: DPR,
     },
     scene: [
         BootScene,
@@ -61,9 +64,9 @@ const config = {
         createContainer: true,
     },
     render: {
-        antialias: true,
+        antialias: false,     // Canvas2D 模式下关闭 antialias，文字边缘更锐利
         pixelArt: false,
-        roundPixels: true,    // 文字/图形对齐像素，减少亚像素模糊
+        roundPixels: true,    // 文字/图形对齐像素，消除亚像素偏移
     },
     fps: {
         target: 60,

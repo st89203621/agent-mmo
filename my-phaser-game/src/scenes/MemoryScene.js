@@ -83,7 +83,12 @@ export default class MemoryScene extends Phaser.Scene {
 
     _buildCards(W) {
         // 清理旧卡片
-        this._cards.forEach(c => { c.bg.destroy(); c.npcText.destroy(); c.worldText.destroy(); c.excerptText.destroy(); c.fateBar && c.fateBar.destroy(); });
+        this._cards.forEach(c => {
+            c.bg.destroy(); c.npcText.destroy(); c.worldText.destroy();
+            c.excerptText.destroy();
+            c.fateBar && c.fateBar.destroy();
+            c.zone && c.zone.destroy();
+        });
         this._cards = [];
 
         const cardH = 88;
@@ -150,13 +155,14 @@ export default class MemoryScene extends Phaser.Scene {
         }
 
         // 点击查看
+        let zone = null;
         if (mem.unlocked) {
-            const zone = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
+            zone = this.add.zone(x + w / 2, y + h / 2, w, h).setInteractive({ useHandCursor: true });
             zone.setDepth(4);
             zone.on('pointerdown', () => this._viewMemory(mem));
         }
 
-        return { bg, npcText, worldText, excerptText, fateBar };
+        return { bg, npcText, worldText, excerptText, fateBar, zone };
     }
 
     _viewMemory(mem) {
@@ -182,19 +188,19 @@ export default class MemoryScene extends Phaser.Scene {
         panelBg.strokeRoundedRect(panelX, panelY, panelW, panelH, 8);
         panelBg.setDepth(21);
 
-        this.add.text(panelX + panelW / 2, panelY + 22, `「${mem.npc}的记忆」`, {
+        const titleT = this.add.text(panelX + panelW / 2, panelY + 22, `「${mem.npc}的记忆」`, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '16px',
             color: '#c9a84c',
         }).setOrigin(0.5).setDepth(22);
 
-        this.add.text(panelX + 16, panelY + 54, mem.world, {
+        const worldT = this.add.text(panelX + 16, panelY + 54, mem.world, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '11px',
             color: 'rgba(201,168,76,0.6)',
         }).setDepth(22);
 
-        this.add.text(panelX + 16, panelY + 80, mem.excerpt, {
+        const excerptT = this.add.text(panelX + 16, panelY + 80, mem.excerpt, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '14px',
             color: '#f5ede0',
@@ -202,7 +208,7 @@ export default class MemoryScene extends Phaser.Scene {
             lineSpacing: 6,
         }).setDepth(22);
 
-        this.add.text(panelX + 16, panelY + 180, `缘分值：${mem.fateValue}`, {
+        const fateT = this.add.text(panelX + 16, panelY + 180, `缘分值：${mem.fateValue}`, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '13px',
             color: '#c9a84c',
@@ -215,11 +221,8 @@ export default class MemoryScene extends Phaser.Scene {
             color: 'rgba(201,168,76,0.7)',
         }).setOrigin(1, 0).setDepth(22).setInteractive({ useHandCursor: true });
 
-        const doClose = () => {
-            overlay.destroy(); panelBg.destroy();
-            [closeBtn].forEach(o => o.destroy());
-            // 也销毁文字...（简化处理，实际应收集所有对象）
-        };
+        const panelObjs = [overlay, panelBg, titleT, worldT, excerptT, fateT, closeBtn];
+        const doClose = () => panelObjs.forEach(o => o.destroy());
         closeBtn.on('pointerdown', doClose);
         overlay.on('pointerdown', doClose);
     }

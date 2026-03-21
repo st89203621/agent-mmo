@@ -77,7 +77,8 @@
       "Bash(JAVA_HOME=\"/c/Users/90832/.jdks/ms-21.0.10\" /c/apache-maven-3.9.8/bin/mvn package -pl one-application -am -DskipTests -q)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8090/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8090/game/index.html)",
-      "Bash(curl -L \"https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js\" -o \"/c/deye-6.4/agent-mmo/my-phaser-game/phaser.min.js\")"
+      "Bash(curl -L \"https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js\" -o \"/c/deye-6.4/agent-mmo/my-phaser-game/phaser.min.js\")",
+      "Bash(findstr /i \"IPv4\")"
     ]
   }
 }

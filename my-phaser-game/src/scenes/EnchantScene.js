@@ -29,8 +29,8 @@ export default class EnchantScene extends Phaser.Scene {
         super({ key: 'EnchantScene' });
         this._selectedEquip   = null;
         this._selectedEnchant = null;
-        this._equipObjs = [];
-        this._enchantObjs = [];
+        this._equipListObjs   = [];  // 装备列表所有游戏对象
+        this._enchantPanelObjs = []; // 附魔面板所有游戏对象
     }
 
     preload() {}
@@ -74,20 +74,26 @@ export default class EnchantScene extends Phaser.Scene {
     }
 
     _buildEquipList(W) {
-        this.add.text(14, 58, '选择装备', {
+        // 清理旧对象
+        this._equipListObjs.forEach(o => o.destroy && o.destroy());
+        this._equipListObjs = [];
+
+        const lbl = this.add.text(14, 58, '选择装备', {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '12px',
             color: 'rgba(201,168,76,0.6)',
         }).setDepth(4);
+        this._equipListObjs.push(lbl);
 
         const itemH = 52;
         DEMO_EQUIPS.forEach((eq, i) => {
             const y = 76 + i * (itemH + 6);
-            this._buildEquipItem(8, y, W - 16, itemH, eq, i);
+            const objs = this._buildEquipItem(8, y, W - 16, itemH, eq);
+            this._equipListObjs.push(...objs);
         });
     }
 
-    _buildEquipItem(x, y, w, h, eq, index) {
+    _buildEquipItem(x, y, w, h, eq) {
         const isSelected = this._selectedEquip && this._selectedEquip.id === eq.id;
 
         const bg = this.add.graphics();
@@ -97,20 +103,20 @@ export default class EnchantScene extends Phaser.Scene {
         bg.strokeRoundedRect(x, y, w, h, 5);
         bg.setDepth(3);
 
-        this.add.text(x + 12, y + 12, eq.name, {
+        const nameT = this.add.text(x + 12, y + 12, eq.name, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '14px',
             color: '#f5ede0',
         }).setDepth(4);
 
-        this.add.text(x + 12, y + 32, `Lv.${eq.level}  ${eq.slot}`, {
+        const subT = this.add.text(x + 12, y + 32, `Lv.${eq.level}  ${eq.slot}`, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '11px',
             color: 'rgba(245,237,224,0.5)',
         }).setDepth(4);
 
         const enchantLabel = eq.enchant || '无附魔';
-        this.add.text(x + w - 12, y + 12, enchantLabel, {
+        const enchantT = this.add.text(x + w - 12, y + 12, enchantLabel, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '11px',
             color: eq.enchant ? '#c9a84c' : 'rgba(245,237,224,0.3)',
@@ -122,15 +128,22 @@ export default class EnchantScene extends Phaser.Scene {
             this._selectedEquip = eq;
             this._buildEquipList(this.scale.width);
         });
+
+        return [bg, nameT, subT, enchantT, zone];
     }
 
     _buildEnchantPanel(W, H) {
+        // 清理旧对象
+        this._enchantPanelObjs.forEach(o => o.destroy && o.destroy());
+        this._enchantPanelObjs = [];
+
         const panelY = 250;
-        this.add.text(14, panelY, '选择附魔效果', {
+        const lbl = this.add.text(14, panelY, '选择附魔效果', {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '12px',
             color: 'rgba(201,168,76,0.6)',
         }).setDepth(4);
+        this._enchantPanelObjs.push(lbl);
 
         const itemW = (W - 28) / 2;
         const itemH = 52;
@@ -141,7 +154,8 @@ export default class EnchantScene extends Phaser.Scene {
             const x = 8 + col * (itemW + 6);
             const y = panelY + 22 + row * (itemH + 6);
 
-            this._buildEnchantOption(x, y, itemW, itemH, opt);
+            const objs = this._buildEnchantOption(x, y, itemW, itemH, opt);
+            this._enchantPanelObjs.push(...objs);
         });
     }
 
@@ -155,19 +169,19 @@ export default class EnchantScene extends Phaser.Scene {
         bg.strokeRoundedRect(x, y, w, h, 5);
         bg.setDepth(3);
 
-        this.add.text(x + 10, y + 8, `${opt.name}·${opt.tier}`, {
+        const nameT = this.add.text(x + 10, y + 8, `${opt.name}·${opt.tier}`, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '12px',
             color: '#c9a84c',
         }).setDepth(4);
 
-        this.add.text(x + 10, y + 28, opt.effect, {
+        const effectT = this.add.text(x + 10, y + 28, opt.effect, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '11px',
             color: '#80cc60',
         }).setDepth(4);
 
-        this.add.text(x + w - 8, y + 28, `${opt.cost}灵石`, {
+        const costT = this.add.text(x + w - 8, y + 28, `${opt.cost}灵石`, {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '11px',
             color: 'rgba(201,168,76,0.6)',
@@ -179,6 +193,8 @@ export default class EnchantScene extends Phaser.Scene {
             this._selectedEnchant = opt;
             this._buildEnchantPanel(this.scale.width, this.scale.height);
         });
+
+        return [bg, nameT, effectT, costT, zone];
     }
 
     _buildConfirmBtn(W, H) {
@@ -189,7 +205,7 @@ export default class EnchantScene extends Phaser.Scene {
         bg.fillStyle(0x2a2010, 1);
         bg.fillRoundedRect(12, btnY, btnW, 42, 5);
         bg.lineStyle(1, GOLD, 0.6);
-        bg.strokeRoundedRect(12, btnW, btnW, 42, 5);
+        bg.strokeRoundedRect(12, btnY, btnW, 42, 5);  // 修复：原来第2参数写成了 btnW
         bg.setDepth(5);
 
         const label = this.add.text(W / 2, btnY + 21, '确认附魔', {
@@ -226,6 +242,10 @@ export default class EnchantScene extends Phaser.Scene {
     update() {}
 
     shutdown() {
+        this._equipListObjs.forEach(o => o.destroy && o.destroy());
+        this._equipListObjs = [];
+        this._enchantPanelObjs.forEach(o => o.destroy && o.destroy());
+        this._enchantPanelObjs = [];
         gameClient.offAll(`${CMD.ENCHANT.cmd}_${CMD.ENCHANT.getList}`);
     }
 }

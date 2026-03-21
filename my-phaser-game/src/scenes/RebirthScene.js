@@ -35,7 +35,8 @@ export default class RebirthScene extends Phaser.Scene {
         this._bookId     = 1;
         this._rings      = [];
         this._poemTexts  = [];
-        this._selectedBookId = 1;
+        this._selectedBookId  = 1;
+        this._bookSelectorObjs = [];  // 书籍标签对象列表，用于重建时清理
     }
 
     preload() {}
@@ -172,12 +173,17 @@ export default class RebirthScene extends Phaser.Scene {
     }
 
     _buildBookSelector(W, H) {
+        // 清理旧标签对象
+        this._bookSelectorObjs.forEach(o => o.destroy && o.destroy());
+        this._bookSelectorObjs = [];
+
         const selectorY = H - 160;
-        this.add.text(W / 2, selectorY, '— 选择书籍世界 —', {
+        const titleT = this.add.text(W / 2, selectorY, '— 选择书籍世界 —', {
             fontFamily: '"Microsoft YaHei", sans-serif',
             fontSize: '12px',
             color: 'rgba(201,168,76,0.5)',
         }).setOrigin(0.5).setDepth(5);
+        this._bookSelectorObjs.push(titleT);
 
         // 横向滚动标签
         const tagY = selectorY + 24;
@@ -211,10 +217,10 @@ export default class RebirthScene extends Phaser.Scene {
                 this._bookEra  = book.era;
                 this._bookNameText.setText(book.name);
                 this._bookEraText.setText(book.era);
-                // 重绘选择状态（简化：重建整个选择器）
                 this._buildBookSelector(W, H);
             });
 
+            this._bookSelectorObjs.push(tagBg, tagText, zone);
             offsetX += tagW + 8;
         });
     }
