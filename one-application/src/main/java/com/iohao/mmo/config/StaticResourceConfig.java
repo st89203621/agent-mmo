@@ -65,11 +65,17 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 配置CORS，允许前端访问静态资源
         registry.addMapping("/assets/**")
                 .allowedOrigins("*")
                 .allowedMethods("GET", "HEAD")
                 .allowedHeaders("*")
+                .maxAge(3600);
+        // 允许前端跨域访问游戏 REST API
+        registry.addMapping("/api/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 }

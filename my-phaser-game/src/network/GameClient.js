@@ -1,196 +1,196 @@
 /**
- * GameClient.js - WebSocket 单例客户端
- * 连接 ioGame 后端 ws://localhost:8081
- * 使用 JSON 消息格式（后续可切换二进制协议）
+ * GameClient.js - 游戏 HTTP REST 客户端
+ * 连接 Spring Boot REST API: http://localhost:8090/api
+ * 使用标准 JSON/fetch 通信，无需实现 ioGame 二进制协议
  */
+
+const API_BASE = 'http://localhost:8090/api';
 
 class GameClient {
     constructor() {
-        this.ws = null;
-        this.connected = false;
         this.userId = null;
-        this.token = null;
-        this._listeners = {};   // { eventKey: [callbacks] }
-        this._onceMap = {};     // { eventKey: [callbacks] }
-        this._reconnectTimer = null;
-        this._url = 'ws://localhost:8081';
-        this._manualClose = false;
+        this.username = null;
+        this._listeners = {};
+        this._onceMap = {};
     }
 
     // ──────────────────────────────────────────────
-    //  连接管理
+    //  内部 fetch 封装
     // ──────────────────────────────────────────────
-    connect() {
-        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-            return;
-        }
-        this._manualClose = false;
-        console.log('[GameClient] 正在连接', this._url);
+    async _post(path, body = {}) {
         try {
-            this.ws = new WebSocket(this._url);
-            this.ws.onopen    = this._onOpen.bind(this);
-            this.ws.onmessage = this._onMessage.bind(this);
-            this.ws.onerror   = this._onError.bind(this);
-            this.ws.onclose   = this._onClose.bind(this);
+            const res = await fetch(`${API_BASE}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(body)
+            });
+            const json = await res.json();
+            if (json.code !== 0) throw new Error(json.msg || '请求失败');
+            return json.data;
         } catch (e) {
-            console.error('[GameClient] WebSocket 创建失败', e);
-            this._scheduleReconnect();
+            console.error('[GameClient] POST error', path, e);
+            throw e;
         }
     }
 
-    disconnect() {
-        this._manualClose = true;
-        if (this._reconnectTimer) {
-            clearTimeout(this._reconnectTimer);
-            this._reconnectTimer = null;
-        }
-        if (this.ws) {
-            this.ws.close();
-            this.ws = null;
-        }
-        this.connected = false;
-    }
-
-    _onOpen() {
-        this.connected = true;
-        console.log('[GameClient] 已连接');
-        this._emit('__connected__', {});
-    }
-
-    _onMessage(event) {
+    async _get(path) {
         try {
-            const msg = JSON.parse(event.data);
-            const key = `${msg.cmd}_${msg.subCmd}`;
-            console.log('[GameClient] 收到消息', key, msg.data);
-            this._emit(key, msg.data);
-            this._emit('__any__', msg);
+            const res = await fetch(`${API_BASE}${path}`, {
+                credentials: 'include'
+            });
+            const json = await res.json();
+            if (json.code !== 0) throw new Error(json.msg || '请求失败');
+            return json.data;
         } catch (e) {
-            console.warn('[GameClient] 消息解析失败', event.data, e);
+            console.error('[GameClient] GET error', path, e);
+            throw e;
         }
     }
 
-    _onError(e) {
-        console.error('[GameClient] 连接错误', e);
-        this._emit('__error__', e);
-    }
-
-    _onClose(e) {
-        this.connected = false;
-        console.warn('[GameClient] 连接关闭', e.code, e.reason);
-        this._emit('__disconnected__', { code: e.code, reason: e.reason });
-        if (!this._manualClose) {
-            this._scheduleReconnect();
-        }
-    }
-
-    _scheduleReconnect() {
-        if (this._reconnectTimer) return;
-        console.log('[GameClient] 3秒后重连...');
-        this._reconnectTimer = setTimeout(() => {
-            this._reconnectTimer = null;
-            this.connect();
-        }, 3000);
-    }
-
     // ──────────────────────────────────────────────
-    //  发送消息
+    //  认证
     // ──────────────────────────────────────────────
-    /**
-     * @param {number} cmd
-     * @param {number} subCmd
-     * @param {object} data
-     */
-    send(cmd, subCmd, data = {}) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            console.warn('[GameClient] 未连接，无法发送', cmd, subCmd);
+    async login(username, password) {
+        const data = await this._post('/auth/login', { username, password });
+        this.userId = data.userId;
+        this.username = data.username;
+        this._saveLocal();
+        this._emit('__connected__', data);
+        return data;
+    }
+
+    async register(username, password) {
+        const data = await this._post('/auth/register', { username, password });
+        this.userId = data.userId;
+        this.username = data.username;
+        this._saveLocal();
+        return data;
+    }
+
+    async logout() {
+        await this._post('/auth/logout');
+        this.userId = null;
+        this.username = null;
+        localStorage.removeItem('qslh_userId');
+        localStorage.removeItem('qslh_username');
+    }
+
+    async checkSession() {
+        try {
+            const data = await this._get('/auth/me');
+            this.userId = data.userId;
+            this.username = data.username;
+            return true;
+        } catch {
             return false;
         }
-        const payload = JSON.stringify({ cmd, subCmd, data });
-        console.log('[GameClient] 发送', cmd, subCmd, data);
-        this.ws.send(payload);
-        return true;
     }
 
     // ──────────────────────────────────────────────
-    //  事件监听
+    //  剧情对话
     // ──────────────────────────────────────────────
-    /**
-     * 监听 cmd_subCmd 事件
-     * @param {string|number} eventName  可以是 "26_1" 或 "cmd_subcmd"
-     * @param {function} callback
-     */
+    async startDialogue(npcId, worldIndex = 1) {
+        return this._post('/story/start', { npcId, worldIndex });
+    }
+
+    async sendChoice(sessionId, choiceId, npcId = '', worldIndex = 1) {
+        return this._post('/story/choice', { sessionId, choiceId, npcId, worldIndex });
+    }
+
+    async sendFreeInput(sessionId, text, npcId = '', worldIndex = 1) {
+        return this._post('/story/input', { sessionId, text, npcId, worldIndex });
+    }
+
+    async endDialogue(sessionId) {
+        return this._post('/story/end', { sessionId });
+    }
+
+    async getNpcInfo(npcId) {
+        return this._get(`/story/npc/${npcId}`);
+    }
+
+    // ──────────────────────────────────────────────
+    //  缘分系统
+    // ──────────────────────────────────────────────
+    async getFateMap() {
+        return this._get('/fate/map');
+    }
+
+    async getRelations() {
+        return this._get('/fate/relations');
+    }
+
+    // ──────────────────────────────────────────────
+    //  七世轮回
+    // ──────────────────────────────────────────────
+    async getRebirthStatus() {
+        return this._get('/rebirth/status');
+    }
+
+    async selectBook(bookId, bookTitle) {
+        return this._post('/rebirth/select-book', { bookId, bookTitle });
+    }
+
+    // ──────────────────────────────────────────────
+    //  本地存储
+    // ──────────────────────────────────────────────
+    _saveLocal() {
+        if (this.userId) localStorage.setItem('qslh_userId', this.userId);
+        if (this.username) localStorage.setItem('qslh_username', this.username);
+    }
+
+    loadAuth() {
+        this.userId = localStorage.getItem('qslh_userId');
+        this.username = localStorage.getItem('qslh_username');
+        return !!this.userId;
+    }
+
+    clearAuth() {
+        this.userId = null;
+        this.username = null;
+        localStorage.removeItem('qslh_userId');
+        localStorage.removeItem('qslh_username');
+    }
+
+    // ──────────────────────────────────────────────
+    //  事件（兼容旧代码）
+    // ──────────────────────────────────────────────
     on(eventName, callback) {
         const key = String(eventName);
         if (!this._listeners[key]) this._listeners[key] = [];
         this._listeners[key].push(callback);
     }
 
-    /**
-     * 监听一次性事件
-     */
     once(eventName, callback) {
         const key = String(eventName);
         if (!this._onceMap[key]) this._onceMap[key] = [];
         this._onceMap[key].push(callback);
     }
 
-    /**
-     * 移除监听
-     */
     off(eventName, callback) {
         const key = String(eventName);
         if (this._listeners[key]) {
             this._listeners[key] = this._listeners[key].filter(cb => cb !== callback);
         }
-        if (this._onceMap[key]) {
-            this._onceMap[key] = this._onceMap[key].filter(cb => cb !== callback);
-        }
-    }
-
-    /**
-     * 移除某个key的所有监听
-     */
-    offAll(eventName) {
-        const key = String(eventName);
-        delete this._listeners[key];
-        delete this._onceMap[key];
     }
 
     _emit(eventName, data) {
         const key = String(eventName);
-        const listeners = this._listeners[key] || [];
-        listeners.forEach(cb => {
-            try { cb(data); } catch (e) { console.error('[GameClient] listener error', e); }
-        });
+        (this._listeners[key] || []).forEach(cb => { try { cb(data); } catch (e) { } });
         const onceList = this._onceMap[key] || [];
         delete this._onceMap[key];
-        onceList.forEach(cb => {
-            try { cb(data); } catch (e) { console.error('[GameClient] once error', e); }
+        onceList.forEach(cb => { try { cb(data); } catch (e) { } });
+    }
+
+    /** 兼容旧的 connect() 调用 */
+    connect() {
+        this.checkSession().then(ok => {
+            if (ok) this._emit('__connected__', { userId: this.userId });
         });
     }
-
-    // ──────────────────────────────────────────────
-    //  便捷方法
-    // ──────────────────────────────────────────────
-    saveAuth(userId, token) {
-        this.userId = userId;
-        this.token = token;
-        if (userId) localStorage.setItem('qslh_userId', userId);
-        if (token) localStorage.setItem('qslh_token', token);
-    }
-
-    loadAuth() {
-        this.userId = localStorage.getItem('qslh_userId');
-        this.token  = localStorage.getItem('qslh_token');
-        return !!(this.userId && this.token);
-    }
-
-    clearAuth() {
-        this.userId = null;
-        this.token  = null;
-        localStorage.removeItem('qslh_userId');
-        localStorage.removeItem('qslh_token');
-    }
+    disconnect() {}
+    get connected() { return !!this.userId; }
 }
 
 // 单例
@@ -198,33 +198,17 @@ const gameClient = new GameClient();
 export default gameClient;
 
 // ──────────────────────────────────────────────
-//  CMD 常量表
+//  CMD 常量表（保留兼容）
 // ──────────────────────────────────────────────
 export const CMD = {
-    // 用户/登录
-    USER: { cmd: 1,  login: 1, logout: 2, getInfo: 3 },
-    // 剧情
+    USER: { cmd: 1, login: 1, logout: 2, getInfo: 3 },
     STORY: { cmd: 26, startDialogue: 1, sendChoice: 2, sendFreeInput: 3, endDialogue: 4 },
-    // 探索
     EXPLORE: { cmd: 21, getMap: 1, moveTo: 2, getPOI: 3 },
-    // 书籍世界
     BOOK_WORLD: { cmd: 23, listBooks: 1, getBook: 2, selectBook: 3 },
-    // 人物装备
     CHARACTER: { cmd: 11, getInfo: 1, equip: 2, unequip: 3 },
-    // 附魔
-    ENCHANT: { cmd: 12, getList: 1, enchant: 2 },
-    // 技能树
-    SKILL: { cmd: 13, getTree: 1, learn: 2, upgrade: 3 },
-    // 背包
     BAG: { cmd: 14, getItems: 1, useItem: 2, dropItem: 3 },
-    // 宠物
     PET: { cmd: 15, getList: 1, feed: 2, release: 3, rename: 4 },
-    // 记忆碎片
     MEMORY: { cmd: 16, getList: 1, view: 2 },
-    // 因缘谱
-    FATE: { cmd: 17, getMap: 1, getNpcDetail: 2 },
-    // 轮回
-    REBIRTH: { cmd: 18, start: 1, confirm: 2 },
-    // 战斗
-    BATTLE: { cmd: 22, start: 1, action: 2, flee: 3 },
+    FATE: { cmd: 25, getMap: 1, getNpcDetail: 2 },
+    REBIRTH: { cmd: 24, start: 1, confirm: 2 },
 };
