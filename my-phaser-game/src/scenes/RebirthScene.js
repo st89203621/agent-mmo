@@ -259,15 +259,10 @@ export default class RebirthScene extends Phaser.Scene {
         });
 
         zone.on('pointerdown', () => {
-            // 发送选书+轮回确认
-            gameClient.send(CMD.BOOK_WORLD.cmd, CMD.BOOK_WORLD.selectBook, {
-                worldIndex: this._worldNum,
-                bookId:     this._selectedBookId,
-            });
-            gameClient.send(CMD.REBIRTH.cmd, CMD.REBIRTH.confirm, {
-                worldNum: this._worldNum,
-                bookId:   this._selectedBookId,
-            });
+            // 通知服务端选书（fire-and-forget）
+            gameClient.selectBook(
+                String(this._selectedBookId), this._bookName
+            ).catch(() => {});
 
             // 切换到探索场景
             this.cameras.main.fadeOut(800, 0, 0, 0);

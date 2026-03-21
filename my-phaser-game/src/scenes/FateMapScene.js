@@ -47,14 +47,19 @@ export default class FateMapScene extends Phaser.Scene {
         this._fates = DEMO_FATES;
         this._buildNodes(W, mapCenterY);
 
-        // 请求服务端因缘数据
-        gameClient.send(CMD.FATE.cmd, CMD.FATE.getMap, {});
-        gameClient.on(`${CMD.FATE.cmd}_${CMD.FATE.getMap}`, (d) => {
-            if (d && d.fates) {
-                this._fates = d.fates;
+        // 从 REST API 加载缘分数据
+        gameClient.getRelations().then(d => {
+            if (d && d.relations && d.relations.length > 0) {
+                this._fates = d.relations.map(r => ({
+                    id:        r.npcId,
+                    name:      r.npcName,
+                    fateValue: r.fateScore || 0,
+                    world:     `第${r.worldIndex}世`,
+                    relation:  r.milestone ? '红线' : (r.emotion || '因缘'),
+                }));
                 this._buildNodes(W, mapCenterY);
             }
-        });
+        }).catch(() => { /* 使用 DEMO 数据 */ });
     }
 
     _buildHeader(W) {
@@ -277,7 +282,6 @@ export default class FateMapScene extends Phaser.Scene {
         btnZone.on('pointerdown', () => {
             objs.forEach(o => o.destroy && o.destroy());
             this._detailPanel = null;
-            gameClient.send(CMD.FATE.cmd, CMD.FATE.getNpcDetail, { npcId: fate.id });
             this.scene.start('StoryScene', {
                 npcId:      fate.id,
                 worldIndex: 1,
@@ -296,7 +300,6 @@ export default class FateMapScene extends Phaser.Scene {
     update() {}
 
     shutdown() {
-        gameClient.offAll(`${CMD.FATE.cmd}_${CMD.FATE.getMap}`);
         if (this._detailPanel) {
             this._detailPanel.forEach(o => o.destroy && o.destroy());
             this._detailPanel = null;

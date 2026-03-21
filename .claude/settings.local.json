@@ -67,7 +67,8 @@
       "Bash(head -20 find /c/deye-6.4/agent-mmo -name *.html -not -path */my-phaser-game/*)",
       "Bash(export JAVA_HOME=\"/c/Users/90832/.jdks/ms-21.0.10\" export PATH=\"$JAVA_HOME/bin:/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.2/plugins/maven/lib/maven3/bin:$PATH\" cd /c/deye-6.4/agent-mmo mvn package -pl one-application --also-make -DskipTests --no-transfer-progress)",
       "Bash(jar tf:*)",
-      "Bash(unzip -l /c/deye-6.4/agent-mmo/one-application/target/one-application-1.0-SNAPSHOT.jar)"
+      "Bash(unzip -l /c/deye-6.4/agent-mmo/one-application/target/one-application-1.0-SNAPSHOT.jar)",
+      "Bash(grep:*)"
     ]
   }
 }

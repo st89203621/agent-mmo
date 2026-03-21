@@ -191,6 +191,18 @@ class GameClient {
     }
     disconnect() {}
     get connected() { return !!this.userId; }
+
+    /** 向后兼容：WebSocket 时代的 send()，现已改为 REST，此处为空操作 */
+    send(cmd, subCmd, data = {}) {
+        console.debug('[GameClient] send() 已废弃，请使用 REST API', cmd, subCmd);
+    }
+
+    /** 向后兼容：移除某个 key 的所有监听 */
+    offAll(eventName) {
+        const key = String(eventName);
+        delete this._listeners[key];
+        delete this._onceMap[key];
+    }
 }
 
 // 单例
@@ -201,14 +213,17 @@ export default gameClient;
 //  CMD 常量表（保留兼容）
 // ──────────────────────────────────────────────
 export const CMD = {
-    USER: { cmd: 1, login: 1, logout: 2, getInfo: 3 },
-    STORY: { cmd: 26, startDialogue: 1, sendChoice: 2, sendFreeInput: 3, endDialogue: 4 },
-    EXPLORE: { cmd: 21, getMap: 1, moveTo: 2, getPOI: 3 },
+    USER:       { cmd: 1,  login: 1, logout: 2, getInfo: 3 },
+    STORY:      { cmd: 26, startDialogue: 1, sendChoice: 2, sendFreeInput: 3, endDialogue: 4 },
+    EXPLORE:    { cmd: 21, getMap: 1, moveTo: 2, getPOI: 3 },
     BOOK_WORLD: { cmd: 23, listBooks: 1, getBook: 2, selectBook: 3 },
-    CHARACTER: { cmd: 11, getInfo: 1, equip: 2, unequip: 3 },
-    BAG: { cmd: 14, getItems: 1, useItem: 2, dropItem: 3 },
-    PET: { cmd: 15, getList: 1, feed: 2, release: 3, rename: 4 },
-    MEMORY: { cmd: 16, getList: 1, view: 2 },
-    FATE: { cmd: 25, getMap: 1, getNpcDetail: 2 },
-    REBIRTH: { cmd: 24, start: 1, confirm: 2 },
+    CHARACTER:  { cmd: 11, getInfo: 1, equip: 2, unequip: 3 },
+    ENCHANT:    { cmd: 12, getList: 1, enchant: 2 },
+    SKILL:      { cmd: 13, getTree: 1, learn: 2, upgrade: 3 },
+    BAG:        { cmd: 14, getItems: 1, useItem: 2, dropItem: 3 },
+    PET:        { cmd: 15, getList: 1, feed: 2, release: 3, rename: 4 },
+    MEMORY:     { cmd: 16, getList: 1, view: 2 },
+    FATE:       { cmd: 25, getMap: 1, getNpcDetail: 2 },
+    REBIRTH:    { cmd: 24, start: 1, confirm: 2 },
+    BATTLE:     { cmd: 22, start: 1, action: 2, flee: 3 },
 };

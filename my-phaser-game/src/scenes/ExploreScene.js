@@ -134,13 +134,20 @@ export default class ExploreScene extends Phaser.Scene {
         });
         terrain.setDepth(2);
 
-        // 河流
+        // 河流（用折线模拟贝塞尔曲线，Phaser 3 Graphics 不支持 bezierCurveTo）
         const river = this.add.graphics();
         river.lineStyle(3, 0x1a4060, 0.7);
         river.beginPath();
-        river.moveTo(0, 290);
-        river.bezierCurveTo(80, 310, 160, 270, 240, 300);
-        river.bezierCurveTo(300, 320, 360, 290, 390, 310);
+        // 手动采样两段三次贝塞尔曲线
+        const bezierPoints = ExploreScene._sampleBezier(
+            [0,290], [80,310], [160,270], [240,300], 16
+        ).concat(ExploreScene._sampleBezier(
+            [240,300], [300,320], [360,290], [390,310], 12
+        ));
+        river.moveTo(bezierPoints[0][0], bezierPoints[0][1]);
+        for (let bi = 1; bi < bezierPoints.length; bi++) {
+            river.lineTo(bezierPoints[bi][0], bezierPoints[bi][1]);
+        }
         river.strokePath();
         river.setDepth(2);
 
@@ -295,5 +302,21 @@ export default class ExploreScene extends Phaser.Scene {
 
     shutdown() {
         gameClient.offAll(`${CMD.EXPLORE.cmd}_${CMD.EXPLORE.getMap}`);
+    }
+
+    /**
+     * 采样三次贝塞尔曲线，返回 [x,y] 点数组
+     * P0→P1→P2→P3，steps 为细分段数
+     */
+    static _sampleBezier([x0,y0], [x1,y1], [x2,y2], [x3,y3], steps = 16) {
+        const pts = [];
+        for (let i = 0; i <= steps; i++) {
+            const t  = i / steps;
+            const mt = 1 - t;
+            const x  = mt*mt*mt*x0 + 3*mt*mt*t*x1 + 3*mt*t*t*x2 + t*t*t*x3;
+            const y  = mt*mt*mt*y0 + 3*mt*mt*t*y1 + 3*mt*t*t*y2 + t*t*t*y3;
+            pts.push([x, y]);
+        }
+        return pts;
     }
 }

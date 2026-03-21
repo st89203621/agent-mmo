@@ -56,15 +56,7 @@ export default class BookSelectScene extends Phaser.Scene {
             searchInput.addEventListener('input', () => this._onSearch(searchInput.value));
         }
 
-        // 请求服务端书单
-        gameClient.send(CMD.BOOK_WORLD.cmd, CMD.BOOK_WORLD.listBooks, {});
-        gameClient.on(`${CMD.BOOK_WORLD.cmd}_${CMD.BOOK_WORLD.listBooks}`, (d) => {
-            if (d && d.books) {
-                this._allBooks = d.books;
-                this._filteredBooks = d.books;
-                this._buildGrid(W, H);
-            }
-        });
+        // 书单使用本地 DEMO 数据（服务端尚未实现书单接口）
     }
 
     _buildHeader(W) {
@@ -243,10 +235,10 @@ export default class BookSelectScene extends Phaser.Scene {
                 return;
             }
 
-            gameClient.send(CMD.BOOK_WORLD.cmd, CMD.BOOK_WORLD.selectBook, {
-                worldIndex: this._worldIndex,
-                bookId:     this._selectedBook.id,
-            });
+            // 通知服务端选书（fire-and-forget）
+            gameClient.selectBook(
+                String(this._selectedBook.id), this._selectedBook.name
+            ).catch(() => {});
 
             // 跳转到轮回转场
             const searchArea = document.getElementById('book-search-area');
@@ -266,6 +258,5 @@ export default class BookSelectScene extends Phaser.Scene {
     shutdown() {
         const searchArea = document.getElementById('book-search-area');
         if (searchArea) searchArea.style.display = 'none';
-        gameClient.offAll(`${CMD.BOOK_WORLD.cmd}_${CMD.BOOK_WORLD.listBooks}`);
     }
 }
