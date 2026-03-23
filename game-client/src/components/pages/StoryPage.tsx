@@ -27,6 +27,7 @@ export default function StoryPage() {
   // 共用状态
   const [loading, setLoading] = useState(false);
   const [dialogueError, setDialogueError] = useState('');
+  const [fullscreenImage, setFullscreenImage] = useState(false);
 
   // 选书阶段
   const [books, setBooks] = useState<BookWorld[]>([]);
@@ -278,7 +279,7 @@ export default function StoryPage() {
     const lastMsg = dialogue.messages[dialogue.messages.length - 1];
     return (
       <div className={styles.page}>
-        <div className={styles.scenePortrait}>
+        <div className={styles.scenePortrait} onClick={() => dialogue.sceneImageUrl && setFullscreenImage(true)}>
           {dialogue.sceneImageUrl ? (
             <img src={dialogue.sceneImageUrl} alt="场景" className={styles.sceneImage} />
           ) : dialogue.sceneImageLoading ? (
@@ -305,7 +306,15 @@ export default function StoryPage() {
               <FateBar fateScore={currentRelation.fateScore} trustScore={currentRelation.trustScore} npcName="" compact />
             </div>
           )}
+          {dialogue.sceneImageUrl && <span className={styles.fullscreenHint}>点击查看大图</span>}
         </div>
+
+        {fullscreenImage && dialogue.sceneImageUrl && (
+          <div className={styles.fullscreenOverlay} onClick={() => setFullscreenImage(false)}>
+            <img src={dialogue.sceneImageUrl} alt="场景" className={styles.fullscreenImage} />
+            <button className={styles.fullscreenClose} onClick={() => setFullscreenImage(false)}>✕</button>
+          </div>
+        )}
 
         <div className={styles.dialogueArea} ref={scrollRef}>
           {showHistory && dialogue.messages.slice(0, -1).map((msg, i) => (

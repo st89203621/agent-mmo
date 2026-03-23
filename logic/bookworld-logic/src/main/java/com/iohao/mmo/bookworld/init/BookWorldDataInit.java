@@ -21,21 +21,40 @@ public class BookWorldDataInit {
 
     @PostConstruct
     public void init() {
-        // 增量初始化：按标题去重，只添加缺失的书籍
-        Set<String> existingTitles = bookWorldRepository.findAll().stream()
-                .map(BookWorld::getTitle).collect(Collectors.toSet());
+        Map<String, BookWorld> existingMap = bookWorldRepository.findAll().stream()
+                .collect(Collectors.toMap(BookWorld::getTitle, b -> b, (a, b) -> a));
 
-        List<BookWorld> toAdd = allBooks().stream()
-                .filter(b -> !existingTitles.contains(b.getTitle()))
-                .toList();
+        List<BookWorld> allDefined = allBooks();
+        List<BookWorld> toSave = new ArrayList<>();
+        int newCount = 0;
+        int updateCount = 0;
 
-        if (toAdd.isEmpty()) {
-            log.info("书籍世界数据已完整（{}本），跳过初始化", existingTitles.size());
+        for (BookWorld defined : allDefined) {
+            BookWorld existing = existingMap.get(defined.getTitle());
+            if (existing == null) {
+                toSave.add(defined);
+                newCount++;
+            } else if (needsUpdate(existing)) {
+                // 保留原有ID，用最新数据覆盖
+                defined.setId(existing.getId());
+                toSave.add(defined);
+                updateCount++;
+            }
+        }
+
+        if (toSave.isEmpty()) {
+            log.info("书籍世界数据已完整（{}本），跳过初始化", existingMap.size());
             return;
         }
 
-        bookWorldRepository.saveAll(toAdd);
-        log.info("书籍世界初始化完成：新增{}本，总计{}本", toAdd.size(), existingTitles.size() + toAdd.size());
+        bookWorldRepository.saveAll(toSave);
+        log.info("书籍世界初始化完成：新增{}本，更新{}本，总计{}本", newCount, updateCount, existingMap.size() + newCount);
+    }
+
+    private boolean needsUpdate(BookWorld existing) {
+        return existing.getLoreSummary() == null || existing.getLoreSummary().isBlank()
+                || existing.getArtStyle() == null || existing.getArtStyle().isBlank()
+                || existing.getLanguageStyle() == null || existing.getLanguageStyle().isBlank();
     }
 
     private List<BookWorld> allBooks() {

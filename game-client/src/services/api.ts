@@ -265,6 +265,14 @@ export function updateArtStyle(worldIndex: number, customArtStyle: string) {
   });
 }
 
+/** 从网络爬取书籍并自动提取NPC */
+export function addBookFromWeb(title: string) {
+  return request<{ book: BookWorld; npcs: NpcInfo[]; msg: string }>('/bookworld/add-from-web', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+}
+
 // ── 记忆碎片 ──────────────────────────────────────
 
 export function fetchMemories(worldIndex?: number): Promise<{ memories: MemoryFragment[] }> {

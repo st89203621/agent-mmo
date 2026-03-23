@@ -19,20 +19,46 @@ public class NpcTemplateDataInit {
 
     @PostConstruct
     public void init() {
-        Set<String> existingIds = npcTemplateRepository.findAll().stream()
-                .map(NpcTemplate::getNpcId).collect(Collectors.toSet());
+        Map<String, NpcTemplate> existingMap = npcTemplateRepository.findAll().stream()
+                .collect(Collectors.toMap(NpcTemplate::getNpcId, n -> n, (a, b) -> a));
 
-        List<NpcTemplate> toAdd = allNpcs().stream()
-                .filter(n -> !existingIds.contains(n.getNpcId()))
-                .toList();
+        List<NpcTemplate> allDefined = allNpcs();
+        List<NpcTemplate> toSave = new ArrayList<>();
+        int newCount = 0;
+        int updateCount = 0;
 
-        if (toAdd.isEmpty()) {
-            log.info("NPC模板数据已完整（{}个），跳过初始化", existingIds.size());
+        for (NpcTemplate defined : allDefined) {
+            NpcTemplate existing = existingMap.get(defined.getNpcId());
+            if (existing == null) {
+                // 新NPC，直接插入
+                toSave.add(defined);
+                newCount++;
+            } else if (needsUpdate(existing, defined)) {
+                // 已有NPC但字段不完整，用最新数据覆盖
+                defined.setId(existing.getId());
+                toSave.add(defined);
+                updateCount++;
+            }
+        }
+
+        if (toSave.isEmpty()) {
+            log.info("NPC模板数据已完整（{}个），跳过初始化", existingMap.size());
             return;
         }
 
-        npcTemplateRepository.saveAll(toAdd);
-        log.info("NPC模板初始化完成：新增{}个，总计{}个", toAdd.size(), existingIds.size() + toAdd.size());
+        npcTemplateRepository.saveAll(toSave);
+        log.info("NPC模板初始化完成：新增{}个，更新{}个，总计{}个", newCount, updateCount, existingMap.size() + newCount);
+    }
+
+    /** 检查已有NPC是否缺少关键描述字段 */
+    private boolean needsUpdate(NpcTemplate existing, NpcTemplate defined) {
+        return isBlank(existing.getGender()) || isBlank(existing.getAge())
+                || isBlank(existing.getFeatures()) || isBlank(existing.getPersonality())
+                || isBlank(existing.getRole());
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     private List<NpcTemplate> allNpcs() {

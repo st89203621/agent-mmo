@@ -498,3 +498,101 @@
 .primaryBtn:active {
   background: var(--gold-dim);
 }
+
+/* === 添加书籍 === */
+.addBookBar {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  flex-shrink: 0;
+}
+
+.addBookInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  outline: none;
+}
+
+.addBookInput:focus {
+  border-color: var(--gold);
+}
+
+.addBookInput::placeholder {
+  color: var(--ink);
+  opacity: 0.3;
+}
+
+.addBookBtn {
+  padding: 8px 16px;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+
+.addBookBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addBookLoading {
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--gold-dim);
+  animation: pulse 2s infinite;
+}
+
+.addBookError {
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #c0392b;
+}
+
+.addBookSuccess {
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--green, #27ae60);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--paper-darker);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  text-align: left;
+}
+
+.addToggleBtn {
+  padding: 6px 14px;
+  background: none;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--gold-dim);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all var(--transition-fast);
+}
+
+.addToggleBtn:active {
+  background: rgba(201, 168, 76, 0.15);
+}

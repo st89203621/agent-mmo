@@ -2,6 +2,7 @@ package com.iohao.mmo.api;
 
 import com.alibaba.fastjson2.JSON;
 import com.iohao.mmo.bookworld.entity.BookWorld;
+import com.iohao.mmo.bookworld.service.BookCrawlService;
 import com.iohao.mmo.bookworld.service.BookRagService;
 import com.iohao.mmo.bookworld.service.BookWorldService;
 import com.iohao.mmo.fate.entity.NpcTemplate;
@@ -92,6 +93,9 @@ public class GameApiController {
 
     @Resource
     BookRagService bookRagService;
+
+    @Resource
+    BookCrawlService bookCrawlService;
 
     @Resource
     MemoryService memoryService;
@@ -1008,6 +1012,52 @@ public class GameApiController {
             int chunks = bookRagService.processBookContent(bookId, content);
             return ok(Map.of("msg", "处理完成", "chunks", chunks));
         } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    /** 从网络爬取书籍并自动提取NPC */
+    @PostMapping("/bookworld/add-from-web")
+    public ResponseEntity<Map<String, Object>> addBookFromWeb(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String title = (String) body.get("title");
+            if (title == null || title.isBlank()) return err("请输入书名");
+            Map<String, Object> result = bookCrawlService.addBookFromWeb(userId, title.trim());
+
+            BookWorld book = (BookWorld) result.get("book");
+            @SuppressWarnings("unchecked")
+            List<NpcTemplate> npcs = (List<NpcTemplate>) result.get("npcs");
+
+            Map<String, Object> bookMap = new HashMap<>();
+            bookMap.put("id", book.getId());
+            bookMap.put("title", book.getTitle());
+            bookMap.put("author", book.getAuthor());
+            bookMap.put("category", book.getCategory() != null ? book.getCategory().name() : "");
+            bookMap.put("loreSummary", book.getLoreSummary());
+            bookMap.put("artStyle", book.getArtStyle());
+            bookMap.put("colorPalette", book.getColorPalette());
+            bookMap.put("languageStyle", book.getLanguageStyle());
+            bookMap.put("coverUrl", book.getCoverUrl());
+
+            List<Map<String, Object>> npcList = npcs.stream().map(npc -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("npcId", npc.getNpcId());
+                m.put("npcName", npc.getNpcName());
+                m.put("bookTitle", npc.getBookTitle());
+                m.put("personality", npc.getPersonality());
+                m.put("role", npc.getRole());
+                m.put("emotion", npc.getEmotion());
+                m.put("gender", npc.getGender());
+                m.put("age", npc.getAge());
+                m.put("features", npc.getFeatures());
+                return m;
+            }).toList();
+
+            return ok(Map.of("book", bookMap, "npcs", npcList, "msg", result.get("msg")));
+        } catch (Exception e) {
+            log.warn("添加网络书籍失败: {}", e.getMessage());
             return err(e.getMessage());
         }
     }
