@@ -193,7 +193,7 @@ public class AiDialogueService {
         sb.append("\n必须严格按照以下 JSON 格式回复，不要输出任何其他内容：\n");
         sb.append("{\n");
         sb.append("  \"speaker\": \"").append(npcName).append("\",\n");
-        sb.append("  \"emotion\": \"calm/happy/sad/surprised/angry/shy/gentle/worried/playful/serious/melancholy/determined 之一\",\n");
+        sb.append("  \"emotion\": \"calm/happy/sad/surprised/angry/shy/tender/cold/fearful/playful/melancholy/determined 之一（只能用这12个值）\",\n");
         sb.append("  \"text\": \"NPC 说的话，不超过 80 字\",\n");
         sb.append("  \"choices\": [\n");
         sb.append("    {\"id\": 0, \"text\": \"选项文字（15字内）\", \"fate\": 缘分变化(-5到+10), \"trust\": 信任变化(-3到+5)},\n");

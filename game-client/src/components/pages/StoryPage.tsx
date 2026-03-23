@@ -19,11 +19,13 @@ const ART_STYLE_PRESETS = [
   '像素复古风', '暗黑哥特风', '清新水彩风', '蒸汽朋克风',
 ];
 
-/** 情绪中文映射 */
+/** 情绪中文映射（含AI可能返回的近义词兜底） */
 const EMOTION_CN: Record<string, string> = {
   calm: '平静', happy: '欢喜', sad: '悲伤', angry: '愤怒',
   shy: '娇羞', surprised: '惊讶', tender: '温柔', cold: '冷漠',
   fearful: '恐惧', determined: '坚定', melancholy: '忧郁', playful: '俏皮',
+  gentle: '温柔', worried: '忧虑', serious: '肃穆', nervous: '紧张',
+  excited: '兴奋', confused: '困惑', proud: '骄傲', lonely: '孤寂',
 };
 
 export default function StoryPage() {
