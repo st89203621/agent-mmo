@@ -141,7 +141,15 @@ export default function CharacterPage() {
             <button className={styles.quickLink} onClick={() => navigateTo('skill-tree')}>技能树</button>
             <button className={styles.quickLink} onClick={() => navigateTo('pet')}>宠物</button>
             <button className={styles.quickLink} onClick={() => navigateTo('enchant')}>附魔</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('rebirth')}>轮回</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('memory')}>记忆</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('book-world')}>书库</button>
             <button className={styles.quickLink} onClick={() => navigateTo('codex')}>图鉴</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('dungeon')}>副本</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('quest')}>任务</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('shop')}>商城</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('companion')}>灵侣</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('rank')}>排行</button>
           </div>
         </section>
       </div>

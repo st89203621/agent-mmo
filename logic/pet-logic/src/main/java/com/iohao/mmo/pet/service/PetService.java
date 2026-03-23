@@ -202,4 +202,44 @@ public class PetService {
     public void save(PetBag petBag) {
         this.petBagRepository.save(petBag);
     }
+
+    // ── REST 兼容方法（不依赖 FlowContext）──────────────
+
+    public Pet randomPetRest(long userId) {
+        PetTemplate petTemplate = RandomKit.randomEle(templateList);
+        PetBag petBag = ofPetBag(userId);
+        Pet pet = petTemplate.createPet();
+        petBag.addPet(pet);
+        save(petBag);
+        return pet;
+    }
+
+    public void deletePetRest(long userId, String petId) {
+        PetBag petBag = ofPetBag(userId);
+        petBag.optionalPet(petId).ifPresent(pet -> {
+            petBag.deletePet(petId);
+            save(petBag);
+        });
+    }
+
+    public Pet createPetRest(long userId, CreatePetMessage msg) {
+        PetBag petBag = ofPetBag(userId);
+        PetTemplate petTemplate = templateList.stream()
+            .filter(t -> t.getId().equals(msg.petTemplateId))
+            .findFirst()
+            .orElse(RandomKit.randomEle(templateList));
+
+        Pet pet = petTemplate.createPet();
+        if (msg.nickname != null && !msg.nickname.isEmpty()) {
+            pet.setNickname(msg.nickname);
+        }
+        pet.setAiImageUrl(msg.aiImageUrl);
+        pet.setPetType(msg.petType);
+        pet.setElement(msg.element);
+        pet.setArtStyle(msg.artStyle);
+
+        petBag.addPet(pet);
+        save(petBag);
+        return pet;
+    }
 }

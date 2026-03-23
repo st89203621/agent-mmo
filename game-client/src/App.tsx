@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from './store/gameStore';
 import { usePlayerStore } from './store/playerStore';
-import { getMe } from './services/api';
+import { getMe, fetchPersonInfo } from './services/api';
 import GameLayout from './components/layout/GameLayout';
 import LoginPage from './components/pages/LoginPage';
 import StoryPage from './components/pages/StoryPage';
@@ -21,6 +21,10 @@ import DungeonPage from './components/pages/DungeonPage';
 import CodexPage from './components/pages/CodexPage';
 import CharCreatePage from './components/pages/CharCreatePage';
 import AchievementPage from './components/pages/AchievementPage';
+import QuestPage from './components/pages/QuestPage';
+import ShopPage from './components/pages/ShopPage';
+import RankPage from './components/pages/RankPage';
+import CompanionPage from './components/pages/CompanionPage';
 import type { PageId } from './types';
 
 const PAGE_MAP: Record<PageId, React.FC> = {
@@ -41,18 +45,30 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'codex': CodexPage,
   'char-create': CharCreatePage,
   'achievement': AchievementPage,
+  'quest': QuestPage,
+  'shop': ShopPage,
+  'rank': RankPage,
+  'companion': CompanionPage,
 };
 
 export default function App() {
-  const { currentPage } = useGameStore();
+  const { currentPage, navigateTo } = useGameStore();
   const { playerId, setPlayer } = usePlayerStore();
   const [checking, setChecking] = useState(true);
+  const [needCreate, setNeedCreate] = useState(false);
 
-  // 启动时检查是否已登录（session复用）
+  // 启动时检查是否已登录（session复用）+ 角色是否存在
   useEffect(() => {
     getMe()
-      .then((data) => {
+      .then(async (data) => {
         setPlayer(String(data.userId), data.username, '');
+        // 检查角色是否已创建
+        try {
+          const person = await fetchPersonInfo();
+          if (!person.exists) {
+            setNeedCreate(true);
+          }
+        } catch { /* 忽略，进入默认页 */ }
       })
       .catch(() => {})
       .finally(() => setChecking(false));
@@ -72,6 +88,16 @@ export default function App() {
   // 未登录显示登录页
   if (!playerId) {
     return <LoginPage />;
+  }
+
+  // 未创角则显示创角页
+  if (needCreate && currentPage !== 'char-create') {
+    const CreatePage = PAGE_MAP['char-create'];
+    return (
+      <GameLayout>
+        <CreatePage />
+      </GameLayout>
+    );
   }
 
   const PageComponent = PAGE_MAP[currentPage] || StoryPage;

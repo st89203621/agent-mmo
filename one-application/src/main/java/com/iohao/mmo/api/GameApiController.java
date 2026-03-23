@@ -19,6 +19,37 @@ import com.iohao.mmo.story.service.StoryService;
 import com.iohao.mmo.equip.entity.ElseEquipProperty;
 import com.iohao.mmo.equip.entity.Equip;
 import com.iohao.mmo.equip.service.EquipService;
+import com.iohao.mmo.bag.entity.Bag;
+import com.iohao.mmo.bag.entity.BagItem;
+import com.iohao.mmo.bag.service.BagService;
+import com.iohao.mmo.quest.entity.Quest;
+import com.iohao.mmo.quest.service.QuestService;
+import com.iohao.mmo.person.entity.Person;
+import com.iohao.mmo.person.service.PersonService;
+import com.iohao.mmo.pet.entity.Pet;
+import com.iohao.mmo.pet.entity.PetTemplate;
+import com.iohao.mmo.pet.proto.CreatePetMessage;
+import com.iohao.mmo.pet.service.PetService;
+import com.iohao.mmo.skill.entity.SkillTemplate;
+import com.iohao.mmo.skill.entity.PlayerSkill;
+import com.iohao.mmo.skill.service.SkillService;
+import com.iohao.mmo.battle.entity.BattleAction;
+import com.iohao.mmo.battle.entity.BattleState;
+import com.iohao.mmo.battle.entity.BattleUnit;
+import com.iohao.mmo.battle.service.BattleService;
+import com.iohao.mmo.shop.entity.ShopItem;
+import com.iohao.mmo.shop.entity.PlayerCurrency;
+import com.iohao.mmo.shop.entity.PurchaseHistory;
+import com.iohao.mmo.shop.service.ShopService;
+import com.iohao.mmo.enchant.entity.EnchantRune;
+import com.iohao.mmo.enchant.entity.EquipEnchant;
+import com.iohao.mmo.enchant.service.EnchantService;
+import com.iohao.mmo.adventure.entity.Dungeon;
+import com.iohao.mmo.adventure.service.AdventureService;
+import com.iohao.mmo.rank.entity.RankEntry;
+import com.iohao.mmo.rank.service.RankService;
+import com.iohao.mmo.companion.entity.SpiritCompanion;
+import com.iohao.mmo.companion.service.CompanionService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +99,39 @@ public class GameApiController {
 
     @Resource
     EquipService equipService;
+
+    @Resource
+    PersonService personService;
+
+    @Resource
+    BagService bagService;
+
+    @Resource
+    QuestService questService;
+
+    @Resource
+    PetService petService;
+
+    @Resource
+    SkillService skillService;
+
+    @Resource
+    BattleService battleService;
+
+    @Resource
+    ShopService shopService;
+
+    @Resource
+    EnchantService enchantService;
+
+    @Resource
+    AdventureService adventureService;
+
+    @Resource
+    RankService rankService;
+
+    @Resource
+    CompanionService companionService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -408,6 +472,159 @@ public class GameApiController {
         }
     }
 
+    // ── 角色 ──────────────────────────────────────
+
+    @GetMapping("/person/me")
+    public ResponseEntity<Map<String, Object>> getPersonInfo(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        Person person = personService.getPersonById(userId);
+        if (person == null) return ok(Map.of("exists", false));
+        Map<String, Object> m = new HashMap<>();
+        m.put("exists", true);
+        m.put("id", person.getId());
+        m.put("name", person.getName());
+        if (person.getBasicProperty() != null) {
+            var bp = person.getBasicProperty();
+            m.put("basicProperty", Map.of(
+                "hp", bp.getHp(), "mp", bp.getMp(),
+                "physicsAttack", bp.getPhysicsAttack(), "physicsDefense", bp.getPhysicsDefense(),
+                "magicAttack", bp.getMagicAttack(), "magicDefense", bp.getMagicDefense(),
+                "speed", bp.getSpeed()
+            ));
+        }
+        return ok(m);
+    }
+
+    @PostMapping("/person/init")
+    public ResponseEntity<Map<String, Object>> initPerson(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String name = (String) body.getOrDefault("name", "");
+            personService.initPerson(userId);
+            // 如果提供了自定义名称，更新
+            if (name != null && !name.isBlank()) {
+                Person person = personService.getPersonById(userId);
+                if (person != null) {
+                    person.setName(name);
+                    // PersonService 使用 MongoTemplate，需通过其保存
+                }
+            }
+            Person person = personService.getPersonById(userId);
+            return ok(Map.of("id", person.getId(), "name", person.getName()));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 背包 ──────────────────────────────────────
+
+    @GetMapping("/bag/list")
+    public ResponseEntity<Map<String, Object>> getBagList(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        Bag bag = bagService.ofBag(userId);
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (bag.getItemMap() != null) {
+            bag.getItemMap().forEach((id, item) -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", item.getId());
+                m.put("itemTypeId", item.getItemTypeId());
+                m.put("quantity", item.getQuantity());
+                items.add(m);
+            });
+        }
+        return ok(Map.of("items", items));
+    }
+
+    @PostMapping("/bag/use")
+    public ResponseEntity<Map<String, Object>> useBagItem(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String itemId = (String) body.get("id");
+            String itemTypeId = (String) body.get("itemTypeId");
+            int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+            BagItem decrement = new BagItem();
+            decrement.setId(itemId);
+            decrement.setItemTypeId(itemTypeId);
+            decrement.setQuantity(quantity);
+            bagService.decrementItem(decrement, userId);
+            return ok(Map.of("msg", "使用成功"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 任务 ──────────────────────────────────────
+
+    @GetMapping("/quest/list")
+    public ResponseEntity<Map<String, Object>> listQuests(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<Quest> quests = questService.listQuest(userId);
+        return ok(Map.of("quests", quests.stream().map(this::questToMap).toList()));
+    }
+
+    @GetMapping("/quest/available")
+    public ResponseEntity<Map<String, Object>> listAvailableQuests(HttpSession session,
+                                                                    @RequestParam(defaultValue = "1") int level) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        var templates = questService.listAvailableQuest(userId, level);
+        List<Map<String, Object>> list = templates.stream().map(t -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("questId", t.getQuestId());
+            m.put("questName", t.getQuestName());
+            m.put("description", t.getDescription());
+            m.put("questType", t.getQuestType() != null ? t.getQuestType().name() : "MAIN");
+            m.put("targetProgress", t.getTargetProgress());
+            m.put("requiredLevel", t.getRequiredLevel());
+            m.put("npcId", t.getNpcId());
+            return m;
+        }).toList();
+        return ok(Map.of("quests", list));
+    }
+
+    @PostMapping("/quest/accept")
+    public ResponseEntity<Map<String, Object>> acceptQuest(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String questId = (String) body.get("questId");
+            Quest quest = questService.acceptQuest(userId, questId);
+            if (quest == null) return err("任务不存在或无法接取");
+            return ok(questToMap(quest));
+        } catch (Exception e) { return err(e.getMessage()); }
+    }
+
+    @PostMapping("/quest/abandon")
+    public ResponseEntity<Map<String, Object>> abandonQuest(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String questId = (String) body.get("questId");
+            Quest quest = questService.abandonQuest(userId, questId);
+            if (quest == null) return err("任务不存在");
+            return ok(Map.of("msg", "已放弃"));
+        } catch (Exception e) { return err(e.getMessage()); }
+    }
+
+    private Map<String, Object> questToMap(Quest q) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", q.getId());
+        m.put("questId", q.getQuestId());
+        m.put("questName", q.getQuestName());
+        m.put("description", q.getDescription());
+        m.put("questType", q.getQuestType() != null ? q.getQuestType().name() : "MAIN");
+        m.put("status", q.getStatus() != null ? q.getStatus().name() : "AVAILABLE");
+        m.put("currentProgress", q.getCurrentProgress());
+        m.put("targetProgress", q.getTargetProgress());
+        m.put("npcId", q.getNpcId());
+        return m;
+    }
+
     // ── 装备系统 ──────────────────────────────────────
 
     @GetMapping("/equip/list")
@@ -609,6 +826,431 @@ public class GameApiController {
         return ok(Map.of("memories", list));
     }
 
+    // ── 宠物 ──────────────────────────────────────
+
+    @GetMapping("/pet/list")
+    public ResponseEntity<Map<String, Object>> listPets(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        Collection<Pet> pets = petService.listPet(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Pet p : pets) {
+            list.add(petToMap(p));
+        }
+        return ok(Map.of("pets", list));
+    }
+
+    @GetMapping("/pet/templates")
+    public ResponseEntity<Map<String, Object>> listPetTemplates(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<PetTemplate> templates = petService.listPetTemplates();
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (PetTemplate t : templates) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("name", t.getName());
+            m.put("description", t.getDescription());
+            list.add(m);
+        }
+        return ok(Map.of("templates", list));
+    }
+
+    @PostMapping("/pet/random")
+    public ResponseEntity<Map<String, Object>> randomPet(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        Pet pet = petService.randomPetRest(userId);
+        return ok(Map.of("pet", petToMap(pet)));
+    }
+
+    @PostMapping("/pet/create")
+    public ResponseEntity<Map<String, Object>> createPet(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        CreatePetMessage msg = new CreatePetMessage();
+        msg.petTemplateId = body.getOrDefault("petTemplateId", "");
+        msg.nickname = body.getOrDefault("nickname", "");
+        msg.petType = body.getOrDefault("petType", "");
+        msg.element = body.getOrDefault("element", "");
+        msg.artStyle = body.getOrDefault("artStyle", "");
+        Pet pet = petService.createPetRest(userId, msg);
+        return ok(Map.of("pet", petToMap(pet)));
+    }
+
+    @PostMapping("/pet/delete")
+    public ResponseEntity<Map<String, Object>> deletePet(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        petService.deletePetRest(userId, body.get("petId"));
+        return ok(Map.of("success", true));
+    }
+
+    // ── 技能 ──────────────────────────────────────
+
+    @GetMapping("/skill/templates")
+    public ResponseEntity<Map<String, Object>> listSkillTemplates(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<SkillTemplate> templates = skillService.listTemplates();
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (SkillTemplate t : templates) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("name", t.getName());
+            m.put("description", t.getDescription());
+            m.put("branch", t.getBranch());
+            m.put("type", t.getType());
+            m.put("maxLevel", t.getMaxLevel());
+            m.put("requiredLevel", t.getRequiredLevel());
+            m.put("prerequisites", t.getPrerequisites());
+            m.put("costPerLevel", t.getCostPerLevel());
+            m.put("icon", t.getIcon());
+            m.put("sortOrder", t.getSortOrder());
+            list.add(m);
+        }
+        return ok(Map.of("templates", list));
+    }
+
+    @GetMapping("/skill/list")
+    public ResponseEntity<Map<String, Object>> listPlayerSkills(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<PlayerSkill> skills = skillService.listPlayerSkills(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (PlayerSkill s : skills) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", s.getId());
+            m.put("skillTemplateId", s.getSkillTemplateId());
+            m.put("level", s.getLevel());
+            m.put("unlocked", s.isUnlocked());
+            list.add(m);
+        }
+        return ok(Map.of("skills", list));
+    }
+
+    @PostMapping("/skill/unlock")
+    public ResponseEntity<Map<String, Object>> unlockSkill(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            PlayerSkill skill = skillService.unlockSkill(userId, body.get("skillTemplateId"));
+            return ok(Map.of("skillTemplateId", skill.getSkillTemplateId(),
+                    "level", skill.getLevel(), "unlocked", skill.isUnlocked()));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/skill/upgrade")
+    public ResponseEntity<Map<String, Object>> upgradeSkill(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            PlayerSkill skill = skillService.upgradeSkill(userId, body.get("skillTemplateId"));
+            return ok(Map.of("skillTemplateId", skill.getSkillTemplateId(),
+                    "level", skill.getLevel(), "unlocked", skill.isUnlocked()));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 战斗 ──────────────────────────────────────
+
+    @PostMapping("/battle/start")
+    public ResponseEntity<Map<String, Object>> startBattle(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        int hp = ((Number) body.getOrDefault("hp", 100)).intValue();
+        int mp = ((Number) body.getOrDefault("mp", 50)).intValue();
+        int pAtk = ((Number) body.getOrDefault("physicsAttack", 10)).intValue();
+        int pDef = ((Number) body.getOrDefault("physicsDefense", 5)).intValue();
+        int mAtk = ((Number) body.getOrDefault("magicAttack", 8)).intValue();
+        int mDef = ((Number) body.getOrDefault("magicDefense", 5)).intValue();
+        int speed = ((Number) body.getOrDefault("speed", 10)).intValue();
+        BattleState state = battleService.startBattle(userId, hp, mp, pAtk, pDef, mAtk, mDef, speed);
+        return ok(Map.of("battle", battleToMap(state)));
+    }
+
+    @GetMapping("/battle/state")
+    public ResponseEntity<Map<String, Object>> getBattleState(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        BattleState state = battleService.getBattleState(userId);
+        if (state == null) return ok(Map.of("battle", Map.of()));
+        return ok(Map.of("battle", battleToMap(state)));
+    }
+
+    @PostMapping("/battle/action")
+    public ResponseEntity<Map<String, Object>> battleAction(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String actionType = body.getOrDefault("actionType", "ATTACK");
+        String targetId = body.get("targetId");
+        BattleState state = battleService.executeAction(userId, actionType, targetId);
+        if (state == null) return err("无进行中的战斗");
+        return ok(Map.of("battle", battleToMap(state)));
+    }
+
+    // ── 商城 ──────────────────────────────────────
+
+    @GetMapping("/shop/list")
+    public ResponseEntity<Map<String, Object>> listShopItems(
+            @RequestParam(required = false) String category, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<ShopItem> items = shopService.listItems(category);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ShopItem item : items) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", item.getId());
+            m.put("name", item.getName());
+            m.put("icon", item.getIcon());
+            m.put("description", item.getDescription());
+            m.put("price", item.getPrice());
+            m.put("currency", item.getCurrency());
+            m.put("category", item.getCategory());
+            m.put("quality", item.getQuality());
+            m.put("isHot", item.isHot());
+            m.put("stock", item.getStock());
+            list.add(m);
+        }
+        return ok(Map.of("items", list));
+    }
+
+    @GetMapping("/shop/currency")
+    public ResponseEntity<Map<String, Object>> getPlayerCurrency(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+        return ok(Map.of("gold", currency.getGold(), "diamond", currency.getDiamond()));
+    }
+
+    @PostMapping("/shop/purchase")
+    public ResponseEntity<Map<String, Object>> purchaseItem(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String itemId = (String) body.get("itemId");
+        int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+        try {
+            Map<String, Object> result = shopService.purchaseItem(userId, itemId, quantity);
+            return ok(result);
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @GetMapping("/shop/history")
+    public ResponseEntity<Map<String, Object>> purchaseHistory(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<PurchaseHistory> history = shopService.getPurchaseHistory(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (PurchaseHistory h : history) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("itemId", h.getItemId());
+            m.put("itemName", h.getItemName());
+            m.put("quantity", h.getQuantity());
+            m.put("price", h.getPrice());
+            m.put("currency", h.getCurrency());
+            m.put("timestamp", h.getTimestamp());
+            list.add(m);
+        }
+        return ok(Map.of("history", list));
+    }
+
+    // ── 附魔 ──────────────────────────────────────
+
+    @GetMapping("/enchant/{equipId}")
+    public ResponseEntity<Map<String, Object>> getEnchantInfo(@PathVariable String equipId, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        EquipEnchant enchant = enchantService.getOrCreateEnchant(equipId, userId);
+        return ok(enchantToMap(enchant));
+    }
+
+    @PostMapping("/enchant/apply")
+    public ResponseEntity<Map<String, Object>> applyEnchant(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String equipId = (String) body.get("equipId");
+        int runeLevel = ((Number) body.getOrDefault("runeLevel", 1)).intValue();
+        try {
+            EnchantRune.RuneLevel level = EnchantRune.RuneLevel.values()[Math.min(runeLevel - 1, 3)];
+            EquipEnchant enchant = enchantService.enchantEquip(equipId, userId, level);
+            return ok(enchantToMap(enchant));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 副本 ──────────────────────────────────────
+
+    @GetMapping("/dungeon/list")
+    public ResponseEntity<Map<String, Object>> listDungeons(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<Dungeon> dungeons = adventureService.listDungeons(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Dungeon d : dungeons) {
+            list.add(dungeonToMap(d));
+        }
+        return ok(Map.of("dungeons", list));
+    }
+
+    @PostMapping("/dungeon/enter")
+    public ResponseEntity<Map<String, Object>> enterDungeon(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String dungeonId = (String) body.get("dungeonId");
+        int difficulty = ((Number) body.getOrDefault("difficulty", 1)).intValue();
+        try {
+            Dungeon d = adventureService.enterDungeon(userId, dungeonId, difficulty);
+            return ok(Map.of("dungeon", dungeonToMap(d)));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/dungeon/complete-stage")
+    public ResponseEntity<Map<String, Object>> completeStage(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String dungeonId = (String) body.get("dungeonId");
+        int stageId = ((Number) body.getOrDefault("stageId", 1)).intValue();
+        int stars = ((Number) body.getOrDefault("stars", 3)).intValue();
+        try {
+            Dungeon d = adventureService.completeStage(userId, dungeonId, stageId, stars);
+            return ok(Map.of("dungeon", dungeonToMap(d)));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/dungeon/exit")
+    public ResponseEntity<Map<String, Object>> exitDungeon(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            Dungeon d = adventureService.exitDungeon(userId, body.get("dungeonId"));
+            return ok(Map.of("dungeon", dungeonToMap(d)));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 图鉴 ──────────────────────────────────────
+
+    @GetMapping("/codex/npc")
+    public ResponseEntity<Map<String, Object>> codexNpc(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<NpcTemplate> npcs = npcTemplateRepository.findAll();
+        List<Relation> relations = fateService.getRelations(userId);
+        Set<String> met = new HashSet<>();
+        relations.forEach(r -> met.add(r.getNpcId()));
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (NpcTemplate npc : npcs) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("npcId", npc.getNpcId());
+            m.put("npcName", npc.getNpcName());
+            m.put("personality", npc.getPersonality());
+            m.put("role", npc.getRole());
+            m.put("unlocked", met.contains(npc.getNpcId()));
+            list.add(m);
+        }
+        return ok(Map.of("npcs", list, "total", npcs.size(), "unlocked", met.size()));
+    }
+
+    @GetMapping("/codex/equip")
+    public ResponseEntity<Map<String, Object>> codexEquip(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<Equip> equips = equipService.listByUser(userId);
+        Set<String> collected = new HashSet<>();
+        equips.forEach(e -> collected.add(e.getItemTypeId()));
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Equip e : equips) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("itemTypeId", e.getItemTypeId());
+            m.put("level", e.getLevel());
+            m.put("quality", e.getQuality());
+            list.add(m);
+        }
+        return ok(Map.of("equips", list, "totalTypes", collected.size()));
+    }
+
+    @GetMapping("/codex/pet")
+    public ResponseEntity<Map<String, Object>> codexPet(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        var pets = petService.listPet(userId);
+        var templates = petService.listPetTemplates();
+        Set<String> owned = new HashSet<>();
+        pets.forEach(p -> owned.add(p.getPetTemplateId()));
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (var t : templates) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("name", t.getName());
+            m.put("description", t.getDescription());
+            m.put("unlocked", owned.contains(t.getId()));
+            list.add(m);
+        }
+        return ok(Map.of("pets", list, "total", templates.size(), "unlocked", owned.size()));
+    }
+
+    // ── 排行榜 ──────────────────────────────────────
+
+    @GetMapping("/rank/list")
+    public ResponseEntity<Map<String, Object>> getRankList(
+            @RequestParam(defaultValue = "level") String type,
+            @RequestParam(defaultValue = "20") int limit,
+            HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<RankEntry> entries = rankService.getRank(type, limit);
+        int myRank = rankService.getPlayerRank(type, userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (RankEntry e : entries) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("rank", e.getRank());
+            m.put("playerId", e.getPlayerId());
+            m.put("playerName", e.getPlayerName());
+            m.put("level", e.getLevel());
+            m.put("value", e.getValue());
+            list.add(m);
+        }
+        return ok(Map.of("entries", list, "myRank", myRank));
+    }
+
+    // ── 灵侣 ──────────────────────────────────────
+
+    @GetMapping("/companion/list")
+    public ResponseEntity<Map<String, Object>> listCompanions(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        List<SpiritCompanion> companions = companionService.listCompanions(userId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (SpiritCompanion c : companions) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", c.getId());
+            m.put("name", c.getName());
+            m.put("realm", c.getRealm());
+            m.put("type", c.getType());
+            m.put("quality", c.getQuality());
+            m.put("level", c.getLevel());
+            m.put("bondLevel", c.getBondLevel());
+            m.put("atk", c.getAtk());
+            m.put("def", c.getDef());
+            m.put("spd", c.getSpd());
+            m.put("currentHp", c.getCurrentHp());
+            m.put("maxHp", c.getMaxHp());
+            list.add(m);
+        }
+        return ok(Map.of("companions", list));
+    }
+
     // ── 工具方法 ──────────────────────────────────────
 
     private Long requireLogin(HttpSession session) {
@@ -624,6 +1266,89 @@ public class GameApiController {
 
     private ResponseEntity<Map<String, Object>> err(String msg) {
         return ResponseEntity.ok(Map.of("code", -1, "msg", msg));
+    }
+
+    private Map<String, Object> dungeonToMap(Dungeon d) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", d.getId());
+        m.put("dungeonId", d.getDungeonId());
+        m.put("dungeonName", d.getDungeonName());
+        m.put("type", d.getType() != null ? d.getType().name() : "STORY");
+        m.put("currentStage", d.getCurrentStage());
+        m.put("maxStage", d.getMaxStage());
+        m.put("status", d.getStatus() != null ? d.getStatus().name() : "NOT_STARTED");
+        m.put("difficulty", d.getDifficulty());
+        m.put("firstClear", d.isFirstClear());
+        m.put("clearCount", d.getClearCount());
+        return m;
+    }
+
+    private Map<String, Object> enchantToMap(EquipEnchant e) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("equipId", e.getEquipId());
+        m.put("enchantLevel", e.getEnchantLevel());
+        m.put("totalAttributeBonus", e.getTotalAttributeBonus());
+        m.put("guaranteeCount", e.getGuaranteeCount());
+        m.put("attributeBonusPercent", e.getAttributeBonusPercent());
+        return m;
+    }
+
+    private Map<String, Object> battleToMap(BattleState state) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", state.getId());
+        m.put("round", state.getRound());
+        m.put("status", state.getStatus());
+        m.put("rewards", state.getRewards());
+        m.put("playerUnits", state.getPlayerUnits().stream().map(this::unitToMap).toList());
+        m.put("enemyUnits", state.getEnemyUnits().stream().map(this::unitToMap).toList());
+        List<Map<String, Object>> actions = new ArrayList<>();
+        for (BattleAction a : state.getActionLog()) {
+            Map<String, Object> am = new LinkedHashMap<>();
+            am.put("actorName", a.getActorName());
+            am.put("actionType", a.getActionType());
+            am.put("targetName", a.getTargetName());
+            am.put("damage", a.getDamage());
+            am.put("heal", a.getHeal());
+            am.put("skillName", a.getSkillName());
+            am.put("description", a.getDescription());
+            actions.add(am);
+        }
+        m.put("actionLog", actions);
+        return m;
+    }
+
+    private Map<String, Object> unitToMap(BattleUnit u) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("unitId", u.getUnitId());
+        m.put("name", u.getName());
+        m.put("unitType", u.getUnitType());
+        m.put("hp", u.getHp());
+        m.put("maxHp", u.getMaxHp());
+        m.put("mp", u.getMp());
+        m.put("maxMp", u.getMaxMp());
+        m.put("speed", u.getSpeed());
+        return m;
+    }
+
+    private Map<String, Object> petToMap(Pet pet) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        if (pet == null) return m;
+        m.put("id", pet.getId());
+        m.put("petTemplateId", pet.getPetTemplateId());
+        m.put("nickname", pet.getNickname());
+        m.put("mutationExp", pet.getMutationExp());
+        m.put("mutationNo", pet.getMutationNo());
+        m.put("propertyPointNum", pet.getPropertyPointNum());
+        m.put("constitution", pet.getConstitution());
+        m.put("magicPower", pet.getMagicPower());
+        m.put("power", pet.getPower());
+        m.put("endurance", pet.getEndurance());
+        m.put("agile", pet.getAgile());
+        m.put("maxSkill", pet.getMaxSkill());
+        m.put("aiImageUrl", pet.getAiImageUrl());
+        m.put("petType", pet.getPetType());
+        m.put("element", pet.getElement());
+        return m;
     }
 
     private Map<String, Object> dialogueToMap(String sessionId, DialogueMessage msg) {

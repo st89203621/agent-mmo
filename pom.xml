@@ -79,6 +79,8 @@
         <module>logic/story-logic</module>
         <module>provide/memory-provide</module>
         <module>logic/memory-logic</module>
+        <module>logic/skill-logic</module>
+        <module>logic/battle-logic</module>
 
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>

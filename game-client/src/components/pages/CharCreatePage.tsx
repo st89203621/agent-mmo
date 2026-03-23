@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useGameStore } from '../../store/gameStore';
+import { usePlayerStore } from '../../store/playerStore';
+import { initPerson } from '../../services/api';
 import styles from './PageSkeleton.module.css';
 
-/** P16 · 创角页 */
 export default function CharCreatePage() {
+  const [name, setName] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+  const { navigateTo } = useGameStore();
+  const { setPlayer, playerId } = usePlayerStore();
+
+  const handleCreate = useCallback(async () => {
+    const finalName = name.trim() || `旅人${Date.now() % 10000}`;
+    setCreating(true);
+    setError('');
+    try {
+      const res = await initPerson(finalName);
+      setPlayer(playerId, res.name, '');
+      navigateTo('story');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '创建失败');
+    }
+    setCreating(false);
+  }, [name, playerId, setPlayer, navigateTo]);
 
   return (
     <div className={styles.page}>
@@ -17,6 +38,23 @@ export default function CharCreatePage() {
             {gender === 'female' ? '👩' : '👨'}
           </div>
         </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>角色名</h3>
+          <input
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
+              borderRadius: 'var(--radius-md)', color: 'var(--ink)',
+              fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box',
+            }}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="请输入角色名（可留空自动生成）"
+            maxLength={12}
+          />
+        </div>
+
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>性别</h3>
           <div className={styles.optionRow}>
@@ -26,6 +64,7 @@ export default function CharCreatePage() {
                     onClick={() => setGender('male')}>男</button>
           </div>
         </div>
+
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>发型</h3>
           <div className={styles.optionRow}>
@@ -34,6 +73,7 @@ export default function CharCreatePage() {
             ))}
           </div>
         </div>
+
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>服饰</h3>
           <div className={styles.optionRow}>
@@ -42,7 +82,12 @@ export default function CharCreatePage() {
             ))}
           </div>
         </div>
-        <button className={styles.primaryBtn}>确认创建</button>
+
+        {error && <p style={{ color: 'var(--red)', fontSize: '13px', textAlign: 'center' }}>{error}</p>}
+
+        <button className={styles.primaryBtn} onClick={handleCreate} disabled={creating}>
+          {creating ? '创建中...' : '确认创建'}
+        </button>
       </div>
     </div>
   );

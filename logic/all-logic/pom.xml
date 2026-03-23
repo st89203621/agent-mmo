@@ -162,6 +162,18 @@
             <artifactId>memory-logic</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>skill-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>battle-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

@@ -270,6 +270,25 @@ export function deleteEquips(ids: string[]) {
   });
 }
 
+// ── 背包 ──────────────────────────────────────
+
+export interface BagItemData {
+  id: string;
+  itemTypeId: string;
+  quantity: number;
+}
+
+export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
+  return request('/bag/list');
+}
+
+export function useBagItem(id: string, itemTypeId: string, quantity = 1) {
+  return request('/bag/use', {
+    method: 'POST',
+    body: JSON.stringify({ id, itemTypeId, quantity }),
+  });
+}
+
 // ── 轮回 ──────────────────────────────────────
 
 export function fetchRebirthStatus() {
@@ -286,4 +305,378 @@ export function selectRebirthBook(bookId: string, bookTitle: string) {
     method: 'POST',
     body: JSON.stringify({ bookId, bookTitle }),
   });
+}
+
+// ── 角色 ──────────────────────────────────────
+
+export interface PersonData {
+  exists: boolean;
+  id?: number;
+  name?: string;
+  basicProperty?: {
+    hp: number; mp: number;
+    physicsAttack: number; physicsDefense: number;
+    magicAttack: number; magicDefense: number;
+    speed: number;
+  };
+}
+
+export function fetchPersonInfo(): Promise<PersonData> {
+  return request('/person/me');
+}
+
+export function initPerson(name?: string): Promise<{ id: number; name: string }> {
+  return request('/person/init', {
+    method: 'POST',
+    body: JSON.stringify({ name: name || '' }),
+  });
+}
+
+// ── 任务 ──────────────────────────────────────
+
+export interface QuestData {
+  questId: string;
+  name: string;
+  description: string;
+  type: number;
+  status: number;
+  progress: number;
+  target: number;
+  rewards: string;
+  level: number;
+}
+
+export function fetchQuests(): Promise<{ quests: QuestData[] }> {
+  return request('/quest/list');
+}
+
+export function fetchAvailableQuests(level = 1): Promise<{ quests: QuestData[] }> {
+  return request(`/quest/available?level=${level}`);
+}
+
+export function acceptQuest(questId: string) {
+  return request('/quest/accept', {
+    method: 'POST',
+    body: JSON.stringify({ questId }),
+  });
+}
+
+export function abandonQuest(questId: string) {
+  return request('/quest/abandon', {
+    method: 'POST',
+    body: JSON.stringify({ questId }),
+  });
+}
+
+// ── 宠物 ──────────────────────────────────────
+
+export interface PetData {
+  id: string;
+  petTemplateId: string;
+  nickname: string;
+  mutationExp: number;
+  mutationNo: number;
+  propertyPointNum: number;
+  constitution: number;
+  magicPower: number;
+  power: number;
+  endurance: number;
+  agile: number;
+  maxSkill: number;
+  aiImageUrl: string;
+  petType: string;
+  element: string;
+}
+
+export interface PetTemplateData {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export function fetchPets(): Promise<{ pets: PetData[] }> {
+  return request('/pet/list');
+}
+
+export function fetchPetTemplates(): Promise<{ templates: PetTemplateData[] }> {
+  return request('/pet/templates');
+}
+
+export function randomPet(): Promise<{ pet: PetData }> {
+  return request('/pet/random', { method: 'POST' });
+}
+
+export function createPet(params: {
+  petTemplateId?: string; nickname?: string;
+  petType?: string; element?: string;
+}): Promise<{ pet: PetData }> {
+  return request('/pet/create', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export function deletePet(petId: string) {
+  return request('/pet/delete', {
+    method: 'POST',
+    body: JSON.stringify({ petId }),
+  });
+}
+
+// ── 技能 ──────────────────────────────────────
+
+export interface SkillTemplateData {
+  id: string;
+  name: string;
+  description: string;
+  branch: string;
+  type: string;
+  maxLevel: number;
+  requiredLevel: number;
+  prerequisites: string[] | null;
+  costPerLevel: number;
+  icon: string;
+  sortOrder: number;
+}
+
+export interface PlayerSkillData {
+  id: string;
+  skillTemplateId: string;
+  level: number;
+  unlocked: boolean;
+}
+
+export function fetchSkillTemplates(): Promise<{ templates: SkillTemplateData[] }> {
+  return request('/skill/templates');
+}
+
+export function fetchPlayerSkills(): Promise<{ skills: PlayerSkillData[] }> {
+  return request('/skill/list');
+}
+
+export function unlockSkill(skillTemplateId: string) {
+  return request<{ skillTemplateId: string; level: number; unlocked: boolean }>('/skill/unlock', {
+    method: 'POST',
+    body: JSON.stringify({ skillTemplateId }),
+  });
+}
+
+export function upgradeSkill(skillTemplateId: string) {
+  return request<{ skillTemplateId: string; level: number; unlocked: boolean }>('/skill/upgrade', {
+    method: 'POST',
+    body: JSON.stringify({ skillTemplateId }),
+  });
+}
+
+// ── 战斗 ──────────────────────────────────────
+
+export interface BattleUnitData {
+  unitId: string;
+  name: string;
+  unitType: string;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  speed: number;
+}
+
+export interface BattleActionData {
+  actorName: string;
+  actionType: string;
+  targetName: string;
+  damage: number;
+  heal: number;
+  skillName: string;
+  description: string;
+}
+
+export interface BattleData {
+  id: string;
+  round: number;
+  status: string;
+  rewards: string;
+  playerUnits: BattleUnitData[];
+  enemyUnits: BattleUnitData[];
+  actionLog: BattleActionData[];
+}
+
+export function startBattle(stats: Record<string, number>): Promise<{ battle: BattleData }> {
+  return request('/battle/start', {
+    method: 'POST',
+    body: JSON.stringify(stats),
+  });
+}
+
+export function getBattleState(): Promise<{ battle: BattleData }> {
+  return request('/battle/state');
+}
+
+export function battleAction(actionType: string, targetId?: string): Promise<{ battle: BattleData }> {
+  return request('/battle/action', {
+    method: 'POST',
+    body: JSON.stringify({ actionType, targetId }),
+  });
+}
+
+// ── 商城 ──────────────────────────────────────
+
+export interface ShopItemData {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  price: number;
+  currency: string;
+  category: string;
+  quality: string;
+  isHot: boolean;
+  stock: number;
+}
+
+export function fetchShopItems(category?: string): Promise<{ items: ShopItemData[] }> {
+  const query = category ? `?category=${category}` : '';
+  return request(`/shop/list${query}`);
+}
+
+export function fetchPlayerCurrency(): Promise<{ gold: number; diamond: number }> {
+  return request('/shop/currency');
+}
+
+export function purchaseItem(itemId: string, quantity = 1) {
+  return request<Record<string, unknown>>('/shop/purchase', {
+    method: 'POST',
+    body: JSON.stringify({ itemId, quantity }),
+  });
+}
+
+// ── 附魔 ──────────────────────────────────────
+
+export interface EnchantData {
+  equipId: string;
+  enchantLevel: number;
+  totalAttributeBonus: number;
+  guaranteeCount: number;
+  attributeBonusPercent: number;
+}
+
+export function fetchEnchantInfo(equipId: string): Promise<EnchantData> {
+  return request(`/enchant/${equipId}`);
+}
+
+export function applyEnchant(equipId: string, runeLevel: number): Promise<EnchantData> {
+  return request('/enchant/apply', {
+    method: 'POST',
+    body: JSON.stringify({ equipId, runeLevel }),
+  });
+}
+
+// ── 副本 ──────────────────────────────────────
+
+export interface DungeonData {
+  id: string;
+  dungeonId: string;
+  dungeonName: string;
+  type: string;
+  currentStage: number;
+  maxStage: number;
+  status: string;
+  difficulty: number;
+  firstClear: boolean;
+  clearCount: number;
+}
+
+export function fetchDungeons(): Promise<{ dungeons: DungeonData[] }> {
+  return request('/dungeon/list');
+}
+
+export function enterDungeon(dungeonId: string, difficulty = 1): Promise<{ dungeon: DungeonData }> {
+  return request('/dungeon/enter', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId, difficulty }),
+  });
+}
+
+export function completeDungeonStage(dungeonId: string, stageId: number, stars = 3): Promise<{ dungeon: DungeonData }> {
+  return request('/dungeon/complete-stage', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId, stageId, stars }),
+  });
+}
+
+export function exitDungeon(dungeonId: string): Promise<{ dungeon: DungeonData }> {
+  return request('/dungeon/exit', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId }),
+  });
+}
+
+// ── 图鉴 ──────────────────────────────────────
+
+export interface CodexNpcData {
+  npcId: string;
+  npcName: string;
+  personality: string;
+  role: string;
+  unlocked: boolean;
+}
+
+export interface CodexEquipData {
+  itemTypeId: string;
+  level: number;
+  quality: number;
+}
+
+export interface CodexPetData {
+  id: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+}
+
+export function fetchCodexNpc(): Promise<{ npcs: CodexNpcData[]; total: number; unlocked: number }> {
+  return request('/codex/npc');
+}
+
+export function fetchCodexEquip(): Promise<{ equips: CodexEquipData[]; totalTypes: number }> {
+  return request('/codex/equip');
+}
+
+export function fetchCodexPet(): Promise<{ pets: CodexPetData[]; total: number; unlocked: number }> {
+  return request('/codex/pet');
+}
+
+// ── 排行榜 ──────────────────────────────────────
+
+export interface RankEntryData {
+  rank: number;
+  playerId: number;
+  playerName: string;
+  level: number;
+  value: number;
+}
+
+export function fetchRankList(type = 'level', limit = 20): Promise<{ entries: RankEntryData[]; myRank: number }> {
+  return request(`/rank/list?type=${type}&limit=${limit}`);
+}
+
+// ── 灵侣 ──────────────────────────────────────
+
+export interface CompanionData {
+  id: string;
+  name: string;
+  realm: string;
+  type: string;
+  quality: string;
+  level: number;
+  bondLevel: number;
+  atk: number;
+  def: number;
+  spd: number;
+  currentHp: number;
+  maxHp: number;
+}
+
+export function fetchCompanions(): Promise<{ companions: CompanionData[] }> {
+  return request('/companion/list');
 }
