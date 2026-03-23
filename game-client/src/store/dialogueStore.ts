@@ -12,17 +12,18 @@ interface DialogueState {
   allowFreeInput: boolean;
   isStreaming: boolean;
   isActive: boolean;
-  sceneImageUrl: string;
+  sceneImages: string[];
   sceneImageLoading: boolean;
 
   startDialogue: (sessionId: string, npcId: string, npcName: string) => void;
   loadHistory: (messages: DialogueMessage[]) => void;
+  addPlayerMessage: (text: string) => void;
   appendStreamText: (chunk: string) => void;
   resetStreamText: () => void;
   completeMessage: (msg: DialogueMessage) => void;
   setStreaming: (streaming: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
-  setSceneImage: (url: string) => void;
+  pushSceneImage: (url: string) => void;
   setSceneImageLoading: (loading: boolean) => void;
   endDialogue: () => void;
   reset: () => void;
@@ -39,7 +40,7 @@ const initialState = {
   allowFreeInput: false,
   isStreaming: false,
   isActive: false,
-  sceneImageUrl: '',
+  sceneImages: [] as string[],
   sceneImageLoading: false,
 };
 
@@ -53,14 +54,31 @@ export const useDialogueStore = create<DialogueState>((set) => ({
       npcId,
       npcName,
       isActive: true,
-      // 保留场景图状态（图片请求与对话并行）
-      sceneImageUrl: state.sceneImageUrl,
+      sceneImages: state.sceneImages,
       sceneImageLoading: state.sceneImageLoading,
     })),
 
   loadHistory: (messages) =>
     set((state) => ({
       messages: [...messages, ...state.messages],
+    })),
+
+  addPlayerMessage: (text) =>
+    set((state) => ({
+      messages: [
+        ...state.messages,
+        {
+          sessionId: state.sessionId,
+          speaker: '你',
+          emotion: 'calm' as Emotion,
+          text,
+          choices: [],
+          allowFreeInput: false,
+          fateDelta: 0,
+          trustDelta: 0,
+          isPlayer: true,
+        },
+      ],
     })),
 
   appendStreamText: (chunk) =>
@@ -79,7 +97,13 @@ export const useDialogueStore = create<DialogueState>((set) => ({
 
   setStreaming: (streaming) => set({ isStreaming: streaming }),
   setEmotion: (emotion) => set({ currentEmotion: emotion }),
-  setSceneImage: (url) => set({ sceneImageUrl: url, sceneImageLoading: false }),
+
+  pushSceneImage: (url) =>
+    set((state) => ({
+      sceneImages: [...state.sceneImages, url],
+      sceneImageLoading: false,
+    })),
+
   setSceneImageLoading: (loading) => set({ sceneImageLoading: loading }),
   endDialogue: () => set({ isActive: false }),
   reset: () => set(initialState),

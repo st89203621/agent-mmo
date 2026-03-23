@@ -32,6 +32,7 @@ export interface DialogueMessage {
   fateDelta: number;
   trustDelta: number;
   isStreaming?: boolean;
+  isPlayer?: boolean;
 }
 
 /** NPC信息 */

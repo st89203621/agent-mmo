@@ -28,6 +28,7 @@ export default function StoryPage() {
   const [loading, setLoading] = useState(false);
   const [dialogueError, setDialogueError] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   // 选书阶段
   const [books, setBooks] = useState<BookWorld[]>([]);
@@ -41,6 +42,32 @@ export default function StoryPage() {
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // 滑动手势
+  const touchStartX = useRef(0);
+  const touchDelta = useRef(0);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    touchStartX.current = x;
+    touchDelta.current = 0;
+  }, []);
+  const handleTouchMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    touchDelta.current = x - touchStartX.current;
+    setSwipeOffset(touchDelta.current);
+  }, []);
+  const handleTouchEnd = useCallback(() => {
+    const threshold = 60;
+    const total = dialogue.sceneImages.length;
+    if (touchDelta.current < -threshold && galleryIndex < total - 1) {
+      setGalleryIndex((i) => i + 1);
+    } else if (touchDelta.current > threshold && galleryIndex > 0) {
+      setGalleryIndex((i) => i - 1);
+    }
+    touchDelta.current = 0;
+    setSwipeOffset(0);
+  }, [galleryIndex, dialogue.sceneImages.length]);
 
   const currentRelation = player.relations.find((r) => r.npcId === dialogue.npcId);
 
@@ -135,6 +162,7 @@ export default function StoryPage() {
       allowFreeInput: false,
       fateDelta: 0,
       trustDelta: 0,
+      isPlayer: item.role === 'player',
     }));
   }, []);
 
@@ -156,7 +184,7 @@ export default function StoryPage() {
     if (data.sceneHint) {
       dialogue.setSceneImageLoading(true);
       generateSceneImage(dialogue.npcId, player.currentWorldIndex, artStyle || undefined, data.sceneHint)
-        .then((res) => dialogue.setSceneImage(res.imageUrl))
+        .then((res) => dialogue.pushSceneImage(res.imageUrl))
         .catch(() => dialogue.setSceneImageLoading(false));
     }
   }, [dialogue.npcId, player.currentWorldIndex, artStyle]);
@@ -173,7 +201,7 @@ export default function StoryPage() {
     // 并行请求场景图片（传入artStyle）
     dialogue.setSceneImageLoading(true);
     generateSceneImage(npcId, player.currentWorldIndex, artStyle || undefined)
-      .then((res) => dialogue.setSceneImage(res.imageUrl))
+      .then((res) => dialogue.pushSceneImage(res.imageUrl))
       .catch(() => dialogue.setSceneImageLoading(false));
 
     abortRef.current = streamStartDialogue(
@@ -220,6 +248,7 @@ export default function StoryPage() {
   const handleChoice = useCallback((choice: DialogueChoice) => {
     if (loading) return;
     setLoading(true);
+    dialogue.addPlayerMessage(choice.text);
     dialogue.setStreaming(true);
     dialogue.resetStreamText();
     player.updateRelation(dialogue.npcId, choice.weight.fate, choice.weight.trust);
@@ -245,6 +274,7 @@ export default function StoryPage() {
     const text = freeInput.trim();
     setFreeInput('');
     setLoading(true);
+    dialogue.addPlayerMessage(text);
     dialogue.setStreaming(true);
     dialogue.resetStreamText();
 
@@ -279,9 +309,14 @@ export default function StoryPage() {
     const lastMsg = dialogue.messages[dialogue.messages.length - 1];
     return (
       <div className={styles.page}>
-        <div className={styles.scenePortrait} onClick={() => dialogue.sceneImageUrl && setFullscreenImage(true)}>
-          {dialogue.sceneImageUrl ? (
-            <img src={dialogue.sceneImageUrl} alt="场景" className={styles.sceneImage} />
+        <div className={styles.scenePortrait} onClick={() => {
+          if (dialogue.sceneImages.length > 0) {
+            setGalleryIndex(dialogue.sceneImages.length - 1);
+            setFullscreenImage(true);
+          }
+        }}>
+          {dialogue.sceneImages.length > 0 ? (
+            <img src={dialogue.sceneImages[dialogue.sceneImages.length - 1]} alt="场景" className={styles.sceneImage} />
           ) : dialogue.sceneImageLoading ? (
             <div className={styles.sceneImagePlaceholder}>
               <span className={styles.sceneImageLoadingText}>绘制场景中...</span>
@@ -306,20 +341,58 @@ export default function StoryPage() {
               <FateBar fateScore={currentRelation.fateScore} trustScore={currentRelation.trustScore} npcName="" compact />
             </div>
           )}
-          {dialogue.sceneImageUrl && <span className={styles.fullscreenHint}>点击查看大图</span>}
+          {dialogue.sceneImages.length > 0 && (
+            <span className={styles.fullscreenHint}>
+              {dialogue.sceneImages.length > 1 ? `${dialogue.sceneImages.length}张 · 点击查看` : '点击查看大图'}
+            </span>
+          )}
         </div>
 
-        {fullscreenImage && dialogue.sceneImageUrl && (
+        {fullscreenImage && dialogue.sceneImages.length > 0 && (
           <div className={styles.fullscreenOverlay} onClick={() => setFullscreenImage(false)}>
-            <img src={dialogue.sceneImageUrl} alt="场景" className={styles.fullscreenImage} />
+            <div
+              className={styles.galleryBody}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleTouchStart}
+              onMouseMove={(e) => { if (e.buttons === 1) handleTouchMove(e); }}
+              onMouseUp={handleTouchEnd}
+            >
+              <img
+                src={dialogue.sceneImages[galleryIndex]}
+                alt={`场景 ${galleryIndex + 1}`}
+                className={styles.fullscreenImage}
+                style={{ transform: `translateX(${swipeOffset}px)` }}
+                draggable={false}
+              />
+            </div>
+            {dialogue.sceneImages.length > 1 && (
+              <div className={styles.galleryFooter} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.galleryDots}>
+                  {dialogue.sceneImages.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`${styles.galleryDot} ${i === galleryIndex ? styles.galleryDotActive : ''}`}
+                      onClick={() => setGalleryIndex(i)}
+                    />
+                  ))}
+                </div>
+                <span className={styles.galleryCounter}>
+                  {galleryIndex + 1} / {dialogue.sceneImages.length}
+                </span>
+                <span className={styles.galleryHint}>左右滑动切换</span>
+              </div>
+            )}
             <button className={styles.fullscreenClose} onClick={() => setFullscreenImage(false)}>✕</button>
           </div>
         )}
 
         <div className={styles.dialogueArea} ref={scrollRef}>
           {showHistory && dialogue.messages.slice(0, -1).map((msg, i) => (
-            <div key={i} className={styles.historyMsg}>
-              <span className={styles.historySpeaker}>{msg.speaker}</span>
+            <div key={i} className={msg.isPlayer ? styles.historyMsgPlayer : styles.historyMsg}>
+              <span className={msg.isPlayer ? styles.historySpeakerPlayer : styles.historySpeaker}>{msg.speaker}</span>
               <p className={styles.historyText}>{msg.text}</p>
             </div>
           ))}

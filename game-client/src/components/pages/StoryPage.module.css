@@ -243,24 +243,43 @@
   opacity: 1;
 }
 
-/* 全屏查看图片 */
+/* 全屏画廊 */
 .fullscreenOverlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.92);
+  background: #0a0a0a;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   animation: fadeIn var(--transition-fast) forwards;
 }
 
+.galleryBody {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.galleryBody:active {
+  cursor: grabbing;
+}
+
 .fullscreenImage {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  cursor: default;
+  pointer-events: none;
+  transition: transform 0.15s ease-out;
+  will-change: transform;
 }
 
 .fullscreenClose {
@@ -271,7 +290,7 @@
   height: 36px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--paper);
   font-size: 18px;
   cursor: pointer;
@@ -279,10 +298,60 @@
   align-items: center;
   justify-content: center;
   transition: background var(--transition-fast);
+  z-index: 1;
 }
 
 .fullscreenClose:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* 画廊底部信息区 */
+.galleryFooter {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 16px 0 calc(20px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #0a0a0a;
+}
+
+.galleryDots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.galleryDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.galleryDot:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.galleryDotActive {
+  background: var(--gold);
+  width: 10px;
+  height: 10px;
+}
+
+.galleryCounter {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-ui);
+}
+
+.galleryHint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  font-family: var(--font-ui);
 }
 
 /* === 对话界面 === */
@@ -302,10 +371,24 @@
   border-left: 2px solid var(--gold-dim);
 }
 
+.historyMsgPlayer {
+  padding: 8px 12px;
+  background: rgba(120, 160, 200, 0.1);
+  border-radius: var(--radius-md);
+  border-right: 2px solid rgba(120, 160, 200, 0.5);
+  text-align: right;
+}
+
 .historySpeaker {
   font-family: var(--font-main);
   font-size: 12px;
   color: var(--gold-dim);
+}
+
+.historySpeakerPlayer {
+  font-family: var(--font-main);
+  font-size: 12px;
+  color: rgba(120, 160, 200, 0.7);
 }
 
 .historyText {
