@@ -1,4 +1,4 @@
-import type { DialogueChoice, NpcInfo, Relation, BookWorld, MemoryFragment } from '../types';
+import type { DialogueChoice, NpcInfo, Relation, BookWorld, MemoryFragment, ExploreStatus, ExploreEvent, ExploreReward } from '../types';
 
 const BASE_URL = '/api';
 
@@ -741,4 +741,28 @@ export interface CompanionData {
 
 export function fetchCompanions(): Promise<{ companions: CompanionData[] }> {
   return request('/companion/list');
+}
+
+// ── 探索 ──────────────────────────────────────
+
+export function fetchExploreStatus(): Promise<ExploreStatus> {
+  return request('/explore/status');
+}
+
+export function exploreAction(worldIndex: number, bookTitle: string): Promise<{ event: ExploreEvent }> {
+  return request('/explore/action', {
+    method: 'POST',
+    body: JSON.stringify({ worldIndex, bookTitle }),
+  });
+}
+
+export function resolveExploreChoice(eventId: string, choiceId: number): Promise<ExploreReward> {
+  return request('/explore/resolve', {
+    method: 'POST',
+    body: JSON.stringify({ eventId, choiceId }),
+  });
+}
+
+export function fetchExploreHistory(): Promise<{ events: ExploreEvent[] }> {
+  return request('/explore/history');
 }

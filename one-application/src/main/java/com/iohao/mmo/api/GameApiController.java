@@ -49,6 +49,8 @@ import com.iohao.mmo.adventure.entity.Dungeon;
 import com.iohao.mmo.adventure.service.AdventureService;
 import com.iohao.mmo.rank.entity.RankEntry;
 import com.iohao.mmo.rank.service.RankService;
+import com.iohao.mmo.bookworld.explore.ExploreEvent;
+import com.iohao.mmo.bookworld.explore.ExploreService;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
 import com.iohao.mmo.story.entity.SceneImage;
@@ -141,6 +143,9 @@ public class GameApiController {
 
     @Resource
     SceneImageService sceneImageService;
+
+    @Resource
+    ExploreService exploreService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -1518,6 +1523,61 @@ public class GameApiController {
         return ok(Map.of("companions", list));
     }
 
+    // ── 探索 ──────────────────────────────────────
+
+    @GetMapping("/explore/status")
+    public ResponseEntity<Map<String, Object>> exploreStatus(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            return ok(exploreService.getStatus(userId));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/explore/action")
+    public ResponseEntity<Map<String, Object>> exploreAction(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            int worldIndex = body.get("worldIndex") != null ? ((Number) body.get("worldIndex")).intValue() : 0;
+            String bookTitle = (String) body.getOrDefault("bookTitle", "未知世界");
+            ExploreEvent event = exploreService.explore(userId, worldIndex, bookTitle);
+            Map<String, Object> eventMap = exploreEventToMap(event);
+            return ok(Map.of("event", eventMap));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/explore/resolve")
+    public ResponseEntity<Map<String, Object>> exploreResolve(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String eventId = (String) body.get("eventId");
+            int choiceId = ((Number) body.get("choiceId")).intValue();
+            Map<String, Object> reward = exploreService.resolveChoice(userId, eventId, choiceId);
+            return ok(reward);
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @GetMapping("/explore/history")
+    public ResponseEntity<Map<String, Object>> exploreHistory(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            List<ExploreEvent> events = exploreService.getHistory(userId);
+            List<Map<String, Object>> list = events.stream().map(this::exploreEventToMap).toList();
+            return ok(Map.of("events", list));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
     // ── 工具方法 ──────────────────────────────────────
 
     private Long requireLogin(HttpSession session) {
@@ -1615,6 +1675,24 @@ public class GameApiController {
         m.put("aiImageUrl", pet.getAiImageUrl());
         m.put("petType", pet.getPetType());
         m.put("element", pet.getElement());
+        return m;
+    }
+
+    private Map<String, Object> exploreEventToMap(ExploreEvent e) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("eventId", e.getEventId());
+        m.put("type", e.getType());
+        m.put("title", e.getTitle());
+        m.put("description", e.getDescription());
+        m.put("npcId", e.getNpcId());
+        m.put("sceneHint", e.getSceneHint());
+        List<Map<String, Object>> choices = new ArrayList<>();
+        if (e.getChoices() != null) {
+            for (ExploreEvent.Choice c : e.getChoices()) {
+                choices.add(Map.of("id", c.getId(), "text", c.getText(), "risk", c.getRisk()));
+            }
+        }
+        m.put("choices", choices);
         return m;
     }
 
