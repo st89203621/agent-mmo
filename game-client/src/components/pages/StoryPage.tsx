@@ -3,13 +3,13 @@ import { useDialogueStore } from '../../store/dialogueStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import {
-  startDialogue, sendChoice, sendFreeInput, endDialogue,
+  startDialogue, sendChoice, sendFreeInput,
   streamStartDialogue, streamChoice, streamFreeInput,
   fetchNpcs, fetchRelations, parseChoices, generateSceneImage,
-  type DialogueData,
+  type DialogueData, type DialogueHistoryItem,
 } from '../../services/api';
 import FateBar from '../common/FateBar';
-import type { DialogueChoice, Emotion } from '../../types';
+import type { DialogueChoice, DialogueMessage, Emotion } from '../../types';
 import styles from './StoryPage.module.css';
 
 export default function StoryPage() {
@@ -45,6 +45,20 @@ export default function StoryPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [dialogue.messages.length, dialogue.currentText]);
+
+  /** 将历史记录转为前端DialogueMessage */
+  const historyToMessages = useCallback((history: DialogueHistoryItem[], sessionId: string): DialogueMessage[] => {
+    return history.map((item) => ({
+      sessionId,
+      speaker: item.speaker,
+      emotion: (item.emotion || 'calm') as Emotion,
+      text: item.text,
+      choices: parseChoices(item.choicesJson || '[]'),
+      allowFreeInput: false,
+      fateDelta: 0,
+      trustDelta: 0,
+    }));
+  }, []);
 
   /** 处理complete事件 */
   const handleComplete = useCallback((data: DialogueData) => {
@@ -89,6 +103,14 @@ export default function StoryPage() {
         onChunk: (text) => dialogue.appendStreamText(text),
         onComplete: (data) => {
           dialogue.setStreaming(false);
+          // 恢复的历史对话
+          if (data.resumed && data.history) {
+            const historyMsgs = historyToMessages(data.history, data.sessionId);
+            dialogue.loadHistory(historyMsgs.slice(0, -1));
+            handleComplete(data);
+            setShowHistory(false);
+            return;
+          }
           handleComplete(data);
         },
         onError: async (err) => {
@@ -96,6 +118,12 @@ export default function StoryPage() {
           try {
             const data = await startDialogue(npcId, player.currentWorldIndex);
             dialogue.startDialogue(data.sessionId, npcId, npc?.npcName || data.speaker || '');
+            if (data.resumed && data.history) {
+              const historyMsgs = historyToMessages(data.history, data.sessionId);
+              dialogue.loadHistory(historyMsgs.slice(0, -1));
+              handleComplete(data);
+              return;
+            }
             handleFallbackComplete(data);
           } catch (e) {
             console.error(e);
@@ -163,12 +191,10 @@ export default function StoryPage() {
     );
   }, [freeInput, loading, dialogue.npcId, dialogue.sessionId, player.currentWorldIndex]);
 
-  /** 结束对话 */
+  /** 结束对话（仅退出界面，保留对话历史，下次可继续） */
   const handleEndDialogue = useCallback(async () => {
     abortRef.current?.abort();
-    if (dialogue.sessionId) {
-      await endDialogue(dialogue.sessionId).catch(() => {});
-    }
+    // 不调用后端endDialogue，保留session以便下次恢复
     dialogue.endDialogue();
     dialogue.reset();
   }, [dialogue.sessionId]);

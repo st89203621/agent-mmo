@@ -190,6 +190,39 @@ public class GameApiController {
             int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
 
             DialogueSession sess = storyService.startDialogue(userId, npcId, worldIndex);
+
+            // 恢复的历史对话：返回历史消息 + 最后一条NPC消息的choices
+            if (storyService.isResumedSession(sess)) {
+                List<Map<String, Object>> history = storyService.getSessionHistory(sess.getId());
+                Map<String, Object> result = new HashMap<>();
+                result.put("sessionId", sess.getId());
+                result.put("resumed", true);
+                result.put("history", history);
+                // 从最后一条NPC消息中提取choices等信息
+                if (!history.isEmpty()) {
+                    Map<String, Object> lastNpc = null;
+                    for (int i = history.size() - 1; i >= 0; i--) {
+                        if ("npc".equals(history.get(i).get("role"))) { lastNpc = history.get(i); break; }
+                    }
+                    if (lastNpc != null) {
+                        result.put("speaker", lastNpc.get("speaker"));
+                        result.put("emotion", lastNpc.get("emotion"));
+                        result.put("text", lastNpc.get("text"));
+                        result.put("choicesJson", lastNpc.get("choicesJson"));
+                        result.put("allowFreeInput", true);
+                    }
+                }
+                result.putIfAbsent("speaker", npcId);
+                result.putIfAbsent("emotion", "calm");
+                result.putIfAbsent("text", "");
+                result.putIfAbsent("choicesJson", "[]");
+                result.putIfAbsent("allowFreeInput", true);
+                result.put("fateDelta", 0);
+                result.put("trustDelta", 0);
+                return ok(result);
+            }
+
+            // 新对话：生成开场白
             DialogueMessage opening = storyService.getOpeningLine(sess.getId());
             return ok(dialogueToMap(sess.getId(), opening));
         } catch (Exception e) {
@@ -281,6 +314,39 @@ public class GameApiController {
                 // 发送sessionId
                 emitter.send(SseEmitter.event().name("session").data("{\"sessionId\":\"" + sess.getId() + "\"}"));
 
+                // 恢复的历史对话：直接返回complete事件，携带历史数据
+                if (storyService.isResumedSession(sess)) {
+                    List<Map<String, Object>> history = storyService.getSessionHistory(sess.getId());
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("sessionId", sess.getId());
+                    result.put("resumed", true);
+                    result.put("history", history);
+                    if (!history.isEmpty()) {
+                        Map<String, Object> lastNpc = null;
+                        for (int i = history.size() - 1; i >= 0; i--) {
+                            if ("npc".equals(history.get(i).get("role"))) { lastNpc = history.get(i); break; }
+                        }
+                        if (lastNpc != null) {
+                            result.put("speaker", lastNpc.get("speaker"));
+                            result.put("emotion", lastNpc.get("emotion"));
+                            result.put("text", lastNpc.get("text"));
+                            result.put("choicesJson", lastNpc.get("choicesJson"));
+                            result.put("allowFreeInput", true);
+                        }
+                    }
+                    result.putIfAbsent("speaker", npcId);
+                    result.putIfAbsent("emotion", "calm");
+                    result.putIfAbsent("text", "");
+                    result.putIfAbsent("choicesJson", "[]");
+                    result.putIfAbsent("allowFreeInput", true);
+                    result.put("fateDelta", 0);
+                    result.put("trustDelta", 0);
+                    emitter.send(SseEmitter.event().name("complete").data(JSON.toJSONString(result)));
+                    emitter.complete();
+                    return;
+                }
+
+                // 新对话：流式生成开场白
                 storyService.getOpeningLineStream(sess.getId(),
                         chunk -> { try { emitter.send(SseEmitter.event().name("chunk").data(chunk)); } catch (Exception ignored) {} },
                         msg -> {

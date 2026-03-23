@@ -16,6 +16,7 @@ interface DialogueState {
   sceneImageLoading: boolean;
 
   startDialogue: (sessionId: string, npcId: string, npcName: string) => void;
+  loadHistory: (messages: DialogueMessage[]) => void;
   appendStreamText: (chunk: string) => void;
   resetStreamText: () => void;
   completeMessage: (msg: DialogueMessage) => void;
@@ -55,6 +56,11 @@ export const useDialogueStore = create<DialogueState>((set) => ({
       // 保留场景图状态（图片请求与对话并行）
       sceneImageUrl: state.sceneImageUrl,
       sceneImageLoading: state.sceneImageLoading,
+    })),
+
+  loadHistory: (messages) =>
+    set((state) => ({
+      messages: [...messages, ...state.messages],
     })),
 
   appendStreamText: (chunk) =>

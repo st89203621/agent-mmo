@@ -47,7 +47,7 @@ public class StoryService {
     @Resource
     PlayerBookSelectionRepository playerBookSelectionRepository;
 
-    /** 开始与 NPC 的对话，返回 session */
+    /** 开始与 NPC 的对话：优先恢复最近的历史对话，否则创建新session */
     public DialogueSession startDialogue(long playerId, String npcId, int worldIndex) {
         // 结束旧的活跃对话（可能存在多个未正常关闭的session）
         dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId).forEach(old -> {
@@ -56,6 +56,21 @@ public class StoryService {
             dialogueSessionRepository.save(old);
         });
 
+        // 查找最近一次与该NPC的对话记录，恢复延续
+        List<DialogueSession> recent = dialogueSessionRepository
+                .findByPlayerIdAndNpcIdAndWorldIndexOrderByStartTimeDesc(playerId, npcId, worldIndex);
+        if (!recent.isEmpty()) {
+            DialogueSession last = recent.get(0);
+            if (last.getMessages() != null && !last.getMessages().isEmpty()) {
+                // 重新激活该session
+                last.setActive(true);
+                last.setEndTime(0);
+                log.info("恢复历史对话: sessionId={}, messages={}", last.getId(), last.getMessages().size());
+                return dialogueSessionRepository.save(last);
+            }
+        }
+
+        // 没有可恢复的历史，创建新session
         DialogueSession session = new DialogueSession();
         session.setId(UUID.randomUUID().toString());
         session.setPlayerId(playerId);
@@ -67,6 +82,32 @@ public class StoryService {
         session.setTotalFateDelta(0);
         session.setTotalTrustDelta(0);
         return dialogueSessionRepository.save(session);
+    }
+
+    /** 判断session是否为恢复的（有历史消息） */
+    public boolean isResumedSession(DialogueSession session) {
+        return session.getMessages() != null && !session.getMessages().isEmpty();
+    }
+
+    /** 获取session的历史消息，转为前端可用格式 */
+    public List<Map<String, Object>> getSessionHistory(String sessionId) {
+        DialogueSession session = dialogueSessionRepository.findById(sessionId).orElse(null);
+        if (session == null || session.getMessages() == null) return Collections.emptyList();
+
+        NpcTemplate npc = getNpcTemplate(session.getNpcId());
+        String npcName = npc != null ? npc.getNpcName() : session.getNpcId();
+
+        List<Map<String, Object>> history = new ArrayList<>();
+        for (DialogueRecord rec : session.getMessages()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("role", rec.getRole());
+            item.put("speaker", "npc".equals(rec.getRole()) ? npcName : "你");
+            item.put("text", rec.getContent());
+            item.put("emotion", rec.getEmotion() != null ? rec.getEmotion() : "calm");
+            item.put("choicesJson", rec.getChoicesJson() != null ? rec.getChoicesJson() : "[]");
+            history.add(item);
+        }
+        return history;
     }
 
     /** NPC 开场白（进入对话时调用） */

@@ -46,6 +46,14 @@ export function logout() {
 
 // ── 对话 ──────────────────────────────────────
 
+export interface DialogueHistoryItem {
+  role: string;
+  speaker: string;
+  text: string;
+  emotion: string;
+  choicesJson: string;
+}
+
 export interface DialogueData {
   sessionId: string;
   speaker: string;
@@ -55,6 +63,8 @@ export interface DialogueData {
   trustDelta: number;
   allowFreeInput: boolean;
   choicesJson: string;
+  resumed?: boolean;
+  history?: DialogueHistoryItem[];
 }
 
 export function startDialogue(npcId: string, worldIndex: number): Promise<DialogueData> {
