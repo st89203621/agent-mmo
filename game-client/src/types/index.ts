@@ -130,6 +130,43 @@ export interface Pet {
   skills: string[];
 }
 
+/** 探索状态 */
+export interface ExploreStatus {
+  actionPoints: number;
+  maxPoints: number;
+  nextRecoverSec: number;
+  todayCount: number;
+}
+
+/** 探索事件 */
+export type ExploreEventType = 'encounter' | 'discovery' | 'lore' | 'dilemma' | 'vista';
+
+export interface ExploreEventChoice {
+  id: number;
+  text: string;
+  risk: 'low' | 'medium' | 'high';
+}
+
+export interface ExploreEvent {
+  eventId: string;
+  type: ExploreEventType;
+  title: string;
+  description: string;
+  choices: ExploreEventChoice[];
+  npcId: string | null;
+  sceneHint: string | null;
+}
+
+/** 探索奖励 */
+export interface ExploreReward {
+  message: string;
+  fateDelta: number;
+  trustDelta: number;
+  itemName: string | null;
+  memoryTitle: string | null;
+  imageUrl: string | null;
+}
+
 /** 页面ID枚举 */
 export type PageId =
   | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
