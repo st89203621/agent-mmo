@@ -490,6 +490,7 @@ public class GameApiController {
             String npcId = (String) body.get("npcId");
             int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
             String artStyleOverride = (String) body.getOrDefault("artStyle", null);
+            String sceneHint = (String) body.getOrDefault("sceneHint", null);
 
             // 获取NPC信息
             Optional<NpcTemplate> npcOpt = fateService.getNpcTemplate(npcId);
@@ -501,9 +502,11 @@ public class GameApiController {
             // 决定图片风格：用户自定义 > 书籍artStyle > 默认
             String artStyle = resolveArtStyle(userId, worldIndex, bookTitle, artStyleOverride);
 
-            // 缓存键包含风格，不同风格生成不同图片
-            String cacheKey = npcId + "_" + worldIndex + "_" + artStyle.hashCode();
-            String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle);
+            // 带场景提示时不使用缓存（场景变化时需要新图）
+            String cacheKey = (sceneHint != null && !sceneHint.isBlank())
+                    ? npcId + "_" + worldIndex + "_" + sceneHint.hashCode() + "_" + artStyle.hashCode()
+                    : npcId + "_" + worldIndex + "_" + artStyle.hashCode();
+            String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint);
 
             Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
             if (result.isEmpty()) {
@@ -557,11 +560,19 @@ public class GameApiController {
                 .body(si.getImageData());
     }
 
-    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role, String artStyle) {
-        return artStyle + "场景插画，" + bookTitle + "世界观，"
-                + "角色「" + npcName + "」" + (role.isEmpty() ? "" : "（" + role + "）") + "的登场画面，"
-                + "人物气质" + personality + "，"
-                + "高清，16:9宽幅构图，大气磅礴的场景背景";
+    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role, String artStyle, String sceneHint) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(artStyle).append("场景插画，").append(bookTitle).append("世界观，");
+        sb.append("角色「").append(npcName).append("」");
+        if (!role.isEmpty()) sb.append("（").append(role).append("）");
+        if (sceneHint != null && !sceneHint.isBlank()) {
+            sb.append("，场景：").append(sceneHint);
+        } else {
+            sb.append("的登场画面");
+        }
+        sb.append("，人物气质").append(personality).append("，");
+        sb.append("高清，16:9宽幅构图，展现角色全身或上半身，人物居中");
+        return sb.toString();
     }
 
     // ── 缘分系统 ──────────────────────────────────────
@@ -1559,6 +1570,9 @@ public class GameApiController {
         m.put("trustDelta", msg.trustDelta);
         m.put("allowFreeInput", msg.allowFreeInput);
         m.put("choicesJson", msg.choicesJson);
+        if (msg.sceneHint != null && !msg.sceneHint.isBlank()) {
+            m.put("sceneHint", msg.sceneHint);
+        }
         return m;
     }
 }

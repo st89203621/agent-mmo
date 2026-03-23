@@ -391,6 +391,7 @@ public class StoryService {
         msg.trustDelta = trustDelta;
         msg.choicesJson = buildChoicesJson(ai);
         msg.bookRefs = "[]";
+        msg.sceneHint = ai.sceneHint;
         return msg;
     }
 

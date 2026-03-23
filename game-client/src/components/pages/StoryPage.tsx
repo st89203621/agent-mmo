@@ -150,7 +150,15 @@ export default function StoryPage() {
       trustDelta: data.trustDelta,
     });
     setLoading(false);
-  }, []);
+
+    // 场景变化时刷新图片
+    if (data.sceneHint) {
+      dialogue.setSceneImageLoading(true);
+      generateSceneImage(dialogue.npcId, player.currentWorldIndex, artStyle || undefined, data.sceneHint)
+        .then((res) => dialogue.setSceneImage(res.imageUrl))
+        .catch(() => dialogue.setSceneImageLoading(false));
+    }
+  }, [dialogue.npcId, player.currentWorldIndex, artStyle]);
 
   const handleFallbackComplete = useCallback((data: DialogueData) => {
     handleComplete(data);

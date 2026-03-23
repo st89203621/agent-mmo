@@ -63,6 +63,7 @@ export interface DialogueData {
   trustDelta: number;
   allowFreeInput: boolean;
   choicesJson: string;
+  sceneHint?: string;
   resumed?: boolean;
   history?: DialogueHistoryItem[];
 }
@@ -197,10 +198,10 @@ export function parseChoices(choicesJson: string): DialogueChoice[] {
 
 // ── 场景图片 ──────────────────────────────────────
 
-export function generateSceneImage(npcId: string, worldIndex: number, artStyle?: string): Promise<{ imageId: string; imageUrl: string }> {
+export function generateSceneImage(npcId: string, worldIndex: number, artStyle?: string, sceneHint?: string): Promise<{ imageId: string; imageUrl: string }> {
   return request('/story/scene-image', {
     method: 'POST',
-    body: JSON.stringify({ npcId, worldIndex, artStyle }),
+    body: JSON.stringify({ npcId, worldIndex, artStyle, sceneHint }),
   });
 }
 

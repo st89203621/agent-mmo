@@ -31,4 +31,6 @@ public class DialogueMessage {
     int fateDelta;
     @Protobuf(order = 9)
     int trustDelta;
+    @Protobuf(order = 10)
+    String sceneHint;
 }

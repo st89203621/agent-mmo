@@ -132,6 +132,7 @@ public class AiDialogueService {
                     .build();
 
             StringBuilder fullContent = new StringBuilder();
+            JsonTextExtractor extractor = new JsonTextExtractor("text", onChunk);
 
             Flowable<com.volcengine.ark.runtime.model.completion.chat.ChatCompletionChunk> stream =
                     arkService.streamChatCompletion(request);
@@ -142,7 +143,7 @@ public class AiDialogueService {
                     if (msg != null && msg.getContent() != null) {
                         String token = msg.getContent().toString();
                         fullContent.append(token);
-                        onChunk.accept(token);
+                        extractor.feed(token);
                     }
                 }
             });
@@ -199,7 +200,8 @@ public class AiDialogueService {
         sb.append("    {\"id\": 1, \"text\": \"选项文字\", \"fate\": N, \"trust\": N},\n");
         sb.append("    {\"id\": 2, \"text\": \"选项文字\", \"fate\": N, \"trust\": N}\n");
         sb.append("  ],\n");
-        sb.append("  \"allow_free_input\": true\n");
+        sb.append("  \"allow_free_input\": true,\n");
+        sb.append("  \"scene_hint\": \"如果场景发生变化（如转移地点、进入新环境、时间推移等），用10字以内描述新场景，否则留空字符串\"\n");
         sb.append("}");
 
         return sb.toString();
@@ -233,6 +235,8 @@ public class AiDialogueService {
             result.text = json.getString("text");
             if (result.text == null) result.text = "（沉默片刻）";
             result.allowFreeInput = json.getBooleanValue("allow_free_input", true);
+            result.sceneHint = json.getString("scene_hint");
+            if (result.sceneHint != null && result.sceneHint.isBlank()) result.sceneHint = null;
 
             var choicesArr = json.getJSONArray("choices");
             if (choicesArr != null) {
@@ -276,6 +280,67 @@ public class AiDialogueService {
         return result;
     }
 
+    /**
+     * 流式 JSON text 字段提取器
+     * 只将 "text" 字段的值内容转发给 onChunk，过滤掉 JSON 结构字符
+     */
+    private static class JsonTextExtractor {
+        private enum State { SEEKING_KEY, SEEKING_COLON, SEEKING_QUOTE, EMITTING, DONE }
+
+        private final String targetKey;
+        private final Consumer<String> onChunk;
+        private final StringBuilder buffer = new StringBuilder();
+        private State state = State.SEEKING_KEY;
+        private boolean escaped = false;
+
+        JsonTextExtractor(String targetKey, Consumer<String> onChunk) {
+            this.targetKey = "\"" + targetKey + "\"";
+            this.onChunk = onChunk;
+        }
+
+        void feed(String token) {
+            for (int i = 0; i < token.length(); i++) {
+                char c = token.charAt(i);
+                switch (state) {
+                    case SEEKING_KEY:
+                        buffer.append(c);
+                        // 保持 buffer 只存最近 targetKey.length() 个字符
+                        if (buffer.length() > targetKey.length()) {
+                            buffer.deleteCharAt(0);
+                        }
+                        if (buffer.toString().equals(targetKey)) {
+                            state = State.SEEKING_COLON;
+                            buffer.setLength(0);
+                        }
+                        break;
+                    case SEEKING_COLON:
+                        if (c == ':') state = State.SEEKING_QUOTE;
+                        break;
+                    case SEEKING_QUOTE:
+                        if (c == '"') { state = State.EMITTING; escaped = false; }
+                        break;
+                    case EMITTING:
+                        if (escaped) {
+                            // 转义字符：输出实际字符
+                            if (c == 'n') onChunk.accept("\n");
+                            else if (c == 't') onChunk.accept("\t");
+                            else onChunk.accept(String.valueOf(c));
+                            escaped = false;
+                        } else if (c == '\\') {
+                            escaped = true;
+                        } else if (c == '"') {
+                            state = State.DONE;
+                        } else {
+                            onChunk.accept(String.valueOf(c));
+                        }
+                        break;
+                    case DONE:
+                        break;
+                }
+            }
+        }
+    }
+
     /** AI 对话结果数据结构 */
     public static class DialogueAiResult {
         public String speaker;
@@ -283,6 +348,7 @@ public class AiDialogueService {
         public String text;
         public boolean allowFreeInput;
         public List<Choice> choices;
+        public String sceneHint;
 
         public static class Choice {
             public int id;
