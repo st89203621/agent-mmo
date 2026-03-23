@@ -56,13 +56,20 @@ public class SceneImageService {
     }
 
     /**
-     * 获取或生成场景图片，返回图片ID（用于构建访问URL）
+     * 获取或生成场景图片
      */
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt) {
         // 查缓存
         List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheKey);
         if (!cached.isEmpty()) {
-            return Optional.of(cached.get(0));
+            SceneImage existing = cached.get(0);
+            // 校验缓存有效性：imageData 必须非空
+            if (existing.getImageData() != null && existing.getImageData().length > 0) {
+                return Optional.of(existing);
+            }
+            // 无效缓存，清除后重新生成
+            log.info("清除无效缓存: cacheKey={}", cacheKey);
+            cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
         // 调用文生图
@@ -96,9 +103,6 @@ public class SceneImageService {
         return sceneImageRepository.findById(id);
     }
 
-    /**
-     * 调用火山引擎生成图片并下载为字节数组
-     */
     private byte[] generateAndDownload(String prompt) throws Exception {
         GenerateImagesRequest request = GenerateImagesRequest.builder()
                 .model(model)
@@ -116,9 +120,6 @@ public class SceneImageService {
         return downloadImage(imageUrl);
     }
 
-    /**
-     * 下载远程图片为字节数组
-     */
     private byte[] downloadImage(String imageUrl) throws IOException {
         Request req = new Request.Builder().url(imageUrl).get().build();
         try (Response resp = httpClient.newCall(req).execute()) {

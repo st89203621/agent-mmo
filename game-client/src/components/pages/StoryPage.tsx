@@ -8,7 +8,6 @@ import {
   fetchNpcs, fetchRelations, parseChoices, generateSceneImage,
   type DialogueData,
 } from '../../services/api';
-import NpcPortrait from '../common/NpcPortrait';
 import FateBar from '../common/FateBar';
 import type { DialogueChoice, Emotion } from '../../types';
 import styles from './StoryPage.module.css';
@@ -229,25 +228,35 @@ export default function StoryPage() {
 
   return (
     <div className={styles.page}>
-      {/* 场景图片 */}
-      {dialogue.sceneImageUrl ? (
-        <div className={styles.sceneImageWrap}>
+      {/* 场景图片 + NPC信息合并区域 */}
+      <div className={styles.scenePortrait}>
+        {dialogue.sceneImageUrl ? (
           <img src={dialogue.sceneImageUrl} alt="场景" className={styles.sceneImage} />
-          <div className={styles.sceneImageOverlay} />
-        </div>
-      ) : dialogue.sceneImageLoading ? (
-        <div className={styles.sceneImageWrap}>
+        ) : dialogue.sceneImageLoading ? (
           <div className={styles.sceneImagePlaceholder}>
-            <span className={styles.sceneImageLoading}>绘制场景中...</span>
+            <span className={styles.sceneImageLoadingText}>绘制场景中...</span>
           </div>
+        ) : (
+          <div className={styles.sceneImagePlaceholder}>
+            <span className={styles.sceneFallbackName}>{dialogue.npcName}</span>
+          </div>
+        )}
+        <div className={styles.sceneOverlay} />
+        <div className={styles.sceneNpcInfo}>
+          <span className={styles.sceneNpcName}>{dialogue.npcName}</span>
+          <span className={styles.sceneNpcEmotion} style={{ background: `var(--emotion-${dialogue.currentEmotion})` }}>
+            {dialogue.currentEmotion === 'calm' ? '平静' : dialogue.currentEmotion === 'happy' ? '欢喜' :
+             dialogue.currentEmotion === 'sad' ? '悲伤' : dialogue.currentEmotion === 'angry' ? '愤怒' :
+             dialogue.currentEmotion === 'shy' ? '娇羞' : dialogue.currentEmotion === 'tender' ? '温柔' :
+             dialogue.currentEmotion === 'cold' ? '冷漠' : dialogue.currentEmotion}
+          </span>
         </div>
-      ) : null}
-
-      <NpcPortrait npcName={dialogue.npcName} emotion={dialogue.currentEmotion} />
-
-      {currentRelation && (
-        <FateBar fateScore={currentRelation.fateScore} trustScore={currentRelation.trustScore} npcName={dialogue.npcName} />
-      )}
+        {currentRelation && (
+          <div className={styles.sceneFateBar}>
+            <FateBar fateScore={currentRelation.fateScore} trustScore={currentRelation.trustScore} npcName="" compact />
+          </div>
+        )}
+      </div>
 
       <div className={styles.dialogueArea} ref={scrollRef}>
         {showHistory && dialogue.messages.slice(0, -1).map((msg, i) => (
