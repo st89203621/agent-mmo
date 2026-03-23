@@ -5,7 +5,7 @@ import { useGameStore } from '../../store/gameStore';
 import {
   startDialogue, sendChoice, sendFreeInput, endDialogue,
   streamStartDialogue, streamChoice, streamFreeInput,
-  fetchNpcs, fetchRelations, parseChoices,
+  fetchNpcs, fetchRelations, parseChoices, generateSceneImage,
   type DialogueData,
 } from '../../services/api';
 import NpcPortrait from '../common/NpcPortrait';
@@ -73,6 +73,12 @@ export default function StoryPage() {
     setLoading(true);
     setDialogueError('');
     const npc = game.npcsInScene.find((n) => n.npcId === npcId);
+
+    // 并行请求场景图片（不阻塞对话）
+    dialogue.setSceneImageLoading(true);
+    generateSceneImage(npcId, player.currentWorldIndex)
+      .then((res) => dialogue.setSceneImage(res.imageUrl))
+      .catch(() => dialogue.setSceneImageLoading(false));
 
     abortRef.current = streamStartDialogue(
       { npcId, worldIndex: player.currentWorldIndex },
@@ -223,6 +229,20 @@ export default function StoryPage() {
 
   return (
     <div className={styles.page}>
+      {/* 场景图片 */}
+      {dialogue.sceneImageUrl ? (
+        <div className={styles.sceneImageWrap}>
+          <img src={dialogue.sceneImageUrl} alt="场景" className={styles.sceneImage} />
+          <div className={styles.sceneImageOverlay} />
+        </div>
+      ) : dialogue.sceneImageLoading ? (
+        <div className={styles.sceneImageWrap}>
+          <div className={styles.sceneImagePlaceholder}>
+            <span className={styles.sceneImageLoading}>绘制场景中...</span>
+          </div>
+        </div>
+      ) : null}
+
       <NpcPortrait npcName={dialogue.npcName} emotion={dialogue.currentEmotion} />
 
       {currentRelation && (

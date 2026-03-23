@@ -185,6 +185,15 @@ export function parseChoices(choicesJson: string): DialogueChoice[] {
   }
 }
 
+// ── 场景图片 ──────────────────────────────────────
+
+export function generateSceneImage(npcId: string, worldIndex: number): Promise<{ imageId: string; imageUrl: string }> {
+  return request('/story/scene-image', {
+    method: 'POST',
+    body: JSON.stringify({ npcId, worldIndex }),
+  });
+}
+
 // ── NPC ──────────────────────────────────────
 
 export function fetchNpcs(worldIndex = 0): Promise<{ npcs: NpcInfo[] }> {

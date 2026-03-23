@@ -50,6 +50,8 @@ import com.iohao.mmo.rank.entity.RankEntry;
 import com.iohao.mmo.rank.service.RankService;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
+import com.iohao.mmo.story.entity.SceneImage;
+import com.iohao.mmo.story.service.SceneImageService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -132,6 +134,9 @@ public class GameApiController {
 
     @Resource
     CompanionService companionService;
+
+    @Resource
+    SceneImageService sceneImageService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -404,6 +409,64 @@ public class GameApiController {
             info.put("name", npcId);
         });
         return ok(info);
+    }
+
+    // ── 场景图片生成 ──────────────────────────────────────
+
+    /**
+     * 生成场景图片（异步），返回图片ID。前端用 /api/story/scene-image/{id} 获取图片
+     */
+    @PostMapping("/story/scene-image")
+    public ResponseEntity<Map<String, Object>> generateSceneImage(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String npcId = (String) body.get("npcId");
+            int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
+            String cacheKey = npcId + "_" + worldIndex;
+
+            // 获取NPC信息构建prompt
+            Optional<NpcTemplate> npcOpt = fateService.getNpcTemplate(npcId);
+            String npcName = npcOpt.map(NpcTemplate::getNpcName).orElse("神秘角色");
+            String bookTitle = npcOpt.map(NpcTemplate::getBookTitle).orElse("仙侠世界");
+            String personality = npcOpt.map(NpcTemplate::getPersonality).orElse("飘逸神秘");
+            String role = npcOpt.map(NpcTemplate::getRole).orElse("");
+            String prompt = buildScenePrompt(npcName, bookTitle, personality, role);
+
+            Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
+            if (result.isEmpty()) {
+                return err("图片生成失败");
+            }
+
+            String imageId = result.get().getId();
+            return ok(Map.of("imageId", imageId, "imageUrl", "/api/story/scene-image/" + imageId));
+        } catch (Exception e) {
+            log.warn("scene-image error", e);
+            return err(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取场景图片二进制流
+     */
+    @GetMapping("/story/scene-image/{id}")
+    public ResponseEntity<byte[]> getSceneImage(@PathVariable String id) {
+        Optional<SceneImage> opt = sceneImageService.getById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        SceneImage si = opt.get();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(si.getContentType()))
+                .header("Cache-Control", "max-age=86400")
+                .body(si.getImageData());
+    }
+
+    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role) {
+        return "中国古风仙侠场景插画，" + bookTitle + "世界观，"
+                + "角色「" + npcName + "」" + (role.isEmpty() ? "" : "（" + role + "）") + "的登场画面，"
+                + "人物气质" + personality + "，"
+                + "唯美古风水墨画风格，高清，16:9宽幅构图，大气磅礴的仙侠场景背景";
     }
 
     // ── 缘分系统 ──────────────────────────────────────

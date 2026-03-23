@@ -12,6 +12,8 @@ interface DialogueState {
   allowFreeInput: boolean;
   isStreaming: boolean;
   isActive: boolean;
+  sceneImageUrl: string;
+  sceneImageLoading: boolean;
 
   startDialogue: (sessionId: string, npcId: string, npcName: string) => void;
   appendStreamText: (chunk: string) => void;
@@ -19,6 +21,8 @@ interface DialogueState {
   completeMessage: (msg: DialogueMessage) => void;
   setStreaming: (streaming: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
+  setSceneImage: (url: string) => void;
+  setSceneImageLoading: (loading: boolean) => void;
   endDialogue: () => void;
   reset: () => void;
 }
@@ -34,19 +38,24 @@ const initialState = {
   allowFreeInput: false,
   isStreaming: false,
   isActive: false,
+  sceneImageUrl: '',
+  sceneImageLoading: false,
 };
 
 export const useDialogueStore = create<DialogueState>((set) => ({
   ...initialState,
 
   startDialogue: (sessionId, npcId, npcName) =>
-    set({
+    set((state) => ({
       ...initialState,
       sessionId,
       npcId,
       npcName,
       isActive: true,
-    }),
+      // 保留场景图状态（图片请求与对话并行）
+      sceneImageUrl: state.sceneImageUrl,
+      sceneImageLoading: state.sceneImageLoading,
+    })),
 
   appendStreamText: (chunk) =>
     set((state) => ({ currentText: state.currentText + chunk })),
@@ -64,6 +73,8 @@ export const useDialogueStore = create<DialogueState>((set) => ({
 
   setStreaming: (streaming) => set({ isStreaming: streaming }),
   setEmotion: (emotion) => set({ currentEmotion: emotion }),
+  setSceneImage: (url) => set({ sceneImageUrl: url, sceneImageLoading: false }),
+  setSceneImageLoading: (loading) => set({ sceneImageLoading: loading }),
   endDialogue: () => set({ isActive: false }),
   reset: () => set(initialState),
 }));
