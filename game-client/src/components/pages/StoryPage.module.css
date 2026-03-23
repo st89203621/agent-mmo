@@ -679,8 +679,25 @@
   flex-shrink: 0;
 }
 
-/* === 阶段2头部操作 === */
+/* === 头部操作 === */
 .headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* === 添加书籍区 === */
+.addBookSection {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--paper-darker);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.headerActionsCenter {
   display: flex;
   align-items: center;
   justify-content: center;

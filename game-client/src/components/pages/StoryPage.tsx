@@ -6,7 +6,7 @@ import {
   startDialogue, sendChoice, sendFreeInput,
   streamStartDialogue, streamChoice, streamFreeInput,
   fetchNpcs, fetchRelations, parseChoices, generateSceneImage,
-  fetchBookWorlds, selectBookWorld, fetchSelectedBook, updateArtStyle,
+  fetchBookWorlds, selectBookWorld, fetchSelectedBook, updateArtStyle, addBookFromWeb,
   type DialogueData, type DialogueHistoryItem, type SelectedBookData,
 } from '../../services/api';
 import FateBar from '../common/FateBar';
@@ -18,6 +18,13 @@ const ART_STYLE_PRESETS = [
   '水墨仙侠风', '赛博朋克风', '日系动漫风', '油画写实风',
   '像素复古风', '暗黑哥特风', '清新水彩风', '蒸汽朋克风',
 ];
+
+/** 情绪中文映射 */
+const EMOTION_CN: Record<string, string> = {
+  calm: '平静', happy: '欢喜', sad: '悲伤', angry: '愤怒',
+  shy: '娇羞', surprised: '惊讶', tender: '温柔', cold: '冷漠',
+  fearful: '恐惧', determined: '坚定', melancholy: '忧郁', playful: '俏皮',
+};
 
 export default function StoryPage() {
   const dialogue = useDialogueStore();
@@ -36,6 +43,12 @@ export default function StoryPage() {
   const [bookLoading, setBookLoading] = useState(true);
   const [artStyle, setArtStyle] = useState('');
   const [customArtInput, setCustomArtInput] = useState('');
+
+  // 添加书籍
+  const [showAddBook, setShowAddBook] = useState(false);
+  const [addBookTitle, setAddBookTitle] = useState('');
+  const [addBookLoading, setAddBookLoading] = useState(false);
+  const [addBookMsg, setAddBookMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // 对话阶段
   const [freeInput, setFreeInput] = useState('');
@@ -133,6 +146,25 @@ export default function StoryPage() {
       setLoading(false);
     }
   }, [player.currentWorldIndex, artStyle]);
+
+  const handleAddBook = useCallback(async () => {
+    const title = addBookTitle.trim();
+    if (!title || addBookLoading) return;
+    setAddBookLoading(true);
+    setAddBookMsg(null);
+    try {
+      const res = await addBookFromWeb(title);
+      setAddBookMsg({ type: 'success', text: res.msg });
+      setAddBookTitle('');
+      // 刷新书籍列表
+      fetchBookWorlds().then((r) => setBooks(r.books)).catch(() => {});
+      setTimeout(() => setAddBookMsg(null), 3000);
+    } catch (e) {
+      setAddBookMsg({ type: 'error', text: e instanceof Error ? e.message : '添加失败' });
+    } finally {
+      setAddBookLoading(false);
+    }
+  }, [addBookTitle, addBookLoading]);
 
   const handleChangeBook = useCallback(() => {
     setSelectedBook(null);
@@ -330,10 +362,7 @@ export default function StoryPage() {
           <div className={styles.sceneNpcInfo}>
             <span className={styles.sceneNpcName}>{dialogue.npcName}</span>
             <span className={styles.sceneNpcEmotion} style={{ background: `var(--emotion-${dialogue.currentEmotion})` }}>
-              {dialogue.currentEmotion === 'calm' ? '平静' : dialogue.currentEmotion === 'happy' ? '欢喜' :
-               dialogue.currentEmotion === 'sad' ? '悲伤' : dialogue.currentEmotion === 'angry' ? '愤怒' :
-               dialogue.currentEmotion === 'shy' ? '娇羞' : dialogue.currentEmotion === 'tender' ? '温柔' :
-               dialogue.currentEmotion === 'cold' ? '冷漠' : dialogue.currentEmotion}
+              {EMOTION_CN[dialogue.currentEmotion] || '平静'}
             </span>
           </div>
           {currentRelation && (
@@ -463,9 +492,37 @@ export default function StoryPage() {
     return (
       <div className={styles.page}>
         <div className={styles.sceneHeader}>
-          <h2 className={styles.sceneTitle}>选择书籍世界</h2>
+          <div className={styles.headerActions}>
+            <h2 className={styles.sceneTitle}>选择书籍世界</h2>
+            <button className={styles.changBookBtn} onClick={() => setShowAddBook(!showAddBook)}>
+              {showAddBook ? '收起' : '添加书籍'}
+            </button>
+          </div>
           <p className={styles.sceneDesc}>踏入一部作品的世界，与其中角色对话</p>
         </div>
+
+        {showAddBook && (
+          <div className={styles.addBookSection}>
+            <div className={styles.freeInputRow}>
+              <input
+                className={styles.freeInput}
+                placeholder={'输入书名，如"雪中悍刀行"'}
+                value={addBookTitle}
+                onChange={(e) => setAddBookTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddBook(); }}
+                disabled={addBookLoading}
+                maxLength={50}
+              />
+              <button className={styles.sendBtn} onClick={handleAddBook} disabled={addBookLoading || !addBookTitle.trim()}>
+                {addBookLoading ? '获取中...' : '搜索添加'}
+              </button>
+            </div>
+            {addBookLoading && <p className={styles.loadingHint}>正在从网络获取书籍并分析角色...</p>}
+            {addBookMsg && (
+              <p className={addBookMsg.type === 'success' ? styles.loadingHint : styles.errorHint}>{addBookMsg.text}</p>
+            )}
+          </div>
+        )}
 
         {/* 图片风格选择 */}
         <div className={styles.artStyleSection}>
@@ -551,7 +608,7 @@ export default function StoryPage() {
       <div className={styles.sceneHeader}>
         <h2 className={styles.sceneTitle}>{selectedBook?.title || '书籍世界'}</h2>
         <p className={styles.sceneDesc}>{selectedBook?.loreSummary || '选择一位角色开始对话'}</p>
-        <div className={styles.headerActions}>
+        <div className={styles.headerActionsCenter}>
           <button className={styles.changBookBtn} onClick={handleChangeBook}>换书</button>
           {artStyle && <span className={styles.artStyleBadge}>画风：{artStyle}</span>}
         </div>
