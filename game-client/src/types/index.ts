@@ -43,6 +43,9 @@ export interface NpcInfo {
   role: string;
   emotion: Emotion;
   portraitBase: string;
+  gender: string;
+  age: string;
+  features: string;
 }
 
 /** 缘分关系 */

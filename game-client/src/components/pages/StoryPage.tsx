@@ -516,7 +516,8 @@ export default function StoryPage() {
               <div className={styles.npcAvatar}>{npc.npcName.charAt(0)}</div>
               <div className={styles.npcCardInfo}>
                 <span className={styles.npcCardName}>{npc.npcName}</span>
-                <span className={styles.npcCardRole}>{npc.role || npc.bookTitle}</span>
+                <span className={styles.npcCardRole}>{npc.role}{npc.gender ? ` · ${npc.gender}` : ''}{npc.age ? ` · ${npc.age}` : ''}</span>
+                {npc.features && <span className={styles.npcCardFeatures}>{npc.features}</span>}
               </div>
               {rel && <FateBar fateScore={rel.fateScore} trustScore={rel.trustScore} npcName="" compact />}
             </button>

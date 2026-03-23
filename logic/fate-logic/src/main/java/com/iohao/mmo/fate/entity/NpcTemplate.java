@@ -26,4 +26,11 @@ public class NpcTemplate {
     String emotion;
     String portraitBase;
     Map<String, String> personas;
+
+    /** 性别：男/女 */
+    String gender;
+    /** 年龄描述：如 "18岁少女"、"中年" */
+    String age;
+    /** 外貌特征描述 */
+    String features;
 }

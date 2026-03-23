@@ -494,10 +494,13 @@ public class GameApiController {
 
             // 获取NPC信息
             Optional<NpcTemplate> npcOpt = fateService.getNpcTemplate(npcId);
-            String npcName = npcOpt.map(NpcTemplate::getNpcName).orElse("神秘角色");
-            String bookTitle = npcOpt.map(NpcTemplate::getBookTitle).orElse("仙侠世界");
-            String personality = npcOpt.map(NpcTemplate::getPersonality).orElse("飘逸神秘");
-            String role = npcOpt.map(NpcTemplate::getRole).orElse("");
+            NpcTemplate npc = npcOpt.orElse(null);
+            String npcName = npc != null ? npc.getNpcName() : "神秘角色";
+            String bookTitle = npc != null ? npc.getBookTitle() : "仙侠世界";
+            String personality = npc != null ? npc.getPersonality() : "飘逸神秘";
+            String role = npc != null ? npc.getRole() : "";
+            String gender = npc != null ? npc.getGender() : "";
+            String features = npc != null ? npc.getFeatures() : "";
 
             // 决定图片风格：用户自定义 > 书籍artStyle > 默认
             String artStyle = resolveArtStyle(userId, worldIndex, bookTitle, artStyleOverride);
@@ -506,7 +509,7 @@ public class GameApiController {
             String cacheKey = (sceneHint != null && !sceneHint.isBlank())
                     ? npcId + "_" + worldIndex + "_" + sceneHint.hashCode() + "_" + artStyle.hashCode()
                     : npcId + "_" + worldIndex + "_" + artStyle.hashCode();
-            String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint);
+            String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint, gender, features);
 
             Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
             if (result.isEmpty()) {
@@ -560,15 +563,18 @@ public class GameApiController {
                 .body(si.getImageData());
     }
 
-    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role, String artStyle, String sceneHint) {
+    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role,
+                                     String artStyle, String sceneHint, String gender, String features) {
         StringBuilder sb = new StringBuilder();
         sb.append(artStyle).append("场景插画，").append(bookTitle).append("世界观，");
         sb.append("角色「").append(npcName).append("」");
-        if (!role.isEmpty()) sb.append("（").append(role).append("）");
+        if (role != null && !role.isEmpty()) sb.append("（").append(role).append("）");
+        if (gender != null && !gender.isEmpty()) sb.append("，").append(gender);
+        if (features != null && !features.isEmpty()) sb.append("，外貌特征：").append(features);
         if (sceneHint != null && !sceneHint.isBlank()) {
             sb.append("，场景：").append(sceneHint);
         } else {
-            sb.append("的登场画面");
+            sb.append("，登场画面");
         }
         sb.append("，人物气质").append(personality).append("，");
         sb.append("高清，16:9宽幅构图，展现角色全身或上半身，人物居中");
@@ -909,6 +915,9 @@ public class GameApiController {
             m.put("role", npc.getRole());
             m.put("emotion", npc.getEmotion());
             m.put("portraitBase", npc.getPortraitBase());
+            m.put("gender", npc.getGender());
+            m.put("age", npc.getAge());
+            m.put("features", npc.getFeatures());
             return m;
         }).toList();
         return ok(Map.of("npcs", list));

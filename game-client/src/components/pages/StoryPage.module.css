@@ -88,6 +88,13 @@
   opacity: 0.5;
 }
 
+.npcCardFeatures {
+  font-size: 11px;
+  color: var(--gold-dim);
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
 .emptyHint {
   flex: 1;
   display: flex;
