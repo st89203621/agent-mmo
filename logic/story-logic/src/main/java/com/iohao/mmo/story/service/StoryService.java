@@ -1,6 +1,9 @@
 package com.iohao.mmo.story.service;
 
 import com.alibaba.fastjson2.JSON;
+import com.iohao.mmo.bookworld.service.BookRagService;
+import com.iohao.mmo.bookworld.entity.PlayerBookSelection;
+import com.iohao.mmo.bookworld.repository.PlayerBookSelectionRepository;
 import com.iohao.mmo.fate.entity.NpcTemplate;
 import com.iohao.mmo.fate.entity.Relation;
 import com.iohao.mmo.fate.repository.NpcTemplateRepository;
@@ -16,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +40,12 @@ public class StoryService {
 
     @Resource
     AiDialogueService aiDialogueService;
+
+    @Resource
+    BookRagService bookRagService;
+
+    @Resource
+    PlayerBookSelectionRepository playerBookSelectionRepository;
 
     /** 开始与 NPC 的对话，返回 session */
     public DialogueSession startDialogue(long playerId, String npcId, int worldIndex) {
@@ -68,11 +78,14 @@ public class StoryService {
         Relation relation = getOrNullRelation(session.getPlayerId(), session.getNpcId(), session.getWorldIndex());
         int fateScore = relation != null ? relation.getFateScore() : 0;
 
+        String npcName = npc != null ? npc.getNpcName() : session.getNpcId();
+        String bookContext = getBookContext(session.getPlayerId(), session.getWorldIndex(), npcName);
+
         DialogueAiResult ai = aiDialogueService.generateNpcResponse(
-                npc != null ? npc.getNpcName() : session.getNpcId(),
+                npcName,
                 npc != null ? npc.getPersonality() : "和蔼的 NPC",
                 npc != null ? npc.getBookTitle() : "未知书籍世界",
-                "",
+                bookContext,
                 "符合角色气质",
                 relation != null ? relation.getKeyFacts() : Collections.emptyList(),
                 fateScore,
@@ -124,6 +137,101 @@ public class StoryService {
         return dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId);
     }
 
+    // ── 流式AI对话 ─────────────────────────────────────
+
+    /** 流式生成开场白 */
+    public void getOpeningLineStream(String sessionId, Consumer<String> onChunk,
+                                      Consumer<DialogueMessage> onComplete, Consumer<Exception> onError) {
+        DialogueSession session = dialogueSessionRepository.findById(sessionId).orElse(null);
+        if (session == null) { onError.accept(new RuntimeException("session不存在")); return; }
+
+        NpcTemplate npc = getNpcTemplate(session.getNpcId());
+        Relation relation = getOrNullRelation(session.getPlayerId(), session.getNpcId(), session.getWorldIndex());
+        int fateScore = relation != null ? relation.getFateScore() : 0;
+
+        String streamNpcName = npc != null ? npc.getNpcName() : session.getNpcId();
+        String streamBookContext = getBookContext(session.getPlayerId(), session.getWorldIndex(), streamNpcName);
+
+        aiDialogueService.generateNpcResponseStream(
+                streamNpcName,
+                npc != null ? npc.getPersonality() : "和蔼的 NPC",
+                npc != null ? npc.getBookTitle() : "未知书籍世界",
+                streamBookContext, "符合角色气质",
+                relation != null ? relation.getKeyFacts() : Collections.emptyList(),
+                fateScore, "（玩家走近打招呼）", "",
+                onChunk,
+                ai -> {
+                    DialogueRecord rec = new DialogueRecord();
+                    rec.setRole("npc"); rec.setContent(ai.text); rec.setEmotion(ai.emotion);
+                    rec.setTimestamp(System.currentTimeMillis()); rec.setChoicesJson(buildChoicesJson(ai));
+                    session.getMessages().add(rec);
+                    dialogueSessionRepository.save(session);
+                    onComplete.accept(toMessage(session.getId(), ai, 0, 0));
+                },
+                onError
+        );
+    }
+
+    /** 流式处理玩家选择 */
+    public void processChoiceStream(String sessionId, int choiceId,
+                                     Consumer<String> onChunk, Consumer<DialogueMessage> onComplete, Consumer<Exception> onError) {
+        DialogueSession session = dialogueSessionRepository.findById(sessionId).orElse(null);
+        if (session == null || !session.isActive()) { onError.accept(new RuntimeException("对话已结束")); return; }
+
+        String choiceText = extractChoiceText(session, choiceId);
+        int fateDelta = extractChoiceFateDelta(session, choiceId);
+        int trustDelta = extractChoiceTrustDelta(session, choiceId);
+        generateAndRecordStream(session, choiceText, choiceId, fateDelta, trustDelta, onChunk, onComplete, onError);
+    }
+
+    /** 流式处理自由输入 */
+    public void processFreeInputStream(String sessionId, String text,
+                                        Consumer<String> onChunk, Consumer<DialogueMessage> onComplete, Consumer<Exception> onError) {
+        DialogueSession session = dialogueSessionRepository.findById(sessionId).orElse(null);
+        if (session == null || !session.isActive()) { onError.accept(new RuntimeException("对话已结束")); return; }
+        generateAndRecordStream(session, text, -1, 1, 0, onChunk, onComplete, onError);
+    }
+
+    private void generateAndRecordStream(DialogueSession session, String playerInput,
+                                          int choiceId, int fateDelta, int trustDelta,
+                                          Consumer<String> onChunk, Consumer<DialogueMessage> onComplete, Consumer<Exception> onError) {
+        NpcTemplate npc = getNpcTemplate(session.getNpcId());
+        Relation relation = getOrNullRelation(session.getPlayerId(), session.getNpcId(), session.getWorldIndex());
+        int fateScore = relation != null ? relation.getFateScore() : 0;
+
+        // 先记录玩家行动
+        DialogueRecord playerRec = new DialogueRecord();
+        playerRec.setRole("player"); playerRec.setContent(playerInput);
+        playerRec.setChoiceId(choiceId); playerRec.setTimestamp(System.currentTimeMillis());
+        playerRec.setFateDelta(fateDelta);
+        session.getMessages().add(playerRec);
+
+        String recNpcName = npc != null ? npc.getNpcName() : session.getNpcId();
+        String recBookContext = getBookContext(session.getPlayerId(), session.getWorldIndex(),
+                recNpcName + " " + playerInput);
+
+        aiDialogueService.generateNpcResponseStream(
+                recNpcName,
+                npc != null ? npc.getPersonality() : "和蔼的 NPC",
+                npc != null ? npc.getBookTitle() : "未知书籍世界",
+                recBookContext, "符合角色气质",
+                relation != null ? relation.getKeyFacts() : Collections.emptyList(),
+                fateScore, playerInput, buildHistoryText(session, 3),
+                onChunk,
+                ai -> {
+                    DialogueRecord npcRec = new DialogueRecord();
+                    npcRec.setRole("npc"); npcRec.setContent(ai.text); npcRec.setEmotion(ai.emotion);
+                    npcRec.setTimestamp(System.currentTimeMillis()); npcRec.setChoicesJson(buildChoicesJson(ai));
+                    session.getMessages().add(npcRec);
+                    session.setTotalFateDelta(session.getTotalFateDelta() + fateDelta);
+                    session.setTotalTrustDelta(session.getTotalTrustDelta() + trustDelta);
+                    dialogueSessionRepository.save(session);
+                    onComplete.accept(toMessage(session.getId(), ai, fateDelta, trustDelta));
+                },
+                onError
+        );
+    }
+
     // ── 核心：AI 生成并记录对话 ─────────────────────────────
 
     private DialogueMessage generateAndRecord(DialogueSession session, String playerInput,
@@ -132,11 +240,15 @@ public class StoryService {
         Relation relation = getOrNullRelation(session.getPlayerId(), session.getNpcId(), session.getWorldIndex());
         int fateScore = relation != null ? relation.getFateScore() : 0;
 
+        String genNpcName = npc != null ? npc.getNpcName() : session.getNpcId();
+        String genBookContext = getBookContext(session.getPlayerId(), session.getWorldIndex(),
+                genNpcName + " " + playerInput);
+
         DialogueAiResult ai = aiDialogueService.generateNpcResponse(
-                npc != null ? npc.getNpcName() : session.getNpcId(),
+                genNpcName,
                 npc != null ? npc.getPersonality() : "和蔼的 NPC",
                 npc != null ? npc.getBookTitle() : "未知书籍世界",
-                "",
+                genBookContext,
                 "符合角色气质",
                 relation != null ? relation.getKeyFacts() : Collections.emptyList(),
                 fateScore,
@@ -247,6 +359,19 @@ public class StoryService {
         m.emotion = "neutral";
         m.choicesJson = "[]";
         return m;
+    }
+
+    /** 获取书籍RAG上下文：根据玩家当前世界选择的书籍，检索与对话相关的段落 */
+    private String getBookContext(long playerId, int worldIndex, String queryText) {
+        try {
+            Optional<PlayerBookSelection> selOpt = playerBookSelectionRepository
+                    .findByUserIdAndWorldIndexAndActiveTrue(playerId, worldIndex);
+            if (selOpt.isEmpty()) return "";
+            return bookRagService.retrieveContext(selOpt.get().getBookId(), queryText);
+        } catch (Exception e) {
+            log.debug("RAG检索跳过: {}", e.getMessage());
+            return "";
+        }
     }
 
     private NpcTemplate getNpcTemplate(String npcId) {

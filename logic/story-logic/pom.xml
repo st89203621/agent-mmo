@@ -38,6 +38,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>bookworld-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.volcengine</groupId>
             <artifactId>volcengine-java-sdk-ark-runtime</artifactId>
             <version>1.0.16</version>

@@ -1,0 +1,84 @@
+.container {
+  padding: 8px 16px;
+  background: var(--paper-dark);
+  border-bottom: 1px solid var(--paper-darker);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+.level {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.barLabel {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  width: 14px;
+  text-align: center;
+  font-family: var(--font-main);
+}
+
+.barTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--paper-darker);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width var(--transition-normal);
+}
+
+.score {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.6;
+  width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compact .barTrack {
+  width: 60px;
+  height: 4px;
+}
+
+.compact .score {
+  font-size: 10px;
+  width: 20px;
+}

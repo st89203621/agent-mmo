@@ -13,9 +13,12 @@ import okhttp3.Dispatcher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import io.reactivex.Flowable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * AI 对话服务 - 基于火山引擎豆包大模型
@@ -104,6 +107,58 @@ public class AiDialogueService {
     }
 
     /**
+     * 流式生成 NPC 对话回复
+     * 每收到一个 token 就通过 onChunk 回调推送，全部完成后解析完整JSON并通过 onComplete 回调
+     */
+    public void generateNpcResponseStream(
+            String npcName, String npcPersona, String bookTitle, String bookEra,
+            String langStyle, List<String> keyFacts, int fateScore,
+            String playerInput, String historyText,
+            Consumer<String> onChunk, Consumer<DialogueAiResult> onComplete, Consumer<Exception> onError) {
+
+        String systemPrompt = buildSystemPrompt(npcName, npcPersona, bookTitle, bookEra, langStyle, keyFacts, fateScore);
+        String userPrompt = buildUserPrompt(playerInput, historyText, fateScore);
+
+        try {
+            List<ChatMessage> messages = new ArrayList<>();
+            messages.add(ChatMessage.builder().role(ChatMessageRole.SYSTEM).content(systemPrompt).build());
+            messages.add(ChatMessage.builder().role(ChatMessageRole.USER).content(userPrompt).build());
+
+            ChatCompletionRequest request = ChatCompletionRequest.builder()
+                    .model(chatModel)
+                    .messages(messages)
+                    .maxTokens(512)
+                    .temperature(0.8)
+                    .build();
+
+            StringBuilder fullContent = new StringBuilder();
+
+            Flowable<com.volcengine.ark.runtime.model.completion.chat.ChatCompletionChunk> stream =
+                    arkService.streamChatCompletion(request);
+
+            stream.blockingForEach(chunk -> {
+                if (chunk.getChoices() != null && !chunk.getChoices().isEmpty()) {
+                    var msg = chunk.getChoices().get(0).getMessage();
+                    if (msg != null && msg.getContent() != null) {
+                        String token = msg.getContent().toString();
+                        fullContent.append(token);
+                        onChunk.accept(token);
+                    }
+                }
+            });
+
+            String content = fullContent.toString().trim();
+            log.debug("AI流式对话完整回复: {}", content);
+            DialogueAiResult result = parseAiResponse(content, npcName);
+            onComplete.accept(result);
+
+        } catch (Exception e) {
+            log.warn("AI流式对话失败: {}", e.getMessage());
+            onError.accept(e);
+        }
+    }
+
+    /**
      * 构建 NPC 系统提示词（GDD 6.1 规范）
      */
     private String buildSystemPrompt(String npcName, String npcPersona, String bookTitle,
@@ -111,7 +166,11 @@ public class AiDialogueService {
         StringBuilder sb = new StringBuilder();
         sb.append("你扮演一个真实的角色扮演游戏 NPC，根据剧情和角色设定自然回应。\n");
         sb.append("角色设定：").append(npcName).append("，").append(npcPersona).append("\n");
-        sb.append("当前时代背景：《").append(bookTitle).append("》").append(bookEra).append("\n");
+        sb.append("当前时代背景：《").append(bookTitle).append("》\n");
+        if (bookEra != null && !bookEra.isBlank()) {
+            sb.append("【书籍世界参考片段】\n").append(bookEra).append("\n");
+            sb.append("（以上为书籍世界的原文片段，请根据这些内容丰富对话，但不要直接复述原文）\n");
+        }
         sb.append("语言风格：").append(langStyle).append("，禁止使用现代网络用语\n");
 
         if (keyFacts != null && !keyFacts.isEmpty()) {

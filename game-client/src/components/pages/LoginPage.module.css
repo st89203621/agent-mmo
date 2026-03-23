@@ -1,0 +1,137 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(201, 168, 76, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn var(--transition-slow) forwards;
+}
+
+.title {
+  font-family: var(--font-main);
+  font-size: 32px;
+  color: var(--gold);
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 11px;
+  color: var(--paper-darker);
+  letter-spacing: 3px;
+  margin-bottom: 40px;
+  opacity: 0.6;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(245, 237, 224, 0.06);
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--paper);
+  outline: none;
+  font-family: var(--font-ui);
+  transition: border-color var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--gold);
+}
+
+.input::placeholder {
+  color: var(--paper-darker);
+  opacity: 0.4;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--red-light);
+  text-align: center;
+  padding: 4px 0;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-main);
+  letter-spacing: 2px;
+  margin-top: 4px;
+  transition: all var(--transition-fast);
+}
+
+.submitBtn:active {
+  transform: scale(0.97);
+  background: var(--gold-dim);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.switchBtn {
+  background: none;
+  border: none;
+  color: var(--paper-darker);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 12px;
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.switchBtn:hover {
+  opacity: 1;
+}
+
+.footer {
+  position: absolute;
+  bottom: 24px;
+  font-size: 11px;
+  color: var(--paper-darker);
+  opacity: 0.3;
+  letter-spacing: 1px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
