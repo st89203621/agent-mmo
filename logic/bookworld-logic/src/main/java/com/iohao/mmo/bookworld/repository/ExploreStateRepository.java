@@ -1,5 +1,6 @@
-package com.iohao.mmo.bookworld.explore;
+package com.iohao.mmo.bookworld.repository;
 
+import com.iohao.mmo.bookworld.explore.ExploreState;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;

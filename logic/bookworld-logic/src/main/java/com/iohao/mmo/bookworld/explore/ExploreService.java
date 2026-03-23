@@ -1,5 +1,7 @@
 package com.iohao.mmo.bookworld.explore;
 
+import com.iohao.mmo.bookworld.repository.ExploreEventRepository;
+import com.iohao.mmo.bookworld.repository.ExploreStateRepository;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
