@@ -411,35 +411,37 @@ export default function StoryPage() {
           )}
         </div>
 
-        {/* 书籍网格 */}
-        <div className={styles.bookGrid}>
-          {books.length === 0 ? (
-            <div className={styles.emptyHint}><p>加载书籍中...</p></div>
-          ) : books.map((book) => (
-            <button
-              key={book.id}
-              className={styles.bookCard}
-              onClick={() => handleSelectBook(book)}
-              disabled={loading}
-            >
-              <div className={styles.bookCoverGrad} style={{
-                background: book.colorPalette
-                  ? `linear-gradient(135deg, ${book.colorPalette.split(',')[0]}, ${book.colorPalette.split(',')[1] || '#333'})`
-                  : undefined,
-              }}>
-                <span className={styles.bookInitial}>{book.title.charAt(0)}</span>
-              </div>
-              <div className={styles.bookMeta}>
-                <span className={styles.bookName}>{book.title}</span>
-                <span className={styles.bookAuthor}>{book.author}</span>
-                <span className={styles.bookStyle}>{book.artStyle}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        {/* 可滚动区域 */}
+        <div className={styles.scrollWrap}>
+          <div className={styles.bookGrid}>
+            {books.length === 0 ? (
+              <div className={styles.emptyHint}><p>加载书籍中...</p></div>
+            ) : books.map((book) => (
+              <button
+                key={book.id}
+                className={styles.bookCard}
+                onClick={() => handleSelectBook(book)}
+                disabled={loading}
+              >
+                <div className={styles.bookCoverGrad} style={{
+                  background: book.colorPalette
+                    ? `linear-gradient(135deg, ${book.colorPalette.split(',')[0]}, ${book.colorPalette.split(',')[1] || '#333'})`
+                    : undefined,
+                }}>
+                  <span className={styles.bookInitial}>{book.title.charAt(0)}</span>
+                </div>
+                <div className={styles.bookMeta}>
+                  <span className={styles.bookName}>{book.title}</span>
+                  <span className={styles.bookAuthor}>{book.author}</span>
+                  <span className={styles.bookStyle}>{book.artStyle}</span>
+                </div>
+              </button>
+            ))}
+          </div>
 
-        {dialogueError && <div className={styles.errorHint}><p>{dialogueError}</p></div>}
-        {loading && <div className={styles.loadingHint}><p>选择中...</p></div>}
+          {dialogueError && <div className={styles.errorHint}><p>{dialogueError}</p></div>}
+          {loading && <div className={styles.loadingHint}><p>选择中...</p></div>}
+        </div>
       </div>
     );
   }
