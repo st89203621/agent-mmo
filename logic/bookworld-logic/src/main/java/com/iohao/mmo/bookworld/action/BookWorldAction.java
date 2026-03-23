@@ -41,7 +41,7 @@ public class BookWorldAction {
     @ActionMethod(BookWorldCmd.selectBook)
     public BookWorldMessage selectBook(SelectBookRequest request, FlowContext flowContext) {
         long userId = flowContext.getUserId();
-        PlayerBookSelection selection = bookWorldService.selectBook(userId, request.worldIndex, request.bookId);
+        PlayerBookSelection selection = bookWorldService.selectBook(userId, request.worldIndex, request.bookId, null);
         if (Objects.isNull(selection)) {
             return null;
         }

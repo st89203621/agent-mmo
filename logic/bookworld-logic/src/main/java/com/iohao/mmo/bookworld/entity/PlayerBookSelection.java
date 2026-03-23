@@ -19,4 +19,6 @@ public class PlayerBookSelection {
     String bookId;
     long selectTime;
     boolean active;
+    /** 用户自定义的图片风格（覆盖书籍默认artStyle） */
+    String customArtStyle;
 }

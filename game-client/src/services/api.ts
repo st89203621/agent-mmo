@@ -197,17 +197,19 @@ export function parseChoices(choicesJson: string): DialogueChoice[] {
 
 // ── 场景图片 ──────────────────────────────────────
 
-export function generateSceneImage(npcId: string, worldIndex: number): Promise<{ imageId: string; imageUrl: string }> {
+export function generateSceneImage(npcId: string, worldIndex: number, artStyle?: string): Promise<{ imageId: string; imageUrl: string }> {
   return request('/story/scene-image', {
     method: 'POST',
-    body: JSON.stringify({ npcId, worldIndex }),
+    body: JSON.stringify({ npcId, worldIndex, artStyle }),
   });
 }
 
 // ── NPC ──────────────────────────────────────
 
-export function fetchNpcs(worldIndex = 0): Promise<{ npcs: NpcInfo[] }> {
-  return request(`/npc/list?worldIndex=${worldIndex}`);
+export function fetchNpcs(worldIndex = 0, bookTitle?: string): Promise<{ npcs: NpcInfo[] }> {
+  let url = `/npc/list?worldIndex=${worldIndex}`;
+  if (bookTitle) url += `&bookTitle=${encodeURIComponent(bookTitle)}`;
+  return request(url);
 }
 
 export function fetchNpcDetail(npcId: string): Promise<NpcInfo> {
@@ -230,10 +232,35 @@ export function fetchBookWorlds(): Promise<{ books: BookWorld[] }> {
   return request('/bookworld/list');
 }
 
-export function selectBookWorld(worldIndex: number, bookId: string) {
+export function selectBookWorld(worldIndex: number, bookId: string, customArtStyle?: string) {
   return request('/bookworld/select', {
     method: 'POST',
-    body: JSON.stringify({ worldIndex, bookId }),
+    body: JSON.stringify({ worldIndex, bookId, customArtStyle }),
+  });
+}
+
+/** 查询当前已选书籍 */
+export interface SelectedBookData {
+  bookId: string;
+  title: string;
+  author: string;
+  category: string;
+  loreSummary: string;
+  artStyle: string;
+  colorPalette: string;
+  languageStyle: string;
+  customArtStyle: string | null;
+}
+
+export function fetchSelectedBook(worldIndex: number): Promise<SelectedBookData> {
+  return request(`/bookworld/selected?worldIndex=${worldIndex}`);
+}
+
+/** 更新自定义图片风格 */
+export function updateArtStyle(worldIndex: number, customArtStyle: string) {
+  return request('/bookworld/art-style', {
+    method: 'POST',
+    body: JSON.stringify({ worldIndex, customArtStyle }),
   });
 }
 

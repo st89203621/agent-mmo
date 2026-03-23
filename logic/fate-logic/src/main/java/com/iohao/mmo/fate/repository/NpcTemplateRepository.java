@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface NpcTemplateRepository extends MongoRepository<NpcTemplate, String> {
     List<NpcTemplate> findByNpcId(String npcId);
+    List<NpcTemplate> findByBookTitle(String bookTitle);
 }

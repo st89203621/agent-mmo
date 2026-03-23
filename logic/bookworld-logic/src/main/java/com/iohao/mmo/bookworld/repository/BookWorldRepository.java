@@ -8,4 +8,5 @@ import java.util.List;
 public interface BookWorldRepository extends MongoRepository<BookWorld, String> {
     List<BookWorld> findByUploadedBy(long uploadedBy);
     List<BookWorld> findByCategory(BookWorld.Category category);
+    List<BookWorld> findByTitle(String title);
 }

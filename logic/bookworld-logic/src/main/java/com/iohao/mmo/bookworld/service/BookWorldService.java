@@ -31,7 +31,7 @@ public class BookWorldService {
         return bookWorldRepository.findById(bookId);
     }
 
-    public PlayerBookSelection selectBook(long userId, int worldIndex, String bookId) {
+    public PlayerBookSelection selectBook(long userId, int worldIndex, String bookId, String customArtStyle) {
         if (worldIndex < 1 || worldIndex > 7) {
             log.warn("用户 {} 选择了非法的世界索引 {}", userId, worldIndex);
             return null;
@@ -59,8 +59,18 @@ public class BookWorldService {
         selection.setBookId(bookId);
         selection.setSelectTime(System.currentTimeMillis());
         selection.setActive(true);
+        selection.setCustomArtStyle(customArtStyle);
 
         return playerBookSelectionRepository.save(selection);
+    }
+
+    /** 更新用户的自定义图片风格 */
+    public void updateCustomArtStyle(long userId, int worldIndex, String customArtStyle) {
+        playerBookSelectionRepository.findByUserIdAndWorldIndexAndActiveTrue(userId, worldIndex)
+                .stream().findFirst().ifPresent(sel -> {
+                    sel.setCustomArtStyle(customArtStyle);
+                    playerBookSelectionRepository.save(sel);
+                });
     }
 
     public BookWorld uploadCustomBook(long userId, String title, String content, String author) {

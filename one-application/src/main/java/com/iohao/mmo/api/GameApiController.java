@@ -489,15 +489,21 @@ public class GameApiController {
         try {
             String npcId = (String) body.get("npcId");
             int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
-            String cacheKey = npcId + "_" + worldIndex;
+            String artStyleOverride = (String) body.getOrDefault("artStyle", null);
 
-            // 获取NPC信息构建prompt
+            // 获取NPC信息
             Optional<NpcTemplate> npcOpt = fateService.getNpcTemplate(npcId);
             String npcName = npcOpt.map(NpcTemplate::getNpcName).orElse("神秘角色");
             String bookTitle = npcOpt.map(NpcTemplate::getBookTitle).orElse("仙侠世界");
             String personality = npcOpt.map(NpcTemplate::getPersonality).orElse("飘逸神秘");
             String role = npcOpt.map(NpcTemplate::getRole).orElse("");
-            String prompt = buildScenePrompt(npcName, bookTitle, personality, role);
+
+            // 决定图片风格：用户自定义 > 书籍artStyle > 默认
+            String artStyle = resolveArtStyle(userId, worldIndex, bookTitle, artStyleOverride);
+
+            // 缓存键包含风格，不同风格生成不同图片
+            String cacheKey = npcId + "_" + worldIndex + "_" + artStyle.hashCode();
+            String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle);
 
             Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
             if (result.isEmpty()) {
@@ -510,6 +516,27 @@ public class GameApiController {
             log.warn("scene-image error", e);
             return err(e.getMessage());
         }
+    }
+
+    /** 决定图片风格优先级：请求参数 > 用户自定义 > 书籍默认 > 兜底 */
+    private String resolveArtStyle(long userId, int worldIndex, String bookTitle, String artStyleOverride) {
+        if (artStyleOverride != null && !artStyleOverride.isBlank()) return artStyleOverride;
+
+        // 从用户选书记录获取自定义风格
+        var selOpt = bookWorldService.getSelectedBook(userId, worldIndex);
+        if (selOpt.isPresent()) {
+            var sel = selOpt.get();
+            if (sel.getCustomArtStyle() != null && !sel.getCustomArtStyle().isBlank()) {
+                return sel.getCustomArtStyle();
+            }
+            // 从书籍获取默认风格
+            var bookOpt = bookWorldService.getBookById(sel.getBookId());
+            if (bookOpt.isPresent() && bookOpt.get().getArtStyle() != null) {
+                return bookOpt.get().getArtStyle();
+            }
+        }
+
+        return "唯美古风水墨画风格";
     }
 
     /**
@@ -530,11 +557,11 @@ public class GameApiController {
                 .body(si.getImageData());
     }
 
-    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role) {
-        return "中国古风仙侠场景插画，" + bookTitle + "世界观，"
+    private String buildScenePrompt(String npcName, String bookTitle, String personality, String role, String artStyle) {
+        return artStyle + "场景插画，" + bookTitle + "世界观，"
                 + "角色「" + npcName + "」" + (role.isEmpty() ? "" : "（" + role + "）") + "的登场画面，"
                 + "人物气质" + personality + "，"
-                + "唯美古风水墨画风格，高清，16:9宽幅构图，大气磅礴的仙侠场景背景";
+                + "高清，16:9宽幅构图，大气磅礴的场景背景";
     }
 
     // ── 缘分系统 ──────────────────────────────────────
@@ -856,8 +883,12 @@ public class GameApiController {
     // ── NPC 管理 ──────────────────────────────────────
 
     @GetMapping("/npc/list")
-    public ResponseEntity<Map<String, Object>> listNpcs(@RequestParam(defaultValue = "0") int worldIndex) {
-        List<NpcTemplate> templates = npcTemplateRepository.findAll();
+    public ResponseEntity<Map<String, Object>> listNpcs(
+            @RequestParam(defaultValue = "0") int worldIndex,
+            @RequestParam(required = false) String bookTitle) {
+        List<NpcTemplate> templates = (bookTitle != null && !bookTitle.isBlank())
+                ? npcTemplateRepository.findByBookTitle(bookTitle)
+                : npcTemplateRepository.findAll();
         List<Map<String, Object>> list = templates.stream().map(npc -> {
             Map<String, Object> m = new HashMap<>();
             m.put("npcId", npc.getNpcId());
@@ -900,8 +931,47 @@ public class GameApiController {
         try {
             int worldIndex = ((Number) body.get("worldIndex")).intValue();
             String bookId = (String) body.get("bookId");
-            bookWorldService.selectBook(userId, worldIndex, bookId);
+            String customArtStyle = (String) body.getOrDefault("customArtStyle", null);
+            bookWorldService.selectBook(userId, worldIndex, bookId, customArtStyle);
             return ok(Map.of("msg", "选择成功"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    /** 查询当前已选书籍及其信息 */
+    @GetMapping("/bookworld/selected")
+    public ResponseEntity<Map<String, Object>> getSelectedBook(HttpSession session,
+                                                                @RequestParam(defaultValue = "1") int worldIndex) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        return bookWorldService.getSelectedBook(userId, worldIndex)
+                .flatMap(sel -> bookWorldService.getBookById(sel.getBookId()).map(book -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("bookId", book.getId());
+                    m.put("title", book.getTitle());
+                    m.put("author", book.getAuthor());
+                    m.put("category", book.getCategory() != null ? book.getCategory().name() : "");
+                    m.put("loreSummary", book.getLoreSummary());
+                    m.put("artStyle", book.getArtStyle());
+                    m.put("colorPalette", book.getColorPalette());
+                    m.put("languageStyle", book.getLanguageStyle());
+                    m.put("customArtStyle", sel.getCustomArtStyle());
+                    return ok(m);
+                }))
+                .orElseGet(() -> ok(Map.of("bookId", "")));
+    }
+
+    /** 更新自定义图片风格 */
+    @PostMapping("/bookworld/art-style")
+    public ResponseEntity<Map<String, Object>> updateArtStyle(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
+            String customArtStyle = (String) body.get("customArtStyle");
+            bookWorldService.updateCustomArtStyle(userId, worldIndex, customArtStyle);
+            return ok(Map.of("msg", "风格更新成功"));
         } catch (Exception e) {
             return err(e.getMessage());
         }
