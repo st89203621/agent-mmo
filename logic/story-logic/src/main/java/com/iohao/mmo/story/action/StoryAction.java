@@ -97,7 +97,8 @@ public class StoryAction {
     /** 获取 NPC 基本信息 */
     @ActionMethod(StoryCmd.getNpcInfo)
     public String getNpcInfo(String npcId) {
-        Optional<NpcTemplate> npcOpt = npcTemplateRepository.findByNpcId(npcId).stream().findFirst();
+        List<NpcTemplate> npcList = npcTemplateRepository.findByNpcId(npcId);
+        Optional<NpcTemplate> npcOpt = npcList.isEmpty() ? Optional.empty() : Optional.of(npcList.get(0));
         Map<String, Object> info = new HashMap<>();
         npcOpt.ifPresentOrElse(npc -> {
             info.put("npcId", npcId);

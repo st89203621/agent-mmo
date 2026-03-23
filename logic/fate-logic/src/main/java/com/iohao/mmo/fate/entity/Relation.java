@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @Data
 @Document
+@CompoundIndex(name = "uk_player_npc_world", def = "{'playerId': 1, 'npcId': 1, 'worldIndex': 1}", unique = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Relation {
     @Id

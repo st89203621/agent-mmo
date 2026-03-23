@@ -10,12 +10,14 @@ interface PlayerState {
   relations: Relation[];
   equipment: Equipment[];
   pets: Pet[];
+  personCreated: boolean;
 
   setPlayer: (id: string, name: string, token: string) => void;
   setCurrentWorld: (index: number) => void;
   setPlayerWorld: (world: PlayerWorld) => void;
   setRelations: (relations: Relation[]) => void;
   updateRelation: (npcId: string, fateDelta: number, trustDelta: number) => void;
+  setPersonCreated: (created: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -27,11 +29,13 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   relations: [],
   equipment: [],
   pets: [],
+  personCreated: false,
 
   setPlayer: (id, name, token) => set({ playerId: id, playerName: name, token }),
   setCurrentWorld: (index) => set({ currentWorldIndex: index }),
   setPlayerWorld: (world) => set({ playerWorld: world }),
   setRelations: (relations) => set({ relations }),
+  setPersonCreated: (created) => set({ personCreated: created }),
   updateRelation: (npcId, fateDelta, trustDelta) =>
     set((state) => ({
       relations: state.relations.map((r) =>

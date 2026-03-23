@@ -27,10 +27,10 @@ public class FateService {
     NpcTemplateRepository npcTemplateRepository;
 
     public Relation getOrCreate(long playerId, String npcId, int worldIndex) {
-        Optional<Relation> existing = relationRepository
+        List<Relation> existing = relationRepository
                 .findByPlayerIdAndNpcIdAndWorldIndex(playerId, npcId, worldIndex);
-        if (existing.isPresent()) {
-            return existing.get();
+        if (!existing.isEmpty()) {
+            return existing.get(0);
         }
 
         Relation relation = new Relation();
@@ -46,11 +46,13 @@ public class FateService {
         relation.setKeyFacts(new ArrayList<>());
 
         // 填充NPC信息
-        npcTemplateRepository.findByNpcId(npcId).ifPresent(template -> {
+        List<NpcTemplate> npcList = npcTemplateRepository.findByNpcId(npcId);
+        if (!npcList.isEmpty()) {
+            NpcTemplate template = npcList.get(0);
             relation.setNpcName(template.getNpcName());
             relation.setImageUrl(template.getPortraitBase());
             relation.setLastEmotion(template.getEmotion() != null ? template.getEmotion() : "neutral");
-        });
+        }
 
         return relationRepository.save(relation);
     }
@@ -116,6 +118,6 @@ public class FateService {
     }
 
     public Optional<NpcTemplate> getNpcTemplate(String npcId) {
-        return npcTemplateRepository.findByNpcId(npcId);
+        return npcTemplateRepository.findByNpcId(npcId).stream().findFirst();
     }
 }

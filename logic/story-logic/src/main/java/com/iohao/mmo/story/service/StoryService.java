@@ -49,8 +49,8 @@ public class StoryService {
 
     /** 开始与 NPC 的对话，返回 session */
     public DialogueSession startDialogue(long playerId, String npcId, int worldIndex) {
-        // 结束旧的活跃对话
-        dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId).ifPresent(old -> {
+        // 结束旧的活跃对话（可能存在多个未正常关闭的session）
+        dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId).forEach(old -> {
             old.setActive(false);
             old.setEndTime(System.currentTimeMillis());
             dialogueSessionRepository.save(old);
@@ -134,7 +134,7 @@ public class StoryService {
     }
 
     public Optional<DialogueSession> getActiveSession(long playerId) {
-        return dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId);
+        return dialogueSessionRepository.findByPlayerIdAndActiveTrue(playerId).stream().findFirst();
     }
 
     // ── 流式AI对话 ─────────────────────────────────────
@@ -364,10 +364,10 @@ public class StoryService {
     /** 获取书籍RAG上下文：根据玩家当前世界选择的书籍，检索与对话相关的段落 */
     private String getBookContext(long playerId, int worldIndex, String queryText) {
         try {
-            Optional<PlayerBookSelection> selOpt = playerBookSelectionRepository
+            List<PlayerBookSelection> selList = playerBookSelectionRepository
                     .findByUserIdAndWorldIndexAndActiveTrue(playerId, worldIndex);
-            if (selOpt.isEmpty()) return "";
-            return bookRagService.retrieveContext(selOpt.get().getBookId(), queryText);
+            if (selList.isEmpty()) return "";
+            return bookRagService.retrieveContext(selList.get(0).getBookId(), queryText);
         } catch (Exception e) {
             log.debug("RAG检索跳过: {}", e.getMessage());
             return "";
@@ -375,10 +375,12 @@ public class StoryService {
     }
 
     private NpcTemplate getNpcTemplate(String npcId) {
-        return npcTemplateRepository.findByNpcId(npcId).stream().findFirst().orElse(null);
+        List<NpcTemplate> list = npcTemplateRepository.findByNpcId(npcId);
+        return list.isEmpty() ? null : list.get(0);
     }
 
     private Relation getOrNullRelation(long playerId, String npcId, int worldIndex) {
-        return relationRepository.findByPlayerIdAndNpcIdAndWorldIndex(playerId, npcId, worldIndex).orElse(null);
+        List<Relation> list = relationRepository.findByPlayerIdAndNpcIdAndWorldIndex(playerId, npcId, worldIndex);
+        return list.isEmpty() ? null : list.get(0);
     }
 }

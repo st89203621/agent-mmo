@@ -108,6 +108,7 @@ function connectSSE(path: string, body: Record<string, unknown>, callbacks: Stre
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let completed = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -128,14 +129,20 @@ function connectSSE(path: string, body: Record<string, unknown>, callbacks: Stre
           } else if (eventName === 'chunk') {
             callbacks.onChunk(data);
           } else if (eventName === 'complete') {
-            try { callbacks.onComplete(JSON.parse(data)); } catch {}
+            try { callbacks.onComplete(JSON.parse(data)); completed = true; } catch (e) {
+              callbacks.onError(new Error('响应解析失败'));
+            }
           } else if (eventName === 'error') {
-            try { callbacks.onError(new Error(JSON.parse(data).msg)); } catch {}
+            try { callbacks.onError(new Error(JSON.parse(data).msg || '服务器错误')); } catch {
+              callbacks.onError(new Error('服务器错误'));
+            }
           }
           eventName = '';
         }
       }
     }
+    // 流关闭但未收到 complete 事件
+    if (!completed) callbacks.onError(new Error('响应流意外终止'));
   }).catch((err) => {
     if (err.name !== 'AbortError') callbacks.onError(err);
   });

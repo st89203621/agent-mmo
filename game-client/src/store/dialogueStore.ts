@@ -15,6 +15,7 @@ interface DialogueState {
 
   startDialogue: (sessionId: string, npcId: string, npcName: string) => void;
   appendStreamText: (chunk: string) => void;
+  resetStreamText: () => void;
   completeMessage: (msg: DialogueMessage) => void;
   setStreaming: (streaming: boolean) => void;
   setEmotion: (emotion: Emotion) => void;
@@ -49,6 +50,7 @@ export const useDialogueStore = create<DialogueState>((set) => ({
 
   appendStreamText: (chunk) =>
     set((state) => ({ currentText: state.currentText + chunk })),
+  resetStreamText: () => set({ currentText: '' }),
 
   completeMessage: (msg) =>
     set((state) => ({

@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Map;
@@ -15,6 +16,7 @@ public class NpcTemplate {
     @Id
     String id;
 
+    @Indexed(unique = true)
     String npcId;
     String npcName;
     String bookWorldId;

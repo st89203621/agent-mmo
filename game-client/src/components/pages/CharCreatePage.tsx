@@ -4,13 +4,18 @@ import { usePlayerStore } from '../../store/playerStore';
 import { initPerson } from '../../services/api';
 import styles from './PageSkeleton.module.css';
 
+const HAIR_OPTIONS = ['长发', '短发', '束发', '披肩'];
+const OUTFIT_OPTIONS = ['素衣', '华裳', '铠甲', '道袍'];
+
 export default function CharCreatePage() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [hair, setHair] = useState(HAIR_OPTIONS[0]);
+  const [outfit, setOutfit] = useState(OUTFIT_OPTIONS[0]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const { navigateTo } = useGameStore();
-  const { setPlayer, playerId } = usePlayerStore();
+  const { setPlayer, playerId, setPersonCreated } = usePlayerStore();
 
   const handleCreate = useCallback(async () => {
     const finalName = name.trim() || `旅人${Date.now() % 10000}`;
@@ -19,12 +24,13 @@ export default function CharCreatePage() {
     try {
       const res = await initPerson(finalName);
       setPlayer(playerId, res.name, '');
+      setPersonCreated(true);
       navigateTo('story');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '创建失败');
     }
     setCreating(false);
-  }, [name, playerId, setPlayer, navigateTo]);
+  }, [name, playerId, setPlayer, setPersonCreated, navigateTo]);
 
   return (
     <div className={styles.page}>
@@ -68,8 +74,14 @@ export default function CharCreatePage() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>发型</h3>
           <div className={styles.optionRow}>
-            {['长发', '短发', '束发', '披肩'].map((h) => (
-              <button key={h} className={styles.optionBtn}>{h}</button>
+            {HAIR_OPTIONS.map((h) => (
+              <button
+                key={h}
+                className={`${styles.optionBtn} ${hair === h ? styles.optionActive : ''}`}
+                onClick={() => setHair(h)}
+              >
+                {h}
+              </button>
             ))}
           </div>
         </div>
@@ -77,8 +89,14 @@ export default function CharCreatePage() {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>服饰</h3>
           <div className={styles.optionRow}>
-            {['素衣', '华裳', '铠甲', '道袍'].map((c) => (
-              <button key={c} className={styles.optionBtn}>{c}</button>
+            {OUTFIT_OPTIONS.map((c) => (
+              <button
+                key={c}
+                className={`${styles.optionBtn} ${outfit === c ? styles.optionActive : ''}`}
+                onClick={() => setOutfit(c)}
+              >
+                {c}
+              </button>
             ))}
           </div>
         </div>

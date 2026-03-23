@@ -43,13 +43,13 @@ public class BookWorldService {
             return null;
         }
 
-        // 将当前激活的选择设为非激活
-        Optional<PlayerBookSelection> existOpt = playerBookSelectionRepository
-                .findByUserIdAndWorldIndexAndActiveTrue(userId, worldIndex);
-        existOpt.ifPresent(sel -> {
-            sel.setActive(false);
-            playerBookSelectionRepository.save(sel);
-        });
+        // 将当前激活的选择设为非激活（可能存在多个）
+        playerBookSelectionRepository
+                .findByUserIdAndWorldIndexAndActiveTrue(userId, worldIndex)
+                .forEach(sel -> {
+                    sel.setActive(false);
+                    playerBookSelectionRepository.save(sel);
+                });
 
         String selectionId = userId + "_" + worldIndex;
         PlayerBookSelection selection = new PlayerBookSelection();
@@ -81,6 +81,7 @@ public class BookWorldService {
     }
 
     public Optional<PlayerBookSelection> getSelectedBook(long userId, int worldIndex) {
-        return playerBookSelectionRepository.findByUserIdAndWorldIndexAndActiveTrue(userId, worldIndex);
+        return playerBookSelectionRepository.findByUserIdAndWorldIndexAndActiveTrue(userId, worldIndex)
+                .stream().findFirst();
     }
 }

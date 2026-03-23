@@ -20,6 +20,7 @@ export default function StoryPage() {
   const [freeInput, setFreeInput] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dialogueError, setDialogueError] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -70,6 +71,7 @@ export default function StoryPage() {
   /** 开始对话（SSE流式） */
   const handleStartDialogue = useCallback(async (npcId: string) => {
     setLoading(true);
+    setDialogueError('');
     const npc = game.npcsInScene.find((n) => n.npcId === npcId);
 
     abortRef.current = streamStartDialogue(
@@ -92,6 +94,7 @@ export default function StoryPage() {
             handleFallbackComplete(data);
           } catch (e) {
             console.error(e);
+            setDialogueError(e instanceof Error ? e.message : '连接失败，请检查后端服务');
             setLoading(false);
           }
         },
@@ -104,7 +107,7 @@ export default function StoryPage() {
     if (loading) return;
     setLoading(true);
     dialogue.setStreaming(true);
-    dialogue.appendStreamText(''); // 重置
+    dialogue.resetStreamText();
 
     player.updateRelation(dialogue.npcId, choice.weight.fate, choice.weight.trust);
 
@@ -134,6 +137,7 @@ export default function StoryPage() {
     setFreeInput('');
     setLoading(true);
     dialogue.setStreaming(true);
+    dialogue.resetStreamText();
 
     abortRef.current = streamFreeInput(
       { sessionId: dialogue.sessionId, text, npcId: dialogue.npcId, worldIndex: player.currentWorldIndex },
@@ -200,6 +204,16 @@ export default function StoryPage() {
             </div>
           )}
         </div>
+        {dialogueError && (
+          <div className={styles.errorHint}>
+            <p>{dialogueError}</p>
+          </div>
+        )}
+        {loading && (
+          <div className={styles.loadingHint}>
+            <p>连接中...</p>
+          </div>
+        )}
       </div>
     );
   }

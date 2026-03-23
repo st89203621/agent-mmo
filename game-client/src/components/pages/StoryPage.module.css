@@ -97,6 +97,26 @@
   opacity: 0.4;
 }
 
+.errorHint {
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  background: rgba(180, 60, 60, 0.15);
+  border: 1px solid rgba(180, 60, 60, 0.4);
+  border-radius: var(--radius-md);
+  color: #e07070;
+  font-size: 13px;
+  text-align: center;
+}
+
+.loadingHint {
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  color: var(--gold);
+  font-size: 13px;
+  text-align: center;
+  opacity: 0.7;
+}
+
 .demoBtn {
   padding: 8px 20px;
   background: var(--gold);

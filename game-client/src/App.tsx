@@ -53,9 +53,8 @@ const PAGE_MAP: Record<PageId, React.FC> = {
 
 export default function App() {
   const { currentPage, navigateTo } = useGameStore();
-  const { playerId, setPlayer } = usePlayerStore();
+  const { playerId, setPlayer, personCreated, setPersonCreated } = usePlayerStore();
   const [checking, setChecking] = useState(true);
-  const [needCreate, setNeedCreate] = useState(false);
 
   // 启动时检查是否已登录（session复用）+ 角色是否存在
   useEffect(() => {
@@ -65,9 +64,7 @@ export default function App() {
         // 检查角色是否已创建
         try {
           const person = await fetchPersonInfo();
-          if (!person.exists) {
-            setNeedCreate(true);
-          }
+          setPersonCreated(!!person.exists);
         } catch { /* 忽略，进入默认页 */ }
       })
       .catch(() => {})
@@ -91,7 +88,7 @@ export default function App() {
   }
 
   // 未创角则显示创角页
-  if (needCreate && currentPage !== 'char-create') {
+  if (!personCreated && currentPage !== 'char-create') {
     const CreatePage = PAGE_MAP['char-create'];
     return (
       <GameLayout>
