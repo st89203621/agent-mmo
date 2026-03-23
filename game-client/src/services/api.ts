@@ -766,3 +766,17 @@ export function resolveExploreChoice(eventId: string, choiceId: number): Promise
 export function fetchExploreHistory(): Promise<{ events: ExploreEvent[] }> {
   return request('/explore/history');
 }
+
+export function startExploreCombat(eventId: string, enemyName: string): Promise<{ battle: BattleData }> {
+  return request('/explore/start-combat', {
+    method: 'POST',
+    body: JSON.stringify({ eventId, enemyName }),
+  });
+}
+
+export function resolveExploreCombat(eventId: string): Promise<ExploreReward> {
+  return request('/explore/resolve-combat', {
+    method: 'POST',
+    body: JSON.stringify({ eventId }),
+  });
+}

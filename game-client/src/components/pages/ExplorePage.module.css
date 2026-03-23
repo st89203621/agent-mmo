@@ -351,3 +351,172 @@
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
+
+/* ── 内嵌战斗面板 ── */
+.battlePanel {
+  margin-top: 12px;
+  padding: 12px;
+  border-top: 1px solid rgba(201, 168, 76, 0.15);
+  animation: cardFadeIn 0.4s ease-out;
+}
+
+.battleUnit {
+  margin-bottom: 10px;
+  transition: opacity 0.3s;
+}
+
+.unitHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.unitName {
+  font-size: 13px;
+  color: var(--paper);
+  font-family: var(--font-main);
+}
+
+.unitName[data-type="enemy"] {
+  color: #c44e52;
+}
+
+.unitName[data-type="player"] {
+  color: var(--gold);
+}
+
+.unitHpText {
+  font-size: 11px;
+  color: var(--paper-darker);
+  font-variant-numeric: tabular-nums;
+}
+
+.hpBarBg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hpBar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease-out;
+}
+
+.mpText {
+  font-size: 10px;
+  color: #55a5db;
+  margin-top: 2px;
+  text-align: right;
+}
+
+.battleDivider {
+  text-align: center;
+  font-size: 11px;
+  color: var(--paper-darker);
+  padding: 6px 0;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+
+.battleLogArea {
+  margin: 10px 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.battleLogLine {
+  font-size: 11px;
+  color: var(--paper-darker);
+  line-height: 1.6;
+}
+
+.battleLogLine:last-child {
+  color: var(--paper);
+}
+
+.battleResult {
+  text-align: center;
+  font-size: 16px;
+  font-family: var(--font-main);
+  padding: 10px;
+  animation: rewardFade 0.5s ease-out;
+}
+
+.battleResult[data-result="VICTORY"] {
+  color: var(--gold);
+}
+
+.battleResult[data-result="DEFEAT"] {
+  color: #c44e52;
+}
+
+.battleActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.battleBtn {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  background: rgba(201, 168, 76, 0.05);
+  color: var(--paper);
+}
+
+.battleBtn:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.15);
+  border-color: var(--gold);
+}
+
+.battleBtn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.battleBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.battleBtn[data-action="attack"] {
+  border-color: rgba(192, 78, 82, 0.4);
+}
+
+.battleBtn[data-action="attack"]:hover:not(:disabled) {
+  background: rgba(192, 78, 82, 0.15);
+  border-color: #c44e52;
+}
+
+.battleBtn[data-action="skill"] {
+  border-color: rgba(85, 165, 219, 0.4);
+}
+
+.battleBtn[data-action="skill"]:hover:not(:disabled) {
+  background: rgba(85, 165, 219, 0.15);
+  border-color: #55a5db;
+}
+
+.battleBtn[data-action="defend"] {
+  border-color: rgba(139, 197, 99, 0.4);
+}
+
+.battleBtn[data-action="defend"]:hover:not(:disabled) {
+  background: rgba(139, 197, 99, 0.15);
+  border-color: #8bc563;
+}
+
+/* combat 事件卡片特殊样式 */
+.eventIcon[data-type="combat"] { background: rgba(192, 78, 82, 0.25); }
+.eventType[data-type="combat"] { background: rgba(192, 78, 82, 0.7); }
+.historyCard[data-type="combat"] { border-left-color: rgba(192, 78, 82, 0.6); }

@@ -21,6 +21,10 @@ public class ExploreEvent {
     private List<Choice> choices;
     private String npcId;
     private String sceneHint;
+    /** 遭遇战关联的战斗ID */
+    private String battleId;
+    /** 遭遇战敌人名称 */
+    private String enemyName;
     private boolean resolved;
     private Instant createTime = Instant.now();
 

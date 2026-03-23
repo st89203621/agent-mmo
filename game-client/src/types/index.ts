@@ -139,7 +139,7 @@ export interface ExploreStatus {
 }
 
 /** 探索事件 */
-export type ExploreEventType = 'encounter' | 'discovery' | 'lore' | 'dilemma' | 'vista';
+export type ExploreEventType = 'encounter' | 'discovery' | 'lore' | 'dilemma' | 'vista' | 'combat';
 
 export interface ExploreEventChoice {
   id: number;
@@ -155,6 +155,8 @@ export interface ExploreEvent {
   choices: ExploreEventChoice[];
   npcId: string | null;
   sceneHint: string | null;
+  enemyName: string | null;
+  battleId: string | null;
 }
 
 /** 探索奖励 */

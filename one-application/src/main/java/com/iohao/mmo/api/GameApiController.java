@@ -1578,6 +1578,58 @@ public class GameApiController {
         }
     }
 
+    @PostMapping("/explore/start-combat")
+    public ResponseEntity<Map<String, Object>> exploreStartCombat(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String eventId = (String) body.get("eventId");
+            // 获取玩家属性
+            Person person = personService.getPersonById(userId);
+            if (person == null || person.getBasicProperty() == null) {
+                return err("角色未初始化，请先创建角色");
+            }
+            var bp = person.getBasicProperty();
+            // 从探索事件获取敌人名
+            String enemyName = (String) body.getOrDefault("enemyName", "妖兽");
+            // 用玩家属性发起战斗
+            BattleState state = battleService.startBattleWithEnemy(userId, enemyName,
+                    bp.getHp(), bp.getMp(),
+                    bp.getPhysicsAttack(), bp.getPhysicsDefense(),
+                    bp.getMagicAttack(), bp.getMagicDefense(),
+                    bp.getSpeed());
+            // 关联战斗到探索事件
+            exploreService.linkBattle(eventId, state.getId());
+            return ok(Map.of("battle", battleToMap(state)));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/explore/resolve-combat")
+    public ResponseEntity<Map<String, Object>> exploreResolveCombat(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String eventId = (String) body.get("eventId");
+            // 检查战斗结果
+            BattleState state = battleService.getBattleState(userId);
+            boolean victory;
+            if (state != null && "VICTORY".equals(state.getStatus())) {
+                victory = true;
+            } else if (state != null && "DEFEAT".equals(state.getStatus())) {
+                victory = false;
+            } else {
+                // 没有已结束的战斗，尝试查找关联的战斗
+                victory = false;
+            }
+            Map<String, Object> reward = exploreService.resolveCombat(userId, eventId, victory);
+            return ok(reward);
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
     // ── 工具方法 ──────────────────────────────────────
 
     private Long requireLogin(HttpSession session) {
@@ -1686,6 +1738,8 @@ public class GameApiController {
         m.put("description", e.getDescription());
         m.put("npcId", e.getNpcId());
         m.put("sceneHint", e.getSceneHint());
+        m.put("enemyName", e.getEnemyName());
+        m.put("battleId", e.getBattleId());
         List<Map<String, Object>> choices = new ArrayList<>();
         if (e.getChoices() != null) {
             for (ExploreEvent.Choice c : e.getChoices()) {

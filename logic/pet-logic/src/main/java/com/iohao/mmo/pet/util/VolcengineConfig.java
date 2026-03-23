@@ -40,7 +40,9 @@ public class VolcengineConfig {
     private String apiKey = "3e2f9349-8892-4a67-ae9c-7e8fbd75f071";
 
     // 图片生成模型（参照ImageGenerationsExample）
-    private String model = "doubao-seedream-4-0-250828";
+    //private String model = "doubao-seedream-4-0-250828";
+    private String model = "doubao-seedream-5-0-260128";
+
 
     // 前端静态资源目录（图片保存路径）- 默认使用项目相对路径
     private String frontendAssetsPath = "./my-phaser-game/assets/pets/ai-generated";

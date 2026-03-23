@@ -26,6 +26,21 @@ public class BattleService {
     }
 
     /**
+     * 发起探索遭遇战（敌人名由AI生成，属性按难度缩放）
+     */
+    public BattleState startBattleWithEnemy(long userId, String enemyName,
+                                            int playerHp, int playerMp,
+                                            int pAtk, int pDef, int mAtk, int mDef, int speed) {
+        BattleState state = startBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed);
+        // 用AI生成的敌人名替换默认名
+        if (enemyName != null && !enemyName.isBlank()) {
+            state.getEnemyUnits().forEach(e -> e.setName(enemyName));
+            mongoTemplate.save(state);
+        }
+        return state;
+    }
+
+    /**
      * 发起战斗（PvE）
      */
     public BattleState startBattle(long userId, int playerHp, int playerMp,
