@@ -19,6 +19,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Session 持久化到 MongoDB，服务器重启不丢失登录状态 -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-mongodb</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.iohao.mmo</groupId>
             <artifactId>all-logic</artifactId>

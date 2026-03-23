@@ -83,6 +83,17 @@ public class PersonService {
     }
 
     /**
+     * 更新角色名称
+     */
+    public void updateName(long userId, String name) {
+        Person person = mongoTemplate.findById(userId, Person.class);
+        if (person != null) {
+            person.setName(name);
+            mongoTemplate.save(person);
+        }
+    }
+
+    /**
      * 创建初始属性
      */
     private BasicProperty createInitialProperty() {

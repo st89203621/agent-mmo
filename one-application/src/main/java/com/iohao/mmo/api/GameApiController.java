@@ -452,12 +452,14 @@ public class GameApiController {
     @GetMapping("/story/scene-image/{id}")
     public ResponseEntity<byte[]> getSceneImage(@PathVariable String id) {
         Optional<SceneImage> opt = sceneImageService.getById(id);
-        if (opt.isEmpty()) {
+        if (opt.isEmpty() || opt.get().getImageData() == null) {
             return ResponseEntity.notFound().build();
         }
         SceneImage si = opt.get();
+        String ct = si.getContentType();
+        MediaType mediaType = (ct != null && !ct.isBlank()) ? MediaType.parseMediaType(ct) : MediaType.IMAGE_PNG;
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(si.getContentType()))
+                .contentType(mediaType)
                 .header("Cache-Control", "max-age=86400")
                 .body(si.getImageData());
     }
@@ -566,13 +568,9 @@ public class GameApiController {
         try {
             String name = (String) body.getOrDefault("name", "");
             personService.initPerson(userId);
-            // 如果提供了自定义名称，更新
+            // 如果提供了自定义名称，更新并持久化
             if (name != null && !name.isBlank()) {
-                Person person = personService.getPersonById(userId);
-                if (person != null) {
-                    person.setName(name);
-                    // PersonService 使用 MongoTemplate，需通过其保存
-                }
+                personService.updateName(userId, name);
             }
             Person person = personService.getPersonById(userId);
             return ok(Map.of("id", person.getId(), "name", person.getName()));

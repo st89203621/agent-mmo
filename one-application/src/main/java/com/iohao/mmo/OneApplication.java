@@ -65,6 +65,7 @@ import java.util.List;
 @Slf4j
 @ComponentScan({"com.iohao.mmo.**"})
 @SpringBootApplication
+@org.springframework.session.data.mongo.config.annotation.web.http.EnableMongoHttpSession(maxInactiveIntervalInSeconds = 604800)
 public class OneApplication {
     public static void main(String[] args) {
         SpringApplication.run(OneApplication.class, args);
