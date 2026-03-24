@@ -153,8 +153,8 @@
 
 .portraitFrame {
   position: relative;
-  width: 220px;
-  height: 320px;
+  width: 280px;
+  height: 380px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;

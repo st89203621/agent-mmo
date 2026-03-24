@@ -22,7 +22,8 @@ export default function CharCreatePage() {
     setCreating(true);
     setError('');
     try {
-      const res = await initPerson(finalName);
+      const features = `${hair}，${outfit}`;
+      const res = await initPerson(finalName, gender, features);
       setPlayer(playerId, res.name, '');
       setPersonCreated(true);
       navigateTo('story');
@@ -30,7 +31,7 @@ export default function CharCreatePage() {
       setError(e instanceof Error ? e.message : '创建失败');
     }
     setCreating(false);
-  }, [name, playerId, setPlayer, setPersonCreated, navigateTo]);
+  }, [name, gender, hair, outfit, playerId, setPlayer, setPersonCreated, navigateTo]);
 
   return (
     <div className={styles.page}>

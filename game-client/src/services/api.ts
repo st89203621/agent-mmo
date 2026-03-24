@@ -394,10 +394,10 @@ export function fetchPersonInfo(): Promise<PersonData> {
   return request('/person/me');
 }
 
-export function initPerson(name?: string): Promise<{ id: number; name: string }> {
+export function initPerson(name?: string, gender?: string, features?: string): Promise<{ id: number; name: string }> {
   return request('/person/init', {
     method: 'POST',
-    body: JSON.stringify({ name: name || '' }),
+    body: JSON.stringify({ name: name || '', gender: gender || '', features: features || '' }),
   });
 }
 
@@ -411,7 +411,7 @@ export function generatePortrait(params?: {
 }
 
 export function generateBackground(params?: {
-  style?: string;
+  theme?: string;
 }): Promise<{ bgUrl: string }> {
   return request('/person/background', {
     method: 'POST',

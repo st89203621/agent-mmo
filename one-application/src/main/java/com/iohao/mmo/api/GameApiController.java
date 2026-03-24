@@ -725,7 +725,7 @@ public class GameApiController {
             String portraitKey = "portrait_" + userId + "_" + style.hashCode() + (ts > 0 ? "_" + ts : "");
 
             // 背景提示词
-            String bgPrompt = buildBgPrompt(style, person.getName());
+            String bgPrompt = buildBgPrompt(style);
             String bgKey = "bg_" + userId + "_" + style.hashCode() + (ts > 0 ? "_" + ts : "");
 
             // 并行生成
@@ -769,11 +769,11 @@ public class GameApiController {
             Person person = personService.getPersonById(userId);
             if (person == null) return err("角色不存在");
 
-            String style = (String) body.getOrDefault("style", "仙侠水墨风");
+            String theme = (String) body.getOrDefault("theme", "樱花林");
             long ts = System.currentTimeMillis();
 
-            String bgPrompt = buildBgPrompt(style, person.getName());
-            String bgKey = "bg_" + userId + "_" + style.hashCode() + "_" + ts;
+            String bgPrompt = buildBgPrompt(theme);
+            String bgKey = "bg_" + userId + "_" + theme.hashCode() + "_" + ts;
 
             Optional<SceneImage> bgResult = sceneImageService.getOrGenerate(bgKey, bgPrompt);
             if (bgResult.isEmpty()) return err("背景生成失败");
@@ -791,28 +791,32 @@ public class GameApiController {
     private String buildPortraitPrompt(String name, String style, String gender, String features) {
         StringBuilder sb = new StringBuilder();
         sb.append(style).append("角色立绘，");
-        sb.append("角色名「").append(name).append("」");
-        // 性别映射
+        // 性别
         if ("female".equals(gender)) {
-            sb.append("，女性角色，气质优雅");
+            sb.append("女性角色，气质优雅");
         } else if ("male".equals(gender)) {
-            sb.append("，男性角色，气质英武");
+            sb.append("男性角色，气质英武");
+        } else {
+            sb.append("仙侠角色");
         }
-        if (features != null && !features.isEmpty()) sb.append("，外貌特征：").append(features);
-        sb.append("，单人全身立绘，正面或四分之三侧面，姿态自然飘逸，");
-        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，主体居中，");
-        sb.append("高清，精致细节，清晰边缘，角色完整不裁切");
+        // 外貌特征（发型、服饰等用户创建时填写的信息）
+        if (features != null && !features.isEmpty()) sb.append("，").append(features);
+        sb.append("，单人半身立绘（从头到腰部），正面或四分之三侧面，");
+        sb.append("人物占画面80%以上，面部清晰精致，表情生动，");
+        sb.append("姿态自然飘逸，主体居中，");
+        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，");
+        sb.append("高清，精致细节，清晰边缘");
         return sb.toString();
     }
 
-    private String buildBgPrompt(String style, String charName) {
+    private String buildBgPrompt(String theme) {
         StringBuilder sb = new StringBuilder();
-        sb.append(style).append("风格，游戏主页竖版背景插画，");
-        sb.append("与角色「").append(charName).append("」气质匹配的氛围场景，");
-        sb.append("远景或中景，大气磅礴，光影层次丰富，");
-        sb.append("色调偏暗沉以衬托前景角色，略带虚焦/景深效果，");
+        sb.append("清新唯美风格，游戏主页竖版背景壁纸，");
+        sb.append("主题：").append(theme).append("，");
+        sb.append("色调清新柔和，光线通透温暖，略带虚焦/景深效果，");
+        sb.append("画面干净简洁，意境悠远，");
         sb.append("【严格要求】画面中绝对不能出现任何人物、角色、生物、剪影、身影，");
-        sb.append("不能有任何主体对象，只有纯粹的风景/建筑/自然环境场景，");
+        sb.append("不能有任何主体对象，只有纯粹的自然风景场景，");
         sb.append("高清，9:16竖版构图");
         return sb.toString();
     }

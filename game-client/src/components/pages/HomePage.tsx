@@ -32,6 +32,25 @@ const ART_STYLES = [
   { key: '波普艺术风', label: '波普艺术' },
 ];
 
+const BG_THEMES = [
+  { key: '樱花林', label: '樱花林' },
+  { key: '竹海清风', label: '竹海清风' },
+  { key: '星空银河', label: '星空银河' },
+  { key: '雪山日出', label: '雪山日出' },
+  { key: '碧海蓝天', label: '碧海蓝天' },
+  { key: '紫藤花瀑', label: '紫藤花瀑' },
+  { key: '秋日红枫', label: '秋日红枫' },
+  { key: '月下荷塘', label: '月下荷塘' },
+  { key: '云海仙境', label: '云海仙境' },
+  { key: '薰衣草田', label: '薰衣草田' },
+  { key: '雨后古镇', label: '雨后古镇' },
+  { key: '极光冰原', label: '极光冰原' },
+  { key: '桃源溪谷', label: '桃源溪谷' },
+  { key: '暮色沙漠', label: '暮色沙漠' },
+  { key: '萤火森林', label: '萤火森林' },
+  { key: '晨雾山岚', label: '晨雾山岚' },
+];
+
 type PickerMode = 'portrait' | 'background' | null;
 
 interface HomeData {
@@ -59,6 +78,7 @@ export default function HomePage() {
   const [generatingBg, setGeneratingBg] = useState(false);
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
+  const [selectedTheme, setSelectedTheme] = useState(BG_THEMES[0].key);
 
   useEffect(() => {
     Promise.all([
@@ -111,12 +131,12 @@ export default function HomePage() {
     setGenerating(false);
   }, [generating, portraitUrl]);
 
-  const handleGenerateBg = useCallback(async (style: string) => {
+  const handleGenerateBg = useCallback(async (theme: string) => {
     if (generatingBg) return;
     setGeneratingBg(true);
     setPickerMode(null);
     try {
-      const res = await generateBackground({ style });
+      const res = await generateBackground({ theme });
       setBgUrl(res.bgUrl);
       toast.success('背景生成完成');
     } catch {
@@ -263,32 +283,43 @@ export default function HomePage() {
         <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.pickerTitle}>
-              {pickerMode === 'portrait' ? '选择立绘风格' : '选择背景风格'}
+              {pickerMode === 'portrait' ? '选择立绘风格' : '选择背景主题'}
             </h3>
             <p className={styles.pickerHint}>
-              {pickerMode === 'portrait' ? '立绘与背景将同步生成' : '仅重新生成背景图'}
+              {pickerMode === 'portrait' ? '根据角色信息生成对应风格立绘' : '选择一个清新的场景主题'}
             </p>
             <div className={styles.pickerGrid}>
-              {ART_STYLES.map((s) => (
-                <button
-                  key={s.key}
-                  className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
-                  onClick={() => setSelectedStyle(s.key)}
-                >
-                  {s.label}
-                </button>
-              ))}
+              {pickerMode === 'portrait'
+                ? ART_STYLES.map((s) => (
+                    <button
+                      key={s.key}
+                      className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
+                      onClick={() => setSelectedStyle(s.key)}
+                    >
+                      {s.label}
+                    </button>
+                  ))
+                : BG_THEMES.map((t) => (
+                    <button
+                      key={t.key}
+                      className={`${styles.pickerItem} ${selectedTheme === t.key ? styles.pickerActive : ''}`}
+                      onClick={() => setSelectedTheme(t.key)}
+                    >
+                      {t.label}
+                    </button>
+                  ))
+              }
             </div>
             <button
               className={styles.pickerConfirm}
               onClick={() => pickerMode === 'portrait'
                 ? handleGenerate(selectedStyle)
-                : handleGenerateBg(selectedStyle)
+                : handleGenerateBg(selectedTheme)
               }
             >
               {pickerMode === 'portrait'
                 ? `生成「${ART_STYLES.find((s) => s.key === selectedStyle)?.label}」立绘`
-                : `生成「${ART_STYLES.find((s) => s.key === selectedStyle)?.label}」背景`
+                : `生成「${BG_THEMES.find((t) => t.key === selectedTheme)?.label}」背景`
               }
             </button>
           </div>
