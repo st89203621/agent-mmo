@@ -701,8 +701,10 @@ public class GameApiController {
 
             boolean force = Boolean.TRUE.equals(body.get("force"));
             String style = (String) body.getOrDefault("style", "仙侠水墨风");
-            String gender = (String) body.getOrDefault("gender", "");
-            String features = (String) body.getOrDefault("features", "");
+
+            // 从角色读取性别和外貌，前端无需再传
+            String gender = person.getGender();
+            String features = person.getFeatures();
 
             // 非强制且两张图都在 → 直接返回
             if (!force && person.getPortraitImageId() != null && person.getBgImageId() != null) {
@@ -718,7 +720,7 @@ public class GameApiController {
 
             long ts = force ? System.currentTimeMillis() : 0;
 
-            // 立绘提示词
+            // 立绘提示词 — gender/features 自动从角色读取
             String portraitPrompt = buildPortraitPrompt(person.getName(), style, gender, features);
             String portraitKey = "portrait_" + userId + "_" + style.hashCode() + (ts > 0 ? "_" + ts : "");
 
@@ -760,7 +762,12 @@ public class GameApiController {
         StringBuilder sb = new StringBuilder();
         sb.append(style).append("角色立绘，");
         sb.append("角色名「").append(name).append("」");
-        if (gender != null && !gender.isEmpty()) sb.append("，").append(gender);
+        // 性别映射
+        if ("female".equals(gender)) {
+            sb.append("，女性角色，气质优雅");
+        } else if ("male".equals(gender)) {
+            sb.append("，男性角色，气质英武");
+        }
         if (features != null && !features.isEmpty()) sb.append("，外貌特征：").append(features);
         sb.append("，单人全身立绘，正面或四分之三侧面，姿态自然飘逸，");
         sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，主体居中，");
@@ -784,12 +791,15 @@ public class GameApiController {
         if (userId == null) return err("未登录");
         try {
             String name = (String) body.getOrDefault("name", "");
+            String gender = (String) body.getOrDefault("gender", "");
+            String features = (String) body.getOrDefault("features", "");
             personService.initPerson(userId);
-            // 如果提供了自定义名称，更新并持久化
-            if (name != null && !name.isBlank()) {
-                personService.updateName(userId, name);
-            }
             Person person = personService.getPersonById(userId);
+            // 保存名称、性别、外貌
+            if (name != null && !name.isBlank()) person.setName(name);
+            if (gender != null && !gender.isBlank()) person.setGender(gender);
+            if (features != null && !features.isBlank()) person.setFeatures(features);
+            personService.savePerson(person);
             return ok(Map.of("id", person.getId(), "name", person.getName()));
         } catch (Exception e) {
             return err(e.getMessage());

@@ -46,6 +46,10 @@ public class Person {
     List<Hero> heroList;
     /** 当前使用的英雄 */
     Hero currentHero;
+    /** 性别: male / female */
+    String gender;
+    /** 外貌特征描述（发型+服饰等） */
+    String features;
     /** AI生成的角色立绘图片ID（对应SceneImage） */
     String portraitImageId;
     /** AI生成的主页背景图片ID（对应SceneImage） */
