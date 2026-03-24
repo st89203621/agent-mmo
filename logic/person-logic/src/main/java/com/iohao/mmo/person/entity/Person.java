@@ -48,4 +48,6 @@ public class Person {
     Hero currentHero;
     /** AI生成的角色立绘图片ID（对应SceneImage） */
     String portraitImageId;
+    /** AI生成的主页背景图片ID（对应SceneImage） */
+    String bgImageId;
 }

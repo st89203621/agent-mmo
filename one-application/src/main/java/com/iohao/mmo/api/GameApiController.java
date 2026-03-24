@@ -681,12 +681,15 @@ public class GameApiController {
         if (person.getPortraitImageId() != null) {
             m.put("portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId());
         }
+        // 背景URL
+        if (person.getBgImageId() != null) {
+            m.put("bgUrl", "/api/story/scene-image/" + person.getBgImageId());
+        }
         return ok(m);
     }
 
     /**
-     * 生成或获取角色立绘
-     * 复用 SceneImageService 的火山引擎图片生成能力
+     * 生成角色立绘 + 背景框（并行调用火山引擎）
      */
     @PostMapping("/person/portrait")
     public ResponseEntity<Map<String, Object>> generatePortrait(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -696,33 +699,57 @@ public class GameApiController {
             Person person = personService.getPersonById(userId);
             if (person == null) return err("角色不存在");
 
-            // 如果已有立绘且未请求强制重新生成，直接返回
             boolean force = Boolean.TRUE.equals(body.get("force"));
-            if (!force && person.getPortraitImageId() != null) {
-                var existing = sceneImageService.getById(person.getPortraitImageId());
-                if (existing.isPresent()) {
-                    return ok(Map.of("portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId()));
-                }
-            }
-
-            // 构建立绘提示词
             String style = (String) body.getOrDefault("style", "仙侠水墨风");
             String gender = (String) body.getOrDefault("gender", "");
             String features = (String) body.getOrDefault("features", "");
-            String prompt = buildPortraitPrompt(person.getName(), style, gender, features);
 
-            String cacheKey = "portrait_" + userId + "_" + style.hashCode();
-            if (force) cacheKey += "_" + System.currentTimeMillis();
+            // 非强制且两张图都在 → 直接返回
+            if (!force && person.getPortraitImageId() != null && person.getBgImageId() != null) {
+                var ep = sceneImageService.getById(person.getPortraitImageId());
+                var eb = sceneImageService.getById(person.getBgImageId());
+                if (ep.isPresent() && eb.isPresent()) {
+                    return ok(Map.of(
+                        "portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId(),
+                        "bgUrl", "/api/story/scene-image/" + person.getBgImageId()
+                    ));
+                }
+            }
 
-            Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
-            if (result.isEmpty()) return err("立绘生成失败");
+            long ts = force ? System.currentTimeMillis() : 0;
 
-            // 保存到角色
-            String imageId = result.get().getId();
-            person.setPortraitImageId(imageId);
+            // 立绘提示词
+            String portraitPrompt = buildPortraitPrompt(person.getName(), style, gender, features);
+            String portraitKey = "portrait_" + userId + "_" + style.hashCode() + (ts > 0 ? "_" + ts : "");
+
+            // 背景提示词
+            String bgPrompt = buildBgPrompt(style, person.getName());
+            String bgKey = "bg_" + userId + "_" + style.hashCode() + (ts > 0 ? "_" + ts : "");
+
+            // 并行生成
+            var portraitFuture = java.util.concurrent.CompletableFuture.supplyAsync(
+                () -> sceneImageService.getOrGenerate(portraitKey, portraitPrompt), sseExecutor);
+            var bgFuture = java.util.concurrent.CompletableFuture.supplyAsync(
+                () -> sceneImageService.getOrGenerate(bgKey, bgPrompt), sseExecutor);
+
+            Optional<SceneImage> portraitResult = portraitFuture.get(120, java.util.concurrent.TimeUnit.SECONDS);
+            Optional<SceneImage> bgResult = bgFuture.get(120, java.util.concurrent.TimeUnit.SECONDS);
+
+            if (portraitResult.isEmpty()) return err("立绘生成失败");
+
+            // 保存
+            person.setPortraitImageId(portraitResult.get().getId());
+            if (bgResult.isPresent()) {
+                person.setBgImageId(bgResult.get().getId());
+            }
             personService.savePerson(person);
 
-            return ok(Map.of("portraitUrl", "/api/story/scene-image/" + imageId));
+            Map<String, Object> result = new HashMap<>();
+            result.put("portraitUrl", "/api/story/scene-image/" + portraitResult.get().getId());
+            if (bgResult.isPresent()) {
+                result.put("bgUrl", "/api/story/scene-image/" + bgResult.get().getId());
+            }
+            return ok(result);
         } catch (Exception e) {
             log.warn("portrait error", e);
             return err(e.getMessage());
@@ -738,6 +765,16 @@ public class GameApiController {
         sb.append("，单人全身立绘，正面或四分之三侧面，姿态自然飘逸，");
         sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，主体居中，");
         sb.append("高清，精致细节，清晰边缘，角色完整不裁切");
+        return sb.toString();
+    }
+
+    private String buildBgPrompt(String style, String charName) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(style).append("风格，游戏主页竖版背景插画，");
+        sb.append("与角色「").append(charName).append("」气质匹配的氛围场景，");
+        sb.append("远景或中景，大气磅礴，光影层次丰富，");
+        sb.append("色调偏暗沉以衬托前景角色，略带虚焦/景深效果，");
+        sb.append("无人物，纯场景，高清，9:16竖版构图");
         return sb.toString();
     }
 

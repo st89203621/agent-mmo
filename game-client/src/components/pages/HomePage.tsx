@@ -12,6 +12,15 @@ import {
 import type { ExploreStatus } from '../../types';
 import styles from './HomePage.module.css';
 
+const ART_STYLES = [
+  { key: '仙侠水墨风', label: '水墨仙侠' },
+  { key: '赛博朋克风', label: '赛博朋克' },
+  { key: '日系动漫风', label: '日系动漫' },
+  { key: '欧美奇幻油画风', label: '奇幻油画' },
+  { key: '像素复古风', label: '像素复古' },
+  { key: '暗黑哥特风', label: '暗黑哥特' },
+];
+
 interface HomeData {
   person: PersonData | null;
   explore: ExploreStatus | null;
@@ -32,7 +41,10 @@ export default function HomePage() {
   });
   const [loading, setLoading] = useState(true);
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
-  const [generatingPortrait, setGeneratingPortrait] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
 
   useEffect(() => {
     Promise.all([
@@ -55,6 +67,7 @@ export default function HomePage() {
         companion: companions[0] || null,
       });
       if (p?.portraitUrl) setPortraitUrl(p.portraitUrl);
+      if (p?.bgUrl) setBgUrl(p.bgUrl);
       setLoading(false);
     });
   }, []);
@@ -70,24 +83,25 @@ export default function HomePage() {
     }
   }, [data.checkin]);
 
-  const handleGeneratePortrait = useCallback(async () => {
-    if (generatingPortrait) return;
-    setGeneratingPortrait(true);
+  const handleGenerate = useCallback(async (style: string) => {
+    if (generating) return;
+    setGenerating(true);
+    setShowStylePicker(false);
     try {
-      const res = await generatePortrait({ force: !!portraitUrl });
+      const res = await generatePortrait({ style, force: !!portraitUrl });
       setPortraitUrl(res.portraitUrl);
-      toast.success(portraitUrl ? '立绘已更新' : '立绘生成成功');
+      if (res.bgUrl) setBgUrl(res.bgUrl);
+      toast.success('立绘生成完成');
     } catch {
       toast.error('立绘生成失败');
     }
-    setGeneratingPortrait(false);
-  }, [generatingPortrait, portraitUrl]);
+    setGenerating(false);
+  }, [generating, portraitUrl]);
 
   const person = data.person;
-  const worldLabel = data.rebirthInfo
-    ? `第${data.rebirthInfo.currentWorldIndex + 1}世`
-    : '';
+  const worldLabel = data.rebirthInfo ? `第${data.rebirthInfo.currentWorldIndex + 1}世` : '';
   const bookLabel = data.rebirthInfo?.currentBook || currentBookWorld?.title || '';
+  const hasBg = !!bgUrl;
 
   if (loading) {
     return (
@@ -100,22 +114,26 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
-      {/* Phaser 粒子背景 */}
-      <div ref={phaserRef} className={styles.phaserLayer} />
+      {/* 层级: AI背景 → Phaser粒子 → HUD */}
 
-      {/* HUD 层 */}
+      {/* AI 生成的背景图 */}
+      {hasBg && (
+        <div className={styles.bgLayer}>
+          <img src={bgUrl} alt="" className={styles.bgImg} />
+          <div className={styles.bgVignette} />
+        </div>
+      )}
+
+      {/* Phaser 粒子（有背景时降低存在感） */}
+      <div ref={phaserRef} className={`${styles.phaserLayer} ${hasBg ? styles.phaserDim : ''}`} />
+
+      {/* HUD */}
       <div className={styles.hud}>
-        {/* 顶部栏: 货币 + 签到 */}
+        {/* 顶栏 */}
         <header className={styles.topBar}>
           <div className={styles.currencyGroup}>
-            <span className={styles.coinBadge}>
-              <i className={styles.coinDot} />
-              {gold}
-            </span>
-            <span className={styles.diamondBadge}>
-              <i className={styles.diamondDot} />
-              {diamond}
-            </span>
+            <span className={styles.coinBadge}><i className={styles.coinDot} />{gold}</span>
+            <span className={styles.diamondBadge}><i className={styles.diamondDot} />{diamond}</span>
           </div>
           {data.checkin && !data.checkin.todayChecked && (
             <button className={styles.checkinBtn} onClick={handleCheckin}>
@@ -127,11 +145,14 @@ export default function HomePage() {
           )}
         </header>
 
-        {/* 角色立绘区域 */}
+        {/* 立绘 */}
         <section className={styles.portraitZone}>
-          <div className={styles.portraitFrame} onClick={() => navigateTo('character')}>
+          <div
+            className={`${styles.portraitFrame} ${portraitUrl ? styles.alive : ''}`}
+            onClick={() => navigateTo('character')}
+          >
             {portraitUrl ? (
-              <img src={portraitUrl} alt="角色立绘" className={styles.portraitImg} />
+              <img src={portraitUrl} alt="立绘" className={styles.portraitImg} />
             ) : (
               <div className={styles.portraitPlaceholder}>
                 <span className={styles.portraitChar}>
@@ -139,16 +160,19 @@ export default function HomePage() {
                 </span>
               </div>
             )}
+            {portraitUrl && <div className={styles.shineOverlay} />}
           </div>
 
-          {/* 生成/更换立绘按钮 */}
-          <button
-            className={styles.portraitGenBtn}
-            onClick={handleGeneratePortrait}
-            disabled={generatingPortrait}
-          >
-            {generatingPortrait ? '绘制中…' : portraitUrl ? '重绘' : '生成立绘'}
-          </button>
+          {generating ? (
+            <div className={styles.genStatus}>绘制中…</div>
+          ) : (
+            <button
+              className={styles.styleToggle}
+              onClick={() => portraitUrl ? setShowStylePicker(true) : handleGenerate(selectedStyle)}
+            >
+              {portraitUrl ? '切换风格' : '生成立绘'}
+            </button>
+          )}
         </section>
 
         {/* 角色信息 */}
@@ -159,8 +183,6 @@ export default function HomePage() {
               {worldLabel}{worldLabel && bookLabel ? ' · ' : ''}{bookLabel}
             </p>
           )}
-
-          {/* 属性条 */}
           {person?.basicProperty && (
             <div className={styles.statStrip}>
               <StatMini label="攻" value={person.basicProperty.physicsAttack + person.basicProperty.magicAttack} />
@@ -171,15 +193,13 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 宠物/灵侣 */}
+        {/* 伴侣 */}
         <div className={styles.companionRow}>
           {data.pet && (
             <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
-              {data.pet.aiImageUrl ? (
-                <img src={data.pet.aiImageUrl} alt={data.pet.nickname} className={styles.companionImg} />
-              ) : (
-                <span className={styles.companionIcon}>🐾</span>
-              )}
+              {data.pet.aiImageUrl
+                ? <img src={data.pet.aiImageUrl} alt={data.pet.nickname} className={styles.companionImg} />
+                : <span className={styles.companionIcon}>🐾</span>}
               <span className={styles.companionLabel}>{data.pet.nickname || '宠物'}</span>
             </button>
           )}
@@ -197,17 +217,36 @@ export default function HomePage() {
           <div className={styles.apBar}>
             <span className={styles.apLabel}>行动力</span>
             <div className={styles.apTrack}>
-              <div
-                className={styles.apFill}
-                style={{ width: `${(data.explore.actionPoints / data.explore.maxPoints) * 100}%` }}
-              />
+              <div className={styles.apFill} style={{ width: `${(data.explore.actionPoints / data.explore.maxPoints) * 100}%` }} />
             </div>
-            <span className={styles.apText}>
-              {data.explore.actionPoints}/{data.explore.maxPoints}
-            </span>
+            <span className={styles.apText}>{data.explore.actionPoints}/{data.explore.maxPoints}</span>
           </div>
         )}
       </div>
+
+      {/* 风格选择面板 */}
+      {showStylePicker && (
+        <div className={styles.pickerOverlay} onClick={() => setShowStylePicker(false)}>
+          <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.pickerTitle}>选择立绘风格</h3>
+            <p className={styles.pickerHint}>立绘与背景将同步生成</p>
+            <div className={styles.pickerGrid}>
+              {ART_STYLES.map((s) => (
+                <button
+                  key={s.key}
+                  className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
+                  onClick={() => setSelectedStyle(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <button className={styles.pickerConfirm} onClick={() => handleGenerate(selectedStyle)}>
+              生成「{ART_STYLES.find((s) => s.key === selectedStyle)?.label}」风格
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
