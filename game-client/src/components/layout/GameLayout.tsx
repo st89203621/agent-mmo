@@ -42,7 +42,7 @@ interface Props {
 }
 
 export default function GameLayout({ children }: Props) {
-  const { currentPage, previousPage, navigateTo, isTransitioning } = useGameStore();
+  const { currentPage, previousPage, navigateTo } = useGameStore();
   const { gold, diamond } = usePlayerStore();
 
   const subPage = SUB_PAGES[currentPage];
@@ -66,7 +66,7 @@ export default function GameLayout({ children }: Props) {
         </div>
       )}
 
-      <main className={`${styles.content} ${isTransitioning ? styles.transitioning : ''}`}>
+      <main className={styles.content}>
         {children}
       </main>
 

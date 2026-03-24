@@ -34,10 +34,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   navigateTo: (page, params) => {
     const current = get().currentPage;
     if (current === page) return;
-    set({ isTransitioning: true, previousPage: current, pageParams: params || {} });
-    setTimeout(() => {
-      set({ currentPage: page, isTransitioning: false });
-    }, 150);
+    set({ currentPage: page, previousPage: current, pageParams: params || {} });
   },
 
   setBookWorld: (book) => set({ currentBookWorld: book }),

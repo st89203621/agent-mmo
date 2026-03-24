@@ -28,6 +28,44 @@ import ShopPage from './components/pages/ShopPage';
 import CompanionPage from './components/pages/CompanionPage';
 import type { PageId } from './types';
 
+/**
+ * 页面缓存组件：主导航页面保持挂载（display:none 隐藏），
+ * 切回时瞬间显示无需重新加载。子页面正常卸载/挂载。
+ */
+function PageCache({ currentPage }: { currentPage: PageId }) {
+  const [visited, setVisited] = React.useState<Set<PageId>>(() => new Set([currentPage]));
+
+  React.useEffect(() => {
+    if (KEEP_ALIVE_PAGES.includes(currentPage) && !visited.has(currentPage)) {
+      setVisited((prev) => new Set(prev).add(currentPage));
+    }
+  }, [currentPage]);
+
+  const isKeepAlive = KEEP_ALIVE_PAGES.includes(currentPage);
+
+  return (
+    <>
+      {/* 保活页面：已访问过的主导航页面始终挂载 */}
+      {KEEP_ALIVE_PAGES.filter((id) => visited.has(id)).map((id) => {
+        const Page = PAGE_MAP[id];
+        return (
+          <div key={id} style={{ display: currentPage === id ? 'contents' : 'none', height: '100%' }}>
+            <Page />
+          </div>
+        );
+      })}
+      {/* 子页面：正常挂载/卸载 */}
+      {!isKeepAlive && (() => {
+        const Page = PAGE_MAP[currentPage] || HomePage;
+        return <Page />;
+      })()}
+    </>
+  );
+}
+
+/** 主导航页面：保持挂载，切换时用 display:none 隐藏，避免重复加载 */
+const KEEP_ALIVE_PAGES: PageId[] = ['home', 'story', 'explore', 'character', 'achievement'];
+
 const PAGE_MAP: Record<PageId, React.FC> = {
   'home': HomePage,
   'story': StoryPage,
@@ -122,13 +160,11 @@ export default function App() {
     );
   }
 
-  const PageComponent = PAGE_MAP[currentPage] || HomePage;
-
   return (
     <>
       <Toast />
       <GameLayout>
-        <PageComponent />
+        <PageCache currentPage={currentPage} />
       </GameLayout>
     </>
   );
