@@ -18,11 +18,6 @@ export default class HomeScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
 
-    // 纯色背景
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0e0b09, 1);
-    bg.fillRect(0, 0, width, height);
-
     // 中心呼吸光晕
     this.glowGfx = this.add.graphics().setDepth(0);
 
@@ -86,12 +81,7 @@ export default class HomeScene extends Phaser.Scene {
       blendMode: Phaser.BlendModes.ADD,
     }).setDepth(2);
 
-    // 响应尺寸
-    this.scale.on('resize', (gs: Phaser.Structs.Size) => {
-      bg.clear();
-      bg.fillStyle(0x0e0b09, 1);
-      bg.fillRect(0, 0, gs.width, gs.height);
-    });
+    // 响应尺寸（粒子区域自动跟随，无需手动处理）
   }
 
   update(_t: number, delta: number) {

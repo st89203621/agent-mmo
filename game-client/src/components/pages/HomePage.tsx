@@ -10,6 +10,7 @@ import {
   type PersonData, type PetData, type CompanionData,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
+import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
 import styles from './HomePage.module.css';
 
 const ART_STYLES = [
@@ -112,6 +113,8 @@ export default function HomePage() {
     setGeneratingBg(false);
   }, [generatingBg, selectedStyle]);
 
+  const transparentPortrait = useTransparentPortrait(portraitUrl);
+
   const person = data.person;
   const worldLabel = data.rebirthInfo ? `第${data.rebirthInfo.currentWorldIndex + 1}世` : '';
   const bookLabel = data.rebirthInfo?.currentBook || currentBookWorld?.title || '';
@@ -165,8 +168,8 @@ export default function HomePage() {
             className={`${styles.portraitFrame} ${portraitUrl ? styles.alive : ''}`}
             onClick={() => navigateTo('character')}
           >
-            {portraitUrl ? (
-              <img src={portraitUrl} alt="立绘" className={styles.portraitImg} />
+            {transparentPortrait ? (
+              <img src={transparentPortrait} alt="立绘" className={styles.portraitImg} />
             ) : (
               <div className={styles.portraitPlaceholder}>
                 <span className={styles.portraitChar}>

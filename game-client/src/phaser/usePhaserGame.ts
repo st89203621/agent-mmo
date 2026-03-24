@@ -15,7 +15,7 @@ export function usePhaserGame(
     if (!el || gameRef.current) return;
 
     const game = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: Phaser.CANVAS,
       parent: el,
       transparent: true,
       width: el.clientWidth,

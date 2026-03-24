@@ -56,10 +56,12 @@
 }
 /* 有AI背景时粒子降低存在感 */
 .phaserDim { opacity: 0.4; }
+.phaserLayer,
 .phaserLayer canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  background: transparent !important;
 }
 
 .loadingCenter {
@@ -179,7 +181,6 @@
   height: 100%;
   object-fit: contain;
   display: block;
-  mix-blend-mode: lighten;
 }
 
 .shineOverlay {
