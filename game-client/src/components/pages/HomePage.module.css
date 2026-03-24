@@ -1,395 +1,364 @@
+/* ═══════════════════════════════════════════
+   主页 — 沉浸式游戏 HUD 风格
+   Phaser 粒子背景 + React 叠加层
+   ═══════════════════════════════════════════ */
+
 .page {
+  position: relative;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--ink);
   overflow: hidden;
+  background: var(--ink);
 }
 
+/* Phaser 画布容器 */
+.phaserLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.phaserLayer canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 加载状态 */
 .loadingCenter {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-main);
-  font-size: 20px;
-  color: var(--gold);
-  animation: pulse 2s infinite;
-}
-
-.scrollArea {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* ── 角色概览卡 ── */
-.heroCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: linear-gradient(135deg, #1a1610, #2a2218);
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.heroCard:active { transform: scale(0.98); }
-
-.heroAvatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  color: var(--ink);
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-main);
   font-size: 22px;
-  font-weight: 700;
+  color: var(--gold);
+  z-index: 1;
+  animation: breathe 2.5s ease-in-out infinite;
+}
+
+/* ── HUD 叠加层 ── */
+.hud {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 8px;
+  pointer-events: none;
+}
+.hud > * {
+  pointer-events: auto;
+}
+
+/* ── 顶栏 ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-shrink: 0;
 }
 
-.heroInfo { flex: 1; min-width: 0; }
-
-.heroName {
-  font-family: var(--font-main);
-  font-size: 18px;
-  color: var(--paper);
-  margin-bottom: 2px;
-}
-
-.heroMeta {
-  font-size: 12px;
-  color: var(--paper-darker);
-  margin-bottom: 6px;
-}
-
-.currencyRow {
+.currencyGroup {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
-.currencyItem {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--paper);
-}
-
-.currencyIcon {
+.coinBadge,
+.diamondBadge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--gold-dim);
-  color: var(--ink);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.currencyIconDiamond {
-  composes: currencyIcon;
-  background: #5c8dc0;
-}
-
-.heroArrow {
-  font-size: 24px;
-  color: var(--paper-darker);
-}
-
-/* ── 通用分区 ── */
-.section { }
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.sectionTitle {
-  font-family: var(--font-main);
-  font-size: 15px;
-  color: var(--paper);
-  opacity: 0.8;
-  margin-bottom: 0;
-}
-
-.sectionBadge {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgba(201, 168, 76, 0.15);
-  color: var(--gold);
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(201, 168, 76, 0.3);
-}
-
-.moreBtn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: var(--gold-dim);
-  cursor: pointer;
+  font-size: 13px;
   font-family: var(--font-ui);
-  padding: 2px 8px;
-}
-
-/* ── 签到 ── */
-.checkinRow {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.checkinDay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 2px;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md);
-  cursor: pointer;
+}
+
+.coinDot,
+.diamondDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.coinDot { background: var(--gold); }
+.diamondDot { background: #5c9ee6; }
+
+.checkinBtn {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold);
+  font-size: 12px;
   font-family: var(--font-ui);
+  cursor: pointer;
+  animation: checkinGlow 2s ease-in-out infinite;
   transition: all var(--transition-fast);
 }
-
-.checkinDay:disabled { cursor: default; }
+.checkinBtn:active {
+  transform: scale(0.95);
+  background: rgba(201, 168, 76, 0.25);
+}
 
 .checkinDone {
-  background: rgba(201, 168, 76, 0.1);
-  border-color: rgba(201, 168, 76, 0.3);
-}
-
-.checkinDone .checkinIcon {
-  color: var(--gold);
-  font-weight: 700;
-}
-
-.checkinToday {
-  background: rgba(201, 168, 76, 0.08);
-  border-color: var(--gold);
-  animation: todayPulse 2s infinite;
-}
-
-.checkinIcon {
-  font-size: 18px;
-  color: var(--paper-darker);
-}
-
-.checkinLabel {
-  font-size: 10px;
-  color: var(--paper-darker);
-  opacity: 0.6;
-}
-
-/* ── 推荐行动 ── */
-.actionGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.actionCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  text-align: left;
-  transition: all var(--transition-fast);
-}
-
-.actionCard:active { transform: scale(0.97); }
-
-.actionHighlight {
-  border-color: rgba(201, 168, 76, 0.3);
-  background: rgba(201, 168, 76, 0.06);
-  grid-column: span 2;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-}
-
-.actionIcon { font-size: 24px; }
-
-.actionText {
-  font-size: 14px;
-  color: var(--paper);
-  font-weight: 600;
-}
-
-.actionHint {
-  font-size: 11px;
-  color: var(--paper-darker);
-  opacity: 0.6;
-}
-
-/* ── 任务列表 ── */
-.questList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.questItem {
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.questInfo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.questName {
-  font-size: 13px;
-  color: var(--paper);
-}
-
-.questProgress {
   font-size: 12px;
-  color: var(--gold-dim);
+  color: var(--paper-darker);
+  opacity: 0.5;
+  font-family: var(--font-ui);
 }
 
-.progressBar {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--gold);
-  border-radius: 2px;
-  transition: width var(--transition-normal);
-}
-
-/* ── 缘分概览 ── */
-.fateList {
+/* ── 角色区域 ── */
+.characterZone {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.fateItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fateAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: rgba(201, 168, 76, 0.15);
-  color: var(--gold);
-  display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-main);
-  font-size: 14px;
-  flex-shrink: 0;
+  cursor: pointer;
+  margin-top: -16px;
+  gap: 8px;
+  transition: transform var(--transition-fast);
+}
+.characterZone:active {
+  transform: scale(0.98);
 }
 
-.fateInfo { flex: 1; min-width: 0; }
-
-.fateName {
-  font-size: 13px;
-  color: var(--paper);
-  display: block;
+/* 头像光环 */
+.avatarRing {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(
+    var(--gold) 0deg,
+    transparent 60deg,
+    var(--gold-dim) 120deg,
+    transparent 180deg,
+    var(--gold) 240deg,
+    transparent 300deg,
+    var(--gold) 360deg
+  );
+  animation: ringRotate 8s linear infinite;
   margin-bottom: 4px;
 }
 
-.fateBars {
+.avatarInner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #2a221a 0%, #0e0b09 70%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  border: 2px solid rgba(201, 168, 76, 0.2);
 }
 
-.fateBarTrack {
-  flex: 1;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  overflow: hidden;
+.avatarChar {
+  font-family: var(--font-main);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(201, 168, 76, 0.5);
+  user-select: none;
 }
 
-.fateBarFill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width var(--transition-normal);
+.charName {
+  font-family: var(--font-main);
+  font-size: 24px;
+  color: var(--paper);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  letter-spacing: 4px;
+  margin: 0;
 }
 
-.fateScore {
-  font-size: 12px;
+.charTitle {
+  font-family: var(--font-ui);
+  font-size: 13px;
   color: var(--gold-dim);
-  min-width: 24px;
-  text-align: right;
+  opacity: 0.8;
+  margin: 0;
 }
 
-/* ── 快捷入口 ── */
-.quickGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+/* 属性条 */
+.statStrip {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 6px 20px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(201, 168, 76, 0.1);
 }
 
-.quickItem {
+.statItem {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 2px;
+}
+
+.statLabel {
+  font-size: 10px;
+  color: var(--paper-darker);
+  opacity: 0.6;
+  font-family: var(--font-ui);
+}
+
+.statValue {
+  font-size: 14px;
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+/* ── 宠物/灵侣 浮窗 ── */
+.companionRow {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+.companionChip {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  padding: 12px 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--radius-md);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(201, 168, 76, 0.15);
   cursor: pointer;
   font-family: var(--font-ui);
   transition: all var(--transition-fast);
 }
-
-.quickItem:active {
-  background: rgba(255, 255, 255, 0.08);
+.companionChip:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.97);
 }
 
-.quickIcon { font-size: 22px; }
+.companionImg {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+}
 
-.quickLabel {
+.companionIcon {
+  font-size: 18px;
+}
+
+.companionLabel {
+  font-size: 12px;
+  color: var(--paper);
+}
+
+.companionLevel {
+  font-size: 10px;
+  color: var(--gold-dim);
+  opacity: 0.7;
+}
+
+/* ── 行动力 ── */
+.apBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 20px;
+  flex-shrink: 0;
+}
+
+.apLabel {
   font-size: 11px;
   color: var(--paper-darker);
+  opacity: 0.6;
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+}
+
+.apTrack {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.apFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  transition: width var(--transition-normal);
+}
+
+.apText {
+  font-size: 11px;
+  color: var(--gold-dim);
+  font-family: var(--font-ui);
+  min-width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── 底部快捷操作 ── */
+.actionRing {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 8px 0 4px;
+}
+
+.actionBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 0;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(6px);
+}
+.actionBtn:active {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.2);
+  transform: scale(0.93);
+}
+
+.actionIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.actionName {
+  font-size: 11px;
+  color: var(--paper-darker);
+  font-family: var(--font-ui);
 }
 
 /* ── 动画 ── */
-@keyframes pulse {
+@keyframes breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.5; }
 }
 
-@keyframes todayPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.3); }
-  50% { box-shadow: 0 0 12px 2px rgba(201, 168, 76, 0.2); }
+@keyframes ringRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes checkinGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(201, 168, 76, 0.25); }
 }
