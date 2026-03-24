@@ -380,6 +380,7 @@ export interface PersonData {
   exists: boolean;
   id?: number;
   name?: string;
+  portraitUrl?: string;
   basicProperty?: {
     hp: number; mp: number;
     physicsAttack: number; physicsDefense: number;
@@ -396,6 +397,15 @@ export function initPerson(name?: string): Promise<{ id: number; name: string }>
   return request('/person/init', {
     method: 'POST',
     body: JSON.stringify({ name: name || '' }),
+  });
+}
+
+export function generatePortrait(params?: {
+  style?: string; gender?: string; features?: string; force?: boolean;
+}): Promise<{ portraitUrl: string }> {
+  return request('/person/portrait', {
+    method: 'POST',
+    body: JSON.stringify(params || {}),
   });
 }
 

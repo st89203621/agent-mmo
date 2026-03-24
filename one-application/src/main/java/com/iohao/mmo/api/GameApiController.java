@@ -677,7 +677,68 @@ public class GameApiController {
                 "speed", bp.getSpeed()
             ));
         }
+        // 立绘URL
+        if (person.getPortraitImageId() != null) {
+            m.put("portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId());
+        }
         return ok(m);
+    }
+
+    /**
+     * 生成或获取角色立绘
+     * 复用 SceneImageService 的火山引擎图片生成能力
+     */
+    @PostMapping("/person/portrait")
+    public ResponseEntity<Map<String, Object>> generatePortrait(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            Person person = personService.getPersonById(userId);
+            if (person == null) return err("角色不存在");
+
+            // 如果已有立绘且未请求强制重新生成，直接返回
+            boolean force = Boolean.TRUE.equals(body.get("force"));
+            if (!force && person.getPortraitImageId() != null) {
+                var existing = sceneImageService.getById(person.getPortraitImageId());
+                if (existing.isPresent()) {
+                    return ok(Map.of("portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId()));
+                }
+            }
+
+            // 构建立绘提示词
+            String style = (String) body.getOrDefault("style", "仙侠水墨风");
+            String gender = (String) body.getOrDefault("gender", "");
+            String features = (String) body.getOrDefault("features", "");
+            String prompt = buildPortraitPrompt(person.getName(), style, gender, features);
+
+            String cacheKey = "portrait_" + userId + "_" + style.hashCode();
+            if (force) cacheKey += "_" + System.currentTimeMillis();
+
+            Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
+            if (result.isEmpty()) return err("立绘生成失败");
+
+            // 保存到角色
+            String imageId = result.get().getId();
+            person.setPortraitImageId(imageId);
+            personService.savePerson(person);
+
+            return ok(Map.of("portraitUrl", "/api/story/scene-image/" + imageId));
+        } catch (Exception e) {
+            log.warn("portrait error", e);
+            return err(e.getMessage());
+        }
+    }
+
+    private String buildPortraitPrompt(String name, String style, String gender, String features) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(style).append("角色立绘，");
+        sb.append("角色名「").append(name).append("」");
+        if (gender != null && !gender.isEmpty()) sb.append("，").append(gender);
+        if (features != null && !features.isEmpty()) sb.append("，外貌特征：").append(features);
+        sb.append("，单人全身立绘，正面或四分之三侧面，姿态自然飘逸，");
+        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，主体居中，");
+        sb.append("高清，精致细节，清晰边缘，角色完整不裁切");
+        return sb.toString();
     }
 
     @PostMapping("/person/init")

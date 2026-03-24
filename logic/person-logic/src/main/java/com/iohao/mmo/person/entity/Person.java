@@ -46,4 +46,6 @@ public class Person {
     List<Hero> heroList;
     /** 当前使用的英雄 */
     Hero currentHero;
+    /** AI生成的角色立绘图片ID（对应SceneImage） */
+    String portraitImageId;
 }

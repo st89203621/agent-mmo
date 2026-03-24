@@ -6,7 +6,7 @@ import { usePhaserGame } from '../../phaser/usePhaserGame';
 import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
-  fetchRebirthStatus, fetchCheckinStatus, doCheckin,
+  fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait,
   type PersonData, type PetData, type CompanionData,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
@@ -21,16 +21,6 @@ interface HomeData {
   companion: CompanionData | null;
 }
 
-/** 快捷入口 */
-const ACTIONS = [
-  { id: 'story', label: '剧情', icon: '📜', desc: '续写命运' },
-  { id: 'explore', label: '探索', icon: '🗺️', desc: '寻访奇遇' },
-  { id: 'dungeon', label: '副本', icon: '⚔️', desc: '挑战试炼' },
-  { id: 'quest', label: '任务', icon: '📋', desc: '悬赏接引' },
-  { id: 'book-world', label: '书库', icon: '📚', desc: '入书世界' },
-  { id: 'inventory', label: '背包', icon: '🎒', desc: '整理行囊' },
-] as const;
-
 export default function HomePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
   const { playerName, gold, diamond } = usePlayerStore();
@@ -41,6 +31,8 @@ export default function HomePage() {
     person: null, explore: null, rebirthInfo: null, checkin: null, pet: null, companion: null,
   });
   const [loading, setLoading] = useState(true);
+  const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
+  const [generatingPortrait, setGeneratingPortrait] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -51,16 +43,18 @@ export default function HomePage() {
       fetchPets().catch(() => ({ pets: [] })),
       fetchCompanions().catch(() => ({ companions: [] })),
     ]).then(([person, explore, rebirth, checkin, petRes, compRes]) => {
+      const p = person as PersonData | null;
       const pets = (petRes as { pets: PetData[] })?.pets || [];
       const companions = (compRes as { companions: CompanionData[] })?.companions || [];
       setData({
-        person: person as PersonData | null,
+        person: p,
         explore: explore as ExploreStatus | null,
         rebirthInfo: rebirth as HomeData['rebirthInfo'],
         checkin: checkin as HomeData['checkin'],
         pet: pets[0] || null,
         companion: companions[0] || null,
       });
+      if (p?.portraitUrl) setPortraitUrl(p.portraitUrl);
       setLoading(false);
     });
   }, []);
@@ -76,12 +70,24 @@ export default function HomePage() {
     }
   }, [data.checkin]);
 
+  const handleGeneratePortrait = useCallback(async () => {
+    if (generatingPortrait) return;
+    setGeneratingPortrait(true);
+    try {
+      const res = await generatePortrait({ force: !!portraitUrl });
+      setPortraitUrl(res.portraitUrl);
+      toast.success(portraitUrl ? '立绘已更新' : '立绘生成成功');
+    } catch {
+      toast.error('立绘生成失败');
+    }
+    setGeneratingPortrait(false);
+  }, [generatingPortrait, portraitUrl]);
+
   const person = data.person;
   const worldLabel = data.rebirthInfo
     ? `第${data.rebirthInfo.currentWorldIndex + 1}世`
     : '';
   const bookLabel = data.rebirthInfo?.currentBook || currentBookWorld?.title || '';
-  const charInitial = person?.name?.charAt(0) || playerName?.charAt(0) || '侠';
 
   if (loading) {
     return (
@@ -121,16 +127,32 @@ export default function HomePage() {
           )}
         </header>
 
-        {/* 角色区域 */}
-        <section className={styles.characterZone} onClick={() => navigateTo('character')}>
-          {/* 角色头像 */}
-          <div className={styles.avatarRing}>
-            <div className={styles.avatarInner}>
-              <span className={styles.avatarChar}>{charInitial}</span>
-            </div>
+        {/* 角色立绘区域 */}
+        <section className={styles.portraitZone}>
+          <div className={styles.portraitFrame} onClick={() => navigateTo('character')}>
+            {portraitUrl ? (
+              <img src={portraitUrl} alt="角色立绘" className={styles.portraitImg} />
+            ) : (
+              <div className={styles.portraitPlaceholder}>
+                <span className={styles.portraitChar}>
+                  {person?.name?.charAt(0) || playerName?.charAt(0) || '侠'}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* 角色名和世界信息 */}
+          {/* 生成/更换立绘按钮 */}
+          <button
+            className={styles.portraitGenBtn}
+            onClick={handleGeneratePortrait}
+            disabled={generatingPortrait}
+          >
+            {generatingPortrait ? '绘制中…' : portraitUrl ? '重绘' : '生成立绘'}
+          </button>
+        </section>
+
+        {/* 角色信息 */}
+        <section className={styles.infoZone} onClick={() => navigateTo('character')}>
           <h1 className={styles.charName}>{person?.name || playerName || '无名侠客'}</h1>
           {(worldLabel || bookLabel) && (
             <p className={styles.charTitle}>
@@ -149,7 +171,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 宠物 / 灵侣 浮窗 */}
+        {/* 宠物/灵侣 */}
         <div className={styles.companionRow}>
           {data.pet && (
             <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
@@ -170,7 +192,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 行动力指示器 */}
+        {/* 行动力 */}
         {data.explore && (
           <div className={styles.apBar}>
             <span className={styles.apLabel}>行动力</span>
@@ -185,26 +207,11 @@ export default function HomePage() {
             </span>
           </div>
         )}
-
-        {/* 底部快捷操作 */}
-        <nav className={styles.actionRing}>
-          {ACTIONS.map((a) => (
-            <button
-              key={a.id}
-              className={styles.actionBtn}
-              onClick={() => navigateTo(a.id as Parameters<typeof navigateTo>[0])}
-            >
-              <span className={styles.actionIcon}>{a.icon}</span>
-              <span className={styles.actionName}>{a.label}</span>
-            </button>
-          ))}
-        </nav>
       </div>
     </div>
   );
 }
 
-/** 迷你属性值 */
 function StatMini({ label, value }: { label: string; value: number }) {
   return (
     <div className={styles.statItem}>

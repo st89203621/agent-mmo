@@ -94,6 +94,13 @@ public class PersonService {
     }
 
     /**
+     * 保存角色
+     */
+    public void savePerson(Person person) {
+        mongoTemplate.save(person);
+    }
+
+    /**
      * 创建初始属性
      */
     private BasicProperty createInitialProperty() {
