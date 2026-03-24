@@ -174,7 +174,7 @@ export default function HomePage() {
 
       {/* HUD */}
       <div className={styles.hud}>
-        {/* 顶栏 */}
+        {/* 顶栏（绝对定位叠加） */}
         <header className={styles.topBar}>
           <div className={styles.currencyGroup}>
             <span className={styles.coinBadge}><i className={styles.coinDot} />{gold}</span>
@@ -190,7 +190,7 @@ export default function HomePage() {
           )}
         </header>
 
-        {/* 立绘 */}
+        {/* 立绘（占满全屏） */}
         <section className={styles.portraitZone}>
           <div
             className={`${styles.portraitFrame} ${portraitUrl ? styles.alive : ''}`}
@@ -229,7 +229,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 角色信息 */}
+        {/* 角色信息（底部叠加） */}
         <section className={styles.infoZone} onClick={() => navigateTo('character')}>
           <h1 className={styles.charName}>{person?.name || playerName || '无名侠客'}</h1>
           {(worldLabel || bookLabel) && (
@@ -247,7 +247,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 伴侣 */}
+        {/* 伴侣（左下角） */}
         <div className={styles.companionRow}>
           {data.pet && (
             <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
@@ -266,7 +266,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 行动力 */}
+        {/* 行动力（右下角） */}
         {data.explore && (
           <div className={styles.apBar}>
             <span className={styles.apLabel}>行动力</span>
