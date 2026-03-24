@@ -758,6 +758,36 @@ public class GameApiController {
         }
     }
 
+    /**
+     * 单独重新生成背景图
+     */
+    @PostMapping("/person/background")
+    public ResponseEntity<Map<String, Object>> generateBackground(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            Person person = personService.getPersonById(userId);
+            if (person == null) return err("角色不存在");
+
+            String style = (String) body.getOrDefault("style", "仙侠水墨风");
+            long ts = System.currentTimeMillis();
+
+            String bgPrompt = buildBgPrompt(style, person.getName());
+            String bgKey = "bg_" + userId + "_" + style.hashCode() + "_" + ts;
+
+            Optional<SceneImage> bgResult = sceneImageService.getOrGenerate(bgKey, bgPrompt);
+            if (bgResult.isEmpty()) return err("背景生成失败");
+
+            person.setBgImageId(bgResult.get().getId());
+            personService.savePerson(person);
+
+            return ok(Map.of("bgUrl", "/api/story/scene-image/" + bgResult.get().getId()));
+        } catch (Exception e) {
+            log.warn("background error", e);
+            return err(e.getMessage());
+        }
+    }
+
     private String buildPortraitPrompt(String name, String style, String gender, String features) {
         StringBuilder sb = new StringBuilder();
         sb.append(style).append("角色立绘，");
@@ -781,7 +811,9 @@ public class GameApiController {
         sb.append("与角色「").append(charName).append("」气质匹配的氛围场景，");
         sb.append("远景或中景，大气磅礴，光影层次丰富，");
         sb.append("色调偏暗沉以衬托前景角色，略带虚焦/景深效果，");
-        sb.append("无人物，纯场景，高清，9:16竖版构图");
+        sb.append("【严格要求】画面中绝对不能出现任何人物、角色、生物、剪影、身影，");
+        sb.append("不能有任何主体对象，只有纯粹的风景/建筑/自然环境场景，");
+        sb.append("高清，9:16竖版构图");
         return sb.toString();
     }
 

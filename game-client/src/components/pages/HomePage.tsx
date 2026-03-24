@@ -6,7 +6,7 @@ import { usePhaserGame } from '../../phaser/usePhaserGame';
 import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
-  fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait,
+  fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait, generateBackground,
   type PersonData, type PetData, type CompanionData,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
@@ -43,6 +43,7 @@ export default function HomePage() {
   const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatingBg, setGeneratingBg] = useState(false);
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
 
@@ -97,6 +98,19 @@ export default function HomePage() {
     }
     setGenerating(false);
   }, [generating, portraitUrl]);
+
+  const handleGenerateBg = useCallback(async () => {
+    if (generatingBg) return;
+    setGeneratingBg(true);
+    try {
+      const res = await generateBackground({ style: selectedStyle });
+      setBgUrl(res.bgUrl);
+      toast.success('背景生成完成');
+    } catch {
+      toast.error('背景生成失败');
+    }
+    setGeneratingBg(false);
+  }, [generatingBg, selectedStyle]);
 
   const person = data.person;
   const worldLabel = data.rebirthInfo ? `第${data.rebirthInfo.currentWorldIndex + 1}世` : '';
@@ -163,16 +177,25 @@ export default function HomePage() {
             {portraitUrl && <div className={styles.shineOverlay} />}
           </div>
 
-          {generating ? (
-            <div className={styles.genStatus}>绘制中…</div>
-          ) : (
-            <button
-              className={styles.styleToggle}
-              onClick={() => portraitUrl ? setShowStylePicker(true) : handleGenerate(selectedStyle)}
-            >
-              {portraitUrl ? '切换风格' : '生成立绘'}
-            </button>
-          )}
+          <div className={styles.portraitActions}>
+            {generating ? (
+              <div className={styles.genStatus}>绘制中…</div>
+            ) : (
+              <button
+                className={styles.styleToggle}
+                onClick={() => portraitUrl ? setShowStylePicker(true) : handleGenerate(selectedStyle)}
+              >
+                {portraitUrl ? '切换风格' : '生成立绘'}
+              </button>
+            )}
+            {generatingBg ? (
+              <div className={styles.genStatus}>背景生成中…</div>
+            ) : (
+              <button className={styles.styleToggle} onClick={handleGenerateBg}>
+                切换背景
+              </button>
+            )}
+          </div>
         </section>
 
         {/* 角色信息 */}

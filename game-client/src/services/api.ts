@@ -410,6 +410,15 @@ export function generatePortrait(params?: {
   });
 }
 
+export function generateBackground(params?: {
+  style?: string;
+}): Promise<{ bgUrl: string }> {
+  return request('/person/background', {
+    method: 'POST',
+    body: JSON.stringify(params || {}),
+  });
+}
+
 // ── 任务 ──────────────────────────────────────
 
 export interface QuestData {
