@@ -25,7 +25,6 @@ import CharCreatePage from './components/pages/CharCreatePage';
 import AchievementPage from './components/pages/AchievementPage';
 import QuestPage from './components/pages/QuestPage';
 import ShopPage from './components/pages/ShopPage';
-import RankPage from './components/pages/RankPage';
 import CompanionPage from './components/pages/CompanionPage';
 import type { PageId } from './types';
 
@@ -50,7 +49,6 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'achievement': AchievementPage,
   'quest': QuestPage,
   'shop': ShopPage,
-  'rank': RankPage,
   'companion': CompanionPage,
 };
 

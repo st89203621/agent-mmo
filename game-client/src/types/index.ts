@@ -175,4 +175,4 @@ export type PageId =
   | 'character' | 'equip-detail' | 'enchant' | 'skill-tree'
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'
-  | 'rank' | 'companion';
+  | 'companion';

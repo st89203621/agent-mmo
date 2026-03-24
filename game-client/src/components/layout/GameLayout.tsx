@@ -33,7 +33,6 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'quest': { label: '任务', back: 'home' },
   'shop': { label: '商城', back: 'character' },
   'companion': { label: '灵侣', back: 'character' },
-  'rank': { label: '排行', back: 'achievement' },
   'battle': { label: '战斗', back: 'home' },
   'inventory': { label: '背包', back: 'character' },
 };

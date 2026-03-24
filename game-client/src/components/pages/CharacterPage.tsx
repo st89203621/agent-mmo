@@ -171,7 +171,7 @@ export default function CharacterPage() {
             <button className={styles.quickLink} onClick={() => navigateTo('quest')}>任务</button>
             <button className={styles.quickLink} onClick={() => navigateTo('shop')}>商城</button>
             <button className={styles.quickLink} onClick={() => navigateTo('companion')}>灵侣</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('rank')}>排行</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('achievement')}>排行</button>
           </div>
         </section>
       </div>
