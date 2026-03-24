@@ -1,9 +1,10 @@
 package com.iohao.mmo.rank.cmd;
 
 import com.iohao.game.action.skeleton.core.CmdInfo;
+import com.iohao.mmo.common.provide.cmd.CmdModule;
 
 public interface RankCmd {
-    int cmd = 23;
+    int cmd = CmdModule.rankCmd;
 
     int getLevelRank = 1;
     int getPowerRank = 2;

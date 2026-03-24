@@ -75,4 +75,6 @@ public interface CmdModule {
     int storyCmd = 26;
     /** 记忆碎片 */
     int memoryCmd = 27;
+    /** 排行榜 */
+    int rankCmd = 28;
 }
