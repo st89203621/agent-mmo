@@ -1559,6 +1559,7 @@ public class GameApiController {
             String eventId = (String) body.get("eventId");
             int choiceId = ((Number) body.get("choiceId")).intValue();
             Map<String, Object> reward = exploreService.resolveChoice(userId, eventId, choiceId);
+            applyExploreRewards(userId, eventId, reward);
             return ok(reward);
         } catch (Exception e) {
             return err(e.getMessage());
@@ -1624,9 +1625,52 @@ public class GameApiController {
                 victory = false;
             }
             Map<String, Object> reward = exploreService.resolveCombat(userId, eventId, victory);
+            applyExploreRewards(userId, eventId, reward);
             return ok(reward);
         } catch (Exception e) {
             return err(e.getMessage());
+        }
+    }
+
+    /**
+     * 将探索/战斗奖励真正发放到各子系统（缘分、记忆、背包）
+     */
+    private void applyExploreRewards(long userId, String eventId, Map<String, Object> reward) {
+        try {
+            // 获取事件上下文（worldIndex、npcId、bookTitle）
+            ExploreEvent event = exploreService.getEvent(eventId);
+            int worldIndex = event != null ? event.getWorldIndex() : 0;
+            String bookTitle = event != null && event.getBookTitle() != null ? event.getBookTitle() : "未知世界";
+            String npcId = event != null ? event.getNpcId() : null;
+
+            // 1. 缘分/信任变化 → FateService
+            int fateDelta = reward.get("fateDelta") instanceof Number n ? n.intValue() : 0;
+            int trustDelta = reward.get("trustDelta") instanceof Number n ? n.intValue() : 0;
+            if ((fateDelta != 0 || trustDelta != 0) && npcId != null && !npcId.isBlank()) {
+                fateService.applyChoice(userId, npcId, worldIndex, fateDelta, trustDelta);
+            }
+
+            // 2. 记忆碎片 → MemoryService
+            String memoryTitle = (String) reward.get("memoryTitle");
+            if (memoryTitle != null && !memoryTitle.isBlank()) {
+                String npcName = event != null && event.getEnemyName() != null ? event.getEnemyName() : "书中人";
+                String targetNpcId = npcId != null ? npcId : "explore_" + eventId;
+                int fateScore = fateDelta > 0 ? fateDelta : 0;
+                memoryService.createMemory(userId, targetNpcId, npcName, worldIndex, bookTitle, fateScore, memoryTitle);
+            }
+
+            // 3. 物品奖励 → BagService
+            String itemName = (String) reward.get("itemName");
+            if (itemName != null && !itemName.isBlank()) {
+                BagItem bagItem = new BagItem();
+                String itemId = "explore_" + itemName.hashCode();
+                bagItem.setId(itemId);
+                bagItem.setItemTypeId(itemId);
+                bagItem.setQuantity(1);
+                bagService.incrementItem(bagItem, userId);
+            }
+        } catch (Exception e) {
+            log.warn("探索奖励发放异常: userId={}, eventId={}, err={}", userId, eventId, e.getMessage());
         }
     }
 

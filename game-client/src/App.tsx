@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from './store/gameStore';
 import { usePlayerStore } from './store/playerStore';
-import { getMe, fetchPersonInfo } from './services/api';
+import { getMe, fetchPersonInfo, fetchSelectedBook, fetchPlayerCurrency } from './services/api';
 import GameLayout from './components/layout/GameLayout';
 import LoginPage from './components/pages/LoginPage';
 import StoryPage from './components/pages/StoryPage';
@@ -56,16 +56,29 @@ export default function App() {
   const { playerId, setPlayer, personCreated, setPersonCreated } = usePlayerStore();
   const [checking, setChecking] = useState(true);
 
-  // 启动时检查是否已登录（session复用）+ 角色是否存在
+  // 启动时检查是否已登录（session复用）+ 角色是否存在 + 恢复已选书籍 + 加载货币
   useEffect(() => {
     getMe()
       .then(async (data) => {
         setPlayer(String(data.userId), data.username, '');
-        // 检查角色是否已创建
-        try {
-          const person = await fetchPersonInfo();
-          setPersonCreated(!!person.exists);
-        } catch { /* 忽略，进入默认页 */ }
+        // 并行加载角色、已选书籍、货币
+        const [person, book, cur] = await Promise.all([
+          fetchPersonInfo().catch(() => ({ exists: false }) as { exists: boolean }),
+          fetchSelectedBook(usePlayerStore.getState().currentWorldIndex || 1).catch(() => null),
+          fetchPlayerCurrency().catch(() => ({ gold: 0, diamond: 0 })),
+        ]);
+        setPersonCreated(!!person.exists);
+        // 恢复已选书籍到 gameStore
+        if (book && book.bookId) {
+          useGameStore.getState().setBookWorld({
+            id: book.bookId, title: book.title, author: book.author,
+            category: book.category, loreSummary: book.loreSummary,
+            artStyle: book.artStyle, colorPalette: book.colorPalette,
+            languageStyle: book.languageStyle, coverUrl: '',
+          });
+        }
+        // 恢复货币到 playerStore
+        usePlayerStore.getState().setCurrency(cur.gold, cur.diamond);
       })
       .catch(() => {})
       .finally(() => setChecking(false));

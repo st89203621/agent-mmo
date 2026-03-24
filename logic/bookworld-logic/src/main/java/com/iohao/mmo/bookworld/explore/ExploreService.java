@@ -108,6 +108,8 @@ public class ExploreService {
 
         // AI生成事件
         ExploreEvent event = generateEvent(userId, bookTitle);
+        event.setWorldIndex(worldIndex);
+        event.setBookTitle(bookTitle);
         eventRepository.save(event);
         return event;
     }
@@ -137,6 +139,13 @@ public class ExploreService {
 
         // 根据事件类型和风险计算奖励
         return calculateReward(event, chosen);
+    }
+
+    /**
+     * 按ID获取事件
+     */
+    public ExploreEvent getEvent(String eventId) {
+        return eventRepository.findByEventId(eventId).orElse(null);
     }
 
     /**

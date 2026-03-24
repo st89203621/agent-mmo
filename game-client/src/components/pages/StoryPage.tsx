@@ -109,6 +109,20 @@ export default function StoryPage() {
     }).finally(() => setBookLoading(false));
   }, [player.currentWorldIndex, player.playerId]);
 
+  // 从探索页跳转过来时，自动开始与指定NPC对话
+  useEffect(() => {
+    const autoNpcId = game.pageParams?.autoNpcId as string | undefined;
+    if (autoNpcId && selectedBook && !dialogue.isActive && !loading) {
+      // 确保NPC列表已加载后再触发
+      const npc = game.npcsInScene.find(n => n.npcId === autoNpcId);
+      if (npc) {
+        handleStartDialogue(autoNpcId);
+        // 清除参数，避免重复触发
+        game.navigateTo('story');
+      }
+    }
+  }, [game.pageParams?.autoNpcId, game.npcsInScene.length, selectedBook]);
+
   // 自动滚动
   useEffect(() => {
     if (scrollRef.current) {

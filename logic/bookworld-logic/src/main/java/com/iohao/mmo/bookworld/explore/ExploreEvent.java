@@ -25,6 +25,10 @@ public class ExploreEvent {
     private String battleId;
     /** 遭遇战敌人名称 */
     private String enemyName;
+    /** 所属世界序号 */
+    private int worldIndex;
+    /** 书名 */
+    private String bookTitle;
     private boolean resolved;
     private Instant createTime = Instant.now();
 

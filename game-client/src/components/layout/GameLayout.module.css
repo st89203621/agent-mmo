@@ -10,6 +10,64 @@
   overflow: hidden;
 }
 
+/* 全局顶栏（子页面时显示） */
+.topBar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--ink);
+  border-bottom: 1px solid var(--gold-dim);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: var(--font-ui);
+}
+
+.backBtn:active {
+  opacity: 0.7;
+}
+
+.topTitle {
+  flex: 1;
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  font-family: var(--font-ui);
+}
+
+.currency {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+}
+
+.gold::before {
+  content: '\1FAAA ';
+}
+
+.gold {
+  color: #d4a84c;
+}
+
+.diamond::before {
+  content: '\1F48E ';
+}
+
+.diamond {
+  color: #7ec8e3;
+}
+
 .content {
   flex: 1;
   min-height: 0;

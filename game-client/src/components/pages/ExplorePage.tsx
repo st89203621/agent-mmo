@@ -4,6 +4,7 @@ import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchExploreStatus, exploreAction, resolveExploreChoice, fetchExploreHistory,
   startExploreCombat, resolveExploreCombat, battleAction, getBattleState,
+  fetchPlayerCurrency, fetchRelations,
 } from '../../services/api';
 import type { ExploreStatus, ExploreEvent, ExploreReward } from '../../types';
 import type { BattleData } from '../../services/api';
@@ -57,7 +58,27 @@ export default function ExplorePage() {
   const [battleLoading, setBattleLoading] = useState(false);
   const [battleLog, setBattleLog] = useState<string[]>([]);
 
-  const bookTitle = currentBookWorld?.title || '未知世界';
+  const { navigateTo } = useGameStore();
+  const bookTitle = currentBookWorld?.title || '';
+
+  // 未选书引导
+  if (!currentBookWorld) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.eventArea}>
+          <div className={styles.emptyHint}>
+            请先选择一部书籍，才能踏入书中世界探索<br /><br />
+            <button
+              className={styles.exploreBtn}
+              onClick={() => navigateTo('story')}
+            >
+              前往选书
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 加载状态和历史
   const loadData = useCallback(async () => {
@@ -77,6 +98,18 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  /** 奖励结算后同步全局状态（货币、缘分） */
+  const syncAfterReward = useCallback(async () => {
+    try {
+      const [cur, rel] = await Promise.all([
+        fetchPlayerCurrency().catch(() => null),
+        fetchRelations().catch(() => null),
+      ]);
+      if (cur) usePlayerStore.getState().setCurrency(cur.gold, cur.diamond);
+      if (rel) usePlayerStore.getState().setRelations(rel.relations);
+    } catch { /* 静默 */ }
+  }, []);
 
   // 恢复倒计时
   useEffect(() => {
@@ -144,6 +177,7 @@ export default function ExplorePage() {
       const reward = await resolveExploreChoice(currentEvent.eventId, choiceId);
       setCurrentReward(reward);
       setHistory(prev => [{ event: currentEvent, reward }, ...prev]);
+      syncAfterReward();
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : '操作失败');
     } finally {
@@ -171,6 +205,7 @@ export default function ExplorePage() {
             const reward = await resolveExploreCombat(currentEvent.eventId);
             setCurrentReward(reward);
             setHistory(prev => [{ event: currentEvent, reward }, ...prev]);
+            syncAfterReward();
           } catch {
             // 静默
           }
@@ -271,6 +306,26 @@ export default function ExplorePage() {
                     {c.text}
                   </button>
                 ))}
+                {/* encounter 类型且有 npcId：额外的"交谈"按钮 */}
+                {currentEvent.type === 'encounter' && currentEvent.npcId && (
+                  <button
+                    className={styles.choiceBtn}
+                    style={{ borderColor: 'var(--gold-dim)' }}
+                    onClick={() => {
+                      // 先 resolve 事件（选择第一个），再跳转对话
+                      resolveExploreChoice(currentEvent.eventId, 0)
+                        .then((reward) => {
+                          setCurrentReward(null);
+                          setCurrentEvent(null);
+                          syncAfterReward();
+                        })
+                        .catch(() => {});
+                      navigateTo('story', { autoNpcId: currentEvent.npcId });
+                    }}
+                  >
+                    与之交谈
+                  </button>
+                )}
               </div>
             )}
 
@@ -387,6 +442,14 @@ export default function ExplorePage() {
           <div className={styles.eventCard} onClick={handleDismissReward} style={{ cursor: 'pointer' }}>
             <div className={styles.rewardPopup}>
               <div className={styles.rewardMessage}>{currentReward.message}</div>
+              {(currentReward.fateDelta !== 0 || currentReward.trustDelta !== 0) && (
+                <div className={styles.rewardDetail}>
+                  {currentReward.fateDelta > 0 && <span style={{ color: '#e8b4c8' }}>缘分 +{currentReward.fateDelta} </span>}
+                  {currentReward.fateDelta < 0 && <span style={{ color: '#999' }}>缘分 {currentReward.fateDelta} </span>}
+                  {currentReward.trustDelta > 0 && <span style={{ color: '#8bc5cd' }}>信任 +{currentReward.trustDelta} </span>}
+                  {currentReward.trustDelta < 0 && <span style={{ color: '#999' }}>信任 {currentReward.trustDelta} </span>}
+                </div>
+              )}
               {currentReward.itemName && (
                 <div className={styles.rewardDetail}>获得物品：{currentReward.itemName}</div>
               )}

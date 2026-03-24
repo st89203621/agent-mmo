@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
-import { fetchEquipList, fetchRebirthStatus, type EquipData } from '../../services/api';
+import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, type EquipData, type PersonData } from '../../services/api';
 import styles from './CharacterPage.module.css';
 
 const POSITION_LABELS: Record<number, { label: string; icon: string }> = {
@@ -24,9 +24,12 @@ export default function CharacterPage() {
   const [equips, setEquips] = useState<EquipData[]>([]);
   const [worldIndex, setWorldIndex] = useState(0);
   const [rebirthInfo, setRebirthInfo] = useState<{ currentWorldIndex: number; currentBook: string } | null>(null);
+  const [person, setPerson] = useState<PersonData | null>(null);
+  const { gold, diamond } = usePlayerStore();
 
   useEffect(() => {
     fetchEquipList().then((res) => setEquips(res.equips)).catch(() => {});
+    fetchPersonInfo().then(setPerson).catch(() => {});
     fetchRebirthStatus()
       .then((data) => {
         setRebirthInfo(data);
@@ -64,6 +67,25 @@ export default function CharacterPage() {
       </div>
 
       <div className={styles.content}>
+        {/* 角色基础信息 */}
+        {person?.exists && person.basicProperty && (
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>{person.name || '无名侠客'}</h3>
+            <div className={styles.statsGrid}>
+              <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{person.basicProperty.hp}</span></div>
+              <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{person.basicProperty.mp}</span></div>
+              <div className={styles.statItem}><span>物攻</span><span className={styles.statVal}>{person.basicProperty.physicsAttack}</span></div>
+              <div className={styles.statItem}><span>物防</span><span className={styles.statVal}>{person.basicProperty.physicsDefense}</span></div>
+              <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{person.basicProperty.magicAttack}</span></div>
+              <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{person.basicProperty.speed}</span></div>
+            </div>
+            <div className={styles.statsGrid} style={{ marginTop: 8 }}>
+              <div className={styles.statItem}><span>金币</span><span className={styles.statVal} style={{ color: '#d4a84c' }}>{gold}</span></div>
+              <div className={styles.statItem}><span>钻石</span><span className={styles.statVal} style={{ color: '#7ec8e3' }}>{diamond}</span></div>
+            </div>
+          </section>
+        )}
+
         {/* 装备槽 */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>装备</h3>
