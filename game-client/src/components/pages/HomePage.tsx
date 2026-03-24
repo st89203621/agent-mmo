@@ -20,7 +20,19 @@ const ART_STYLES = [
   { key: '欧美奇幻油画风', label: '奇幻油画' },
   { key: '像素复古风', label: '像素复古' },
   { key: '暗黑哥特风', label: '暗黑哥特' },
+  { key: '唯美古风工笔画', label: '古风工笔' },
+  { key: '蒸汽朋克机械风', label: '蒸汽朋克' },
+  { key: '克苏鲁神话风', label: '克苏鲁' },
+  { key: '浮世绘和风', label: '浮世绘' },
+  { key: '北欧神话史诗风', label: '北欧史诗' },
+  { key: '敦煌壁画风', label: '敦煌壁画' },
+  { key: '梦幻童话风', label: '梦幻童话' },
+  { key: '末日废土风', label: '末日废土' },
+  { key: '新艺术运动风', label: '新艺术' },
+  { key: '波普艺术风', label: '波普艺术' },
 ];
+
+type PickerMode = 'portrait' | 'background' | null;
 
 interface HomeData {
   person: PersonData | null;
@@ -45,7 +57,7 @@ export default function HomePage() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingBg, setGeneratingBg] = useState(false);
-  const [showStylePicker, setShowStylePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
 
   useEffect(() => {
@@ -88,11 +100,10 @@ export default function HomePage() {
   const handleGenerate = useCallback(async (style: string) => {
     if (generating) return;
     setGenerating(true);
-    setShowStylePicker(false);
+    setPickerMode(null);
     try {
       const res = await generatePortrait({ style, force: !!portraitUrl });
       setPortraitUrl(res.portraitUrl);
-      if (res.bgUrl) setBgUrl(res.bgUrl);
       toast.success('立绘生成完成');
     } catch {
       toast.error('立绘生成失败');
@@ -100,18 +111,19 @@ export default function HomePage() {
     setGenerating(false);
   }, [generating, portraitUrl]);
 
-  const handleGenerateBg = useCallback(async () => {
+  const handleGenerateBg = useCallback(async (style: string) => {
     if (generatingBg) return;
     setGeneratingBg(true);
+    setPickerMode(null);
     try {
-      const res = await generateBackground({ style: selectedStyle });
+      const res = await generateBackground({ style });
       setBgUrl(res.bgUrl);
       toast.success('背景生成完成');
     } catch {
       toast.error('背景生成失败');
     }
     setGeneratingBg(false);
-  }, [generatingBg, selectedStyle]);
+  }, [generatingBg]);
 
   const transparentPortrait = useTransparentPortrait(portraitUrl);
 
@@ -178,19 +190,19 @@ export default function HomePage() {
 
           <div className={styles.portraitActions}>
             {generating ? (
-              <div className={styles.genStatus}>绘制中…</div>
+              <div className={styles.genStatus}>立绘生成中…</div>
             ) : (
               <button
                 className={styles.styleToggle}
-                onClick={() => portraitUrl ? setShowStylePicker(true) : handleGenerate(selectedStyle)}
+                onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
               >
-                {portraitUrl ? '切换风格' : '生成立绘'}
+                {portraitUrl ? '切换立绘' : '生成立绘'}
               </button>
             )}
             {generatingBg ? (
               <div className={styles.genStatus}>背景生成中…</div>
             ) : (
-              <button className={styles.styleToggle} onClick={handleGenerateBg}>
+              <button className={styles.styleToggle} onClick={() => setPickerMode('background')}>
                 切换背景
               </button>
             )}
@@ -247,11 +259,15 @@ export default function HomePage() {
       </div>
 
       {/* 风格选择面板 */}
-      {showStylePicker && (
-        <div className={styles.pickerOverlay} onClick={() => setShowStylePicker(false)}>
+      {pickerMode && (
+        <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.pickerTitle}>选择立绘风格</h3>
-            <p className={styles.pickerHint}>立绘与背景将同步生成</p>
+            <h3 className={styles.pickerTitle}>
+              {pickerMode === 'portrait' ? '选择立绘风格' : '选择背景风格'}
+            </h3>
+            <p className={styles.pickerHint}>
+              {pickerMode === 'portrait' ? '立绘与背景将同步生成' : '仅重新生成背景图'}
+            </p>
             <div className={styles.pickerGrid}>
               {ART_STYLES.map((s) => (
                 <button
@@ -263,8 +279,17 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-            <button className={styles.pickerConfirm} onClick={() => handleGenerate(selectedStyle)}>
-              生成「{ART_STYLES.find((s) => s.key === selectedStyle)?.label}」风格
+            <button
+              className={styles.pickerConfirm}
+              onClick={() => pickerMode === 'portrait'
+                ? handleGenerate(selectedStyle)
+                : handleGenerateBg(selectedStyle)
+              }
+            >
+              {pickerMode === 'portrait'
+                ? `生成「${ART_STYLES.find((s) => s.key === selectedStyle)?.label}」立绘`
+                : `生成「${ART_STYLES.find((s) => s.key === selectedStyle)?.label}」背景`
+              }
             </button>
           </div>
         </div>

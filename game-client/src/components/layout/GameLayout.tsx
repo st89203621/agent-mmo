@@ -48,7 +48,7 @@ export default function GameLayout({ children }: Props) {
   const subPage = SUB_PAGES[currentPage];
 
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} data-page={currentPage}>
       {/* 全局顶栏：子页面返回 + 货币 */}
       {subPage && (
         <div className={styles.topBar}>

@@ -10,6 +10,12 @@
   overflow: hidden;
 }
 
+/* 主页全屏背景：去掉宽度限制 */
+.layout[data-page="home"] {
+  max-width: none;
+  background: transparent;
+}
+
 /* 全局顶栏（子页面时显示） */
 .topBar {
   display: flex;
@@ -90,6 +96,11 @@
   background: var(--ink);
   border-top: 1px solid var(--gold-dim);
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  max-width: 430px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .navBtn {

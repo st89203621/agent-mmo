@@ -7,7 +7,10 @@
   position: relative;
   height: 100%;
   overflow: hidden;
-  background: var(--ink) center / cover no-repeat;
+  background-color: var(--ink);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* 暗角 + 底部渐变遮罩：保证上层文字可读 */
@@ -70,6 +73,9 @@
   flex-direction: column;
   padding: 12px 16px 8px;
   pointer-events: none;
+  max-width: 430px;
+  margin: 0 auto;
+  width: 100%;
 }
 .hud > * { pointer-events: auto; }
 
@@ -402,9 +408,11 @@
 
 .pickerGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
   margin-bottom: 18px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .pickerItem {
