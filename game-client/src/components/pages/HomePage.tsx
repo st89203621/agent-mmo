@@ -130,16 +130,12 @@ export default function HomePage() {
   }
 
   return (
-    <div className={styles.page}>
-      {/* 层级: AI背景 → Phaser粒子 → HUD */}
-
-      {/* AI 生成的背景图 */}
-      {hasBg && (
-        <div className={styles.bgLayer}>
-          <img src={bgUrl} alt="" className={styles.bgImg} />
-          <div className={styles.bgVignette} />
-        </div>
-      )}
+    <div
+      className={styles.page}
+      style={hasBg ? { backgroundImage: `url(${bgUrl})` } : undefined}
+    >
+      {/* 背景暗角遮罩 */}
+      {hasBg && <div className={styles.bgVignette} />}
 
       {/* Phaser 粒子（有背景时降低存在感） */}
       <div ref={phaserRef} className={`${styles.phaserLayer} ${hasBg ? styles.phaserDim : ''}`} />
