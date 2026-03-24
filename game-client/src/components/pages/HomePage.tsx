@@ -174,23 +174,91 @@ export default function HomePage() {
 
       {/* HUD */}
       <div className={styles.hud}>
-        {/* 顶栏（绝对定位叠加） */}
-        <header className={styles.topBar}>
-          <div className={styles.currencyGroup}>
+        {/* 第一行：世界定位 + 资源 */}
+        <div className={styles.row1}>
+          <span className={styles.worldTag}>
+            {worldLabel}{worldLabel && bookLabel ? ' · ' : ''}{bookLabel}
+          </span>
+          <div className={styles.row1Right}>
             <span className={styles.coinBadge}><i className={styles.coinDot} />{gold}</span>
             <span className={styles.diamondBadge}><i className={styles.diamondDot} />{diamond}</span>
+            {data.checkin && !data.checkin.todayChecked && (
+              <button className={styles.checkinBtn} onClick={handleCheckin}>
+                签到·{data.checkin.consecutiveDays + 1}天
+              </button>
+            )}
+            {data.checkin?.todayChecked && (
+              <span className={styles.checkinDone}>已签·{data.checkin.consecutiveDays}天</span>
+            )}
           </div>
-          {data.checkin && !data.checkin.todayChecked && (
-            <button className={styles.checkinBtn} onClick={handleCheckin}>
-              签到 · 第{data.checkin.consecutiveDays + 1}天
-            </button>
-          )}
-          {data.checkin?.todayChecked && (
-            <span className={styles.checkinDone}>已签到 · {data.checkin.consecutiveDays}天</span>
-          )}
-        </header>
+        </div>
 
-        {/* 立绘（占满全屏） */}
+        {/* 第二行：角色名 + 伙伴 + 操作按钮 */}
+        <div className={styles.row2}>
+          <h1 className={styles.charName} onClick={() => navigateTo('character')}>
+            {person?.name || playerName || '无名侠客'}
+          </h1>
+          <div className={styles.companionGroup}>
+            {data.pet && (
+              <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
+                {data.pet.aiImageUrl
+                  ? <img src={data.pet.aiImageUrl} alt={data.pet.nickname} className={styles.companionImg} />
+                  : <span className={styles.companionIcon}>🐾</span>}
+                <span className={styles.companionLabel}>{data.pet.nickname || '宠物'}</span>
+              </button>
+            )}
+            {data.companion && (
+              <button className={styles.companionChip} onClick={() => navigateTo('companion')}>
+                <span className={styles.companionIcon}>💫</span>
+                <span className={styles.companionLabel}>{data.companion.name}</span>
+                <span className={styles.companionLevel}>Lv.{data.companion.level}</span>
+              </button>
+            )}
+          </div>
+          <div className={styles.row2Spacer} />
+          <div className={styles.actionGroup}>
+            {generating ? (
+              <span className={styles.genStatus}>生成中…</span>
+            ) : (
+              <button
+                className={styles.styleToggle}
+                onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
+              >
+                {portraitUrl ? '换立绘' : '生成立绘'}
+              </button>
+            )}
+            {generatingBg ? (
+              <span className={styles.genStatus}>生成中…</span>
+            ) : (
+              <button className={styles.styleToggle} onClick={() => setPickerMode('background')}>
+                换背景
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 第三行：属性 + 行动力 */}
+        <div className={styles.row3}>
+          {person?.basicProperty ? (
+            <div className={styles.statStrip}>
+              <StatMini label="攻" value={person.basicProperty.physicsAttack + person.basicProperty.magicAttack} />
+              <StatMini label="防" value={person.basicProperty.physicsDefense + person.basicProperty.magicDefense} />
+              <StatMini label="速" value={person.basicProperty.speed} />
+              <StatMini label="HP" value={person.basicProperty.hp} />
+            </div>
+          ) : <div />}
+          {data.explore && (
+            <div className={styles.apGroup}>
+              <span className={styles.apLabel}>行动力</span>
+              <div className={styles.apTrack}>
+                <div className={styles.apFill} style={{ width: `${(data.explore.actionPoints / data.explore.maxPoints) * 100}%` }} />
+              </div>
+              <span className={styles.apText}>{data.explore.actionPoints}/{data.explore.maxPoints}</span>
+            </div>
+          )}
+        </div>
+
+        {/* 立绘：占满全部剩余空间 */}
         <section className={styles.portraitZone}>
           <div
             className={`${styles.portraitFrame} ${portraitUrl ? styles.alive : ''}`}
@@ -207,75 +275,7 @@ export default function HomePage() {
             )}
             {portraitUrl && <div className={styles.shineOverlay} />}
           </div>
-
-          <div className={styles.portraitActions}>
-            {generating ? (
-              <div className={styles.genStatus}>立绘生成中…</div>
-            ) : (
-              <button
-                className={styles.styleToggle}
-                onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
-              >
-                {portraitUrl ? '切换立绘' : '生成立绘'}
-              </button>
-            )}
-            {generatingBg ? (
-              <div className={styles.genStatus}>背景生成中…</div>
-            ) : (
-              <button className={styles.styleToggle} onClick={() => setPickerMode('background')}>
-                切换背景
-              </button>
-            )}
-          </div>
         </section>
-
-        {/* 角色信息（底部叠加） */}
-        <section className={styles.infoZone} onClick={() => navigateTo('character')}>
-          <h1 className={styles.charName}>{person?.name || playerName || '无名侠客'}</h1>
-          {(worldLabel || bookLabel) && (
-            <p className={styles.charTitle}>
-              {worldLabel}{worldLabel && bookLabel ? ' · ' : ''}{bookLabel}
-            </p>
-          )}
-          {person?.basicProperty && (
-            <div className={styles.statStrip}>
-              <StatMini label="攻" value={person.basicProperty.physicsAttack + person.basicProperty.magicAttack} />
-              <StatMini label="防" value={person.basicProperty.physicsDefense + person.basicProperty.magicDefense} />
-              <StatMini label="速" value={person.basicProperty.speed} />
-              <StatMini label="HP" value={person.basicProperty.hp} />
-            </div>
-          )}
-        </section>
-
-        {/* 伴侣（左下角） */}
-        <div className={styles.companionRow}>
-          {data.pet && (
-            <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
-              {data.pet.aiImageUrl
-                ? <img src={data.pet.aiImageUrl} alt={data.pet.nickname} className={styles.companionImg} />
-                : <span className={styles.companionIcon}>🐾</span>}
-              <span className={styles.companionLabel}>{data.pet.nickname || '宠物'}</span>
-            </button>
-          )}
-          {data.companion && (
-            <button className={styles.companionChip} onClick={() => navigateTo('companion')}>
-              <span className={styles.companionIcon}>💫</span>
-              <span className={styles.companionLabel}>{data.companion.name}</span>
-              <span className={styles.companionLevel}>Lv.{data.companion.level}</span>
-            </button>
-          )}
-        </div>
-
-        {/* 行动力（右下角） */}
-        {data.explore && (
-          <div className={styles.apBar}>
-            <span className={styles.apLabel}>行动力</span>
-            <div className={styles.apTrack}>
-              <div className={styles.apFill} style={{ width: `${(data.explore.actionPoints / data.explore.maxPoints) * 100}%` }} />
-            </div>
-            <span className={styles.apText}>{data.explore.actionPoints}/{data.explore.maxPoints}</span>
-          </div>
-        )}
       </div>
 
       {/* 风格选择面板 */}
