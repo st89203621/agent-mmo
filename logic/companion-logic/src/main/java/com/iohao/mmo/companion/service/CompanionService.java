@@ -242,6 +242,69 @@ public class CompanionService {
         return null;
     }
 
+    /** 培养灵侣（提升属性和羁绊） */
+    public SpiritCompanion feed(long userId, String companionId) {
+        CompanionBag bag = ofCompanionBag(userId);
+        SpiritCompanion companion = bag.getCompanions().stream()
+                .filter(c -> c.getId().equals(companionId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("灵侣不存在"));
+
+        // 提升属性
+        companion.setAtk(companion.getAtk() + 2);
+        companion.setDef(companion.getDef() + 1);
+        companion.setSpd(companion.getSpd() + 1);
+        companion.setMaxHp(companion.getMaxHp() + 10);
+        companion.setCurrentHp(companion.getMaxHp());
+        companion.setBondExp(companion.getBondExp() + 20);
+        // 羁绊升级
+        if (companion.getBondExp() >= (companion.getBondLevel() + 1) * 50) {
+            companion.setBondLevel(companion.getBondLevel() + 1);
+            companion.setBondExp(0);
+        }
+        companion.setExp(companion.getExp() + 10);
+        // 等级提升
+        if (companion.getExp() >= companion.getLevel() * 20) {
+            companion.setLevel(companion.getLevel() + 1);
+            companion.setExp(0);
+        }
+
+        mongoTemplate.save(bag);
+        return companion;
+    }
+
+    /** 设为出战灵侣 */
+    public void setActive(long userId, String companionId) {
+        CompanionBag bag = ofCompanionBag(userId);
+        boolean exists = bag.getCompanions().stream().anyMatch(c -> c.getId().equals(companionId));
+        if (!exists) throw new RuntimeException("灵侣不存在");
+        List<String> team = new ArrayList<>();
+        team.add(companionId);
+        bag.setTeam(team);
+        mongoTemplate.save(bag);
+    }
+
+    /** 获取灵侣技能列表 */
+    public List<java.util.Map<String, Object>> getSkills(String companionId) {
+        List<java.util.Map<String, Object>> skills = new ArrayList<>();
+        // 根据灵侣等级解锁技能
+        java.util.Map<String, Object> skill1 = new java.util.LinkedHashMap<>();
+        skill1.put("name", "守护之心");
+        skill1.put("description", "为主人提供额外防御加成");
+        skill1.put("level", 1);
+        skill1.put("icon", "🛡️");
+        skills.add(skill1);
+
+        java.util.Map<String, Object> skill2 = new java.util.LinkedHashMap<>();
+        skill2.put("name", "灵息共鸣");
+        skill2.put("description", "战斗中恢复少量生命值");
+        skill2.put("level", 1);
+        skill2.put("icon", "💚");
+        skills.add(skill2);
+
+        return skills;
+    }
+
     /**
      * 获取当前服务器URL - 动态检测IP
      */

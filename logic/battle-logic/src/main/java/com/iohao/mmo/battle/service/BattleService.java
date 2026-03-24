@@ -309,4 +309,12 @@ public class BattleService {
         enemy.setSpeed(player.getSpeed() * rng.nextInt(80, 120) / 100);
         return enemy;
     }
+
+    /** 获取玩家的胜利场次 */
+    public int getVictoryCount(long userId) {
+        long count = mongoTemplate.count(
+                Query.query(Criteria.where("userId").is(userId).and("status").is("VICTORY")),
+                BattleState.class);
+        return (int) count;
+    }
 }

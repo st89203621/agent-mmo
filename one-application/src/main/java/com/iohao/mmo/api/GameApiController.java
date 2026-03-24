@@ -65,6 +65,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -1869,6 +1870,256 @@ public class GameApiController {
         if (lower.contains("蛋") || lower.contains("egg") || lower.contains("宠物")) return "special_001";
         // 默认掉落生命药水
         return "consumable_001";
+    }
+
+    // ── 签到系统 ──────────────────────────────────────
+
+    @GetMapping("/checkin/status")
+    public ResponseEntity<Map<String, Object>> checkinStatus(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            // 使用 shopService 来管理签到数据（复用 PlayerCurrency 中的字段或 session）
+            @SuppressWarnings("unchecked")
+            Map<String, Object> checkinData = (Map<String, Object>) session.getAttribute("checkin");
+            if (checkinData == null) {
+                checkinData = new LinkedHashMap<>();
+                checkinData.put("todayChecked", false);
+                checkinData.put("consecutiveDays", 0);
+                checkinData.put("totalDays", 0);
+                checkinData.put("lastCheckinDate", "");
+            }
+            // 检查是否跨天重置
+            String today = java.time.LocalDate.now().toString();
+            String lastDate = (String) checkinData.getOrDefault("lastCheckinDate", "");
+            if (!today.equals(lastDate)) {
+                checkinData.put("todayChecked", false);
+                // 如果不是连续签到（昨天），重置连续天数
+                String yesterday = java.time.LocalDate.now().minusDays(1).toString();
+                if (!yesterday.equals(lastDate) && !lastDate.isEmpty()) {
+                    checkinData.put("consecutiveDays", 0);
+                }
+            }
+            session.setAttribute("checkin", checkinData);
+            return ok(Map.of(
+                    "todayChecked", checkinData.get("todayChecked"),
+                    "consecutiveDays", checkinData.get("consecutiveDays"),
+                    "totalDays", checkinData.get("totalDays")
+            ));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/checkin/do")
+    public ResponseEntity<Map<String, Object>> doCheckin(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> checkinData = (Map<String, Object>) session.getAttribute("checkin");
+            if (checkinData == null) {
+                checkinData = new LinkedHashMap<>();
+                checkinData.put("todayChecked", false);
+                checkinData.put("consecutiveDays", 0);
+                checkinData.put("totalDays", 0);
+                checkinData.put("lastCheckinDate", "");
+            }
+            boolean todayChecked = (boolean) checkinData.getOrDefault("todayChecked", false);
+            if (todayChecked) return err("今日已签到");
+
+            String today = java.time.LocalDate.now().toString();
+            String lastDate = (String) checkinData.getOrDefault("lastCheckinDate", "");
+            String yesterday = java.time.LocalDate.now().minusDays(1).toString();
+
+            int consecutive = (int) checkinData.getOrDefault("consecutiveDays", 0);
+            int total = (int) checkinData.getOrDefault("totalDays", 0);
+
+            // 连续判定
+            if (yesterday.equals(lastDate) || lastDate.isEmpty()) {
+                consecutive++;
+            } else {
+                consecutive = 1;
+            }
+            total++;
+
+            checkinData.put("todayChecked", true);
+            checkinData.put("consecutiveDays", consecutive);
+            checkinData.put("totalDays", total);
+            checkinData.put("lastCheckinDate", today);
+            session.setAttribute("checkin", checkinData);
+
+            // 签到奖励：每天100金币基础 + 连续奖励
+            int goldReward = 100 + (consecutive - 1) * 50;
+            try {
+                shopService.addCurrency(userId, goldReward, 0);
+            } catch (Exception ignored) {}
+
+            String[] rewardNames = {"金币×100", "附魔符×1", "金币×200", "宠物蛋×1", "金币×300", "钻石×10", "传说宝箱"};
+            String reward = rewardNames[(consecutive - 1) % 7];
+
+            return ok(Map.of(
+                    "todayChecked", true,
+                    "consecutiveDays", consecutive,
+                    "totalDays", total,
+                    "reward", reward
+            ));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 成就系统 ──────────────────────────────────────
+
+    @GetMapping("/achievement/list")
+    public ResponseEntity<Map<String, Object>> achievementList(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            // 动态计算成就进度
+            List<Map<String, Object>> achievements = new ArrayList<>();
+            int totalUnlocked = 0;
+
+            // 社交类成就
+            List<Relation> relations = fateService.getRelations(userId);
+            achievements.add(makeAchievement("ach_social_1", "初次邂逅", "与1位NPC建立缘分", "social", "💬",
+                    relations.size(), 1, "金币×200"));
+            achievements.add(makeAchievement("ach_social_2", "广结善缘", "与5位NPC建立缘分", "social", "🤝",
+                    relations.size(), 5, "钻石×5"));
+            achievements.add(makeAchievement("ach_social_3", "知己难求", "与任意NPC缘分达到80", "social", "💞",
+                    relations.stream().mapToInt(r -> r.getFateScore()).max().orElse(0), 80, "传说宝箱×1"));
+
+            // 探索类成就
+            int exploreCount = exploreService.getTodayCount(userId);
+            achievements.add(makeAchievement("ach_explore_1", "初涉江湖", "完成1次探索", "explore", "🗺️",
+                    Math.max(exploreCount, relations.isEmpty() ? 0 : 1), 1, "金币×100"));
+            achievements.add(makeAchievement("ach_explore_2", "踏遍山河", "完成20次探索", "explore", "🏔️",
+                    exploreCount, 20, "钻石×10"));
+
+            // 收集类成就
+            Collection<Pet> pets = petService.listPet(userId);
+            achievements.add(makeAchievement("ach_collect_1", "初为驯兽师", "拥有1只宠物", "collect", "🐾",
+                    pets.size(), 1, "金币×200"));
+            achievements.add(makeAchievement("ach_collect_2", "百兽之王", "拥有5只宠物", "collect", "👑",
+                    pets.size(), 5, "传说宝箱×1"));
+
+            List<Equip> equips = equipService.listByUser(userId);
+            achievements.add(makeAchievement("ach_collect_3", "初窥门径", "获得1件装备", "collect", "⚔️",
+                    equips.size(), 1, "金币×100"));
+
+            // 成长类成就
+            List<MemoryFragment> memories = memoryService.listMemories(userId);
+            achievements.add(makeAchievement("ach_growth_1", "记忆拾荒者", "收集3个记忆碎片", "growth", "🌙",
+                    (int) memories.stream().filter(m -> !m.isLocked()).count(), 3, "金币×300"));
+            achievements.add(makeAchievement("ach_growth_2", "七世之约", "完成1次轮回", "growth", "♻️",
+                    rebirthService.getRebirthCount(userId), 1, "钻石×20"));
+
+            // 战斗类成就
+            achievements.add(makeAchievement("ach_battle_1", "初战告捷", "赢得1场战斗", "battle", "⚔️",
+                    battleService.getVictoryCount(userId), 1, "金币×200"));
+            achievements.add(makeAchievement("ach_battle_2", "百战百胜", "赢得10场战斗", "battle", "🏆",
+                    battleService.getVictoryCount(userId), 10, "传说宝箱×1"));
+
+            for (Map<String, Object> a : achievements) {
+                if ((boolean) a.get("unlocked")) totalUnlocked++;
+            }
+
+            return ok(Map.of(
+                    "achievements", achievements,
+                    "totalUnlocked", totalUnlocked,
+                    "totalCount", achievements.size()
+            ));
+        } catch (Exception e) {
+            log.error("获取成就列表失败", e);
+            return ok(Map.of("achievements", List.of(), "totalUnlocked", 0, "totalCount", 0));
+        }
+    }
+
+    @PostMapping("/achievement/claim")
+    public ResponseEntity<Map<String, Object>> claimAchievement(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String achievementId = body.get("achievementId");
+            // 简单奖励发放：给金币
+            shopService.addCurrency(userId, 200, 0);
+            return ok(Map.of("reward", "金币×200"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    private Map<String, Object> makeAchievement(String id, String name, String desc, String category,
+                                                  String icon, int progress, int target, String reward) {
+        Map<String, Object> a = new LinkedHashMap<>();
+        a.put("id", id);
+        a.put("name", name);
+        a.put("description", desc);
+        a.put("category", category);
+        a.put("icon", icon);
+        a.put("progress", Math.min(progress, target));
+        a.put("target", target);
+        a.put("unlocked", progress >= target);
+        a.put("reward", reward);
+        a.put("unlockedAt", progress >= target ? java.time.LocalDate.now().toString() : null);
+        return a;
+    }
+
+    // ── 灵侣增强 ──────────────────────────────────────
+
+    @PostMapping("/companion/feed")
+    public ResponseEntity<Map<String, Object>> feedCompanion(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String companionId = body.get("companionId");
+            SpiritCompanion companion = companionService.feed(userId, companionId);
+            return ok(companionToMap(companion));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/companion/set-active")
+    public ResponseEntity<Map<String, Object>> setCompanionActive(@RequestBody Map<String, String> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            String companionId = body.get("companionId");
+            companionService.setActive(userId, companionId);
+            return ok(Map.of("success", true));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @GetMapping("/companion/{companionId}/skills")
+    public ResponseEntity<Map<String, Object>> companionSkills(@PathVariable String companionId, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        try {
+            List<Map<String, Object>> skills = companionService.getSkills(companionId);
+            return ok(Map.of("skills", skills != null ? skills : List.of()));
+        } catch (Exception e) {
+            return ok(Map.of("skills", List.of()));
+        }
+    }
+
+    private Map<String, Object> companionToMap(SpiritCompanion c) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", c.getId());
+        m.put("name", c.getName());
+        m.put("realm", c.getRealm());
+        m.put("type", c.getType());
+        m.put("quality", c.getQuality());
+        m.put("level", c.getLevel());
+        m.put("bondLevel", c.getBondLevel());
+        m.put("atk", c.getAtk());
+        m.put("def", c.getDef());
+        m.put("spd", c.getSpd());
+        m.put("currentHp", c.getCurrentHp());
+        m.put("maxHp", c.getMaxHp());
+        return m;
     }
 
     // ── 工具方法 ──────────────────────────────────────

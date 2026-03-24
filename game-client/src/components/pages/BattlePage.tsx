@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
+import { toast } from '../../store/toastStore';
 import {
   startBattle, getBattleState, battleAction, fetchPersonInfo, fetchPlayerCurrency,
   type BattleData, type BattleUnitData, type BattleActionData, type BattleSkillData,
@@ -9,18 +10,37 @@ import styles from './BattlePage.module.css';
 
 const ENEMY_AVATARS: Record<string, string> = {
   妖狐: '🦊', 石魔: '🗿', 幽灵: '👻', 蛮兽: '🐗', 暗影刺客: '🥷',
-  血蝠: '🦇', 冰魄: '❄️', 火灵: '🔥',
+  血蝠: '🦇', 冰魄: '❄️', 火灵: '🔥', 毒蛛: '🕷️', 魔龙: '🐉',
 };
 
-function UnitCard({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boolean }) {
+interface FloatingDamage {
+  id: number;
+  unitId: string;
+  value: number;
+  isHeal: boolean;
+}
+
+let dmgSeq = 0;
+
+function UnitCard({ unit, isPlayer, floats }: { unit: BattleUnitData; isPlayer: boolean; floats: FloatingDamage[] }) {
   const hpPct = unit.maxHp > 0 ? Math.round((unit.hp / unit.maxHp) * 100) : 0;
   const mpPct = unit.maxMp > 0 ? Math.round((unit.mp / unit.maxMp) * 100) : 0;
   const hpColor = hpPct > 50 ? '#4caf50' : hpPct > 20 ? '#d4a84c' : '#c44e52';
   const avatar = isPlayer ? '🧙' : (ENEMY_AVATARS[unit.name] || '👹');
+  const myFloats = floats.filter((f) => f.unitId === unit.unitId);
+  const isHit = myFloats.some((f) => !f.isHeal);
 
   return (
-    <div className={`${styles.unitCard} ${unit.hp <= 0 ? styles.dead : ''} ${unit.defending ? styles.defending : ''}`}>
-      <div className={styles.unitAvatar}>{avatar}</div>
+    <div className={`${styles.unitCard} ${unit.hp <= 0 ? styles.dead : ''} ${unit.defending ? styles.defending : ''} ${isHit ? styles.shake : ''}`}>
+      <div className={styles.unitAvatar}>
+        {avatar}
+        {/* 浮动伤害数字 */}
+        {myFloats.map((f) => (
+          <span key={f.id} className={f.isHeal ? styles.floatHeal : styles.floatDamage}>
+            {f.isHeal ? '+' : '-'}{f.value}
+          </span>
+        ))}
+      </div>
       <div className={styles.unitInfo}>
         <div className={styles.unitName}>
           {unit.name}
@@ -47,12 +67,38 @@ function UnitCard({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boolean 
   );
 }
 
+function SkillTooltip({ skill }: { skill: BattleSkillData }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className={styles.tooltipWrap}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
+      onTouchStart={() => setShow(true)} onTouchEnd={() => setShow(false)}
+    >
+      {show && (
+        <div className={styles.tooltip}>
+          <strong>{skill.name}</strong>
+          {skill.mpCost > 0 && <span> (消耗 {skill.mpCost} MP)</span>}
+          {skill.damageMultiplier > 0 && <div>伤害倍率: {skill.damageMultiplier}x</div>}
+          {skill.effectType && <div>效果: {
+            skill.effectType === 'physical_damage' ? '物理伤害' :
+            skill.effectType === 'magic_damage' ? '魔法伤害' :
+            skill.effectType === 'buff_defense' ? '提升防御' :
+            skill.effectType === 'heal' ? '恢复生命' :
+            skill.effectType
+          }</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BattlePage() {
   const { navigateTo } = useGameStore();
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [logs, setLogs] = useState<BattleActionData[]>([]);
+  const [floats, setFloats] = useState<FloatingDamage[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -69,10 +115,27 @@ export default function BattlePage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // 日志自动滚到底部
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
+
+  const addFloats = useCallback((actions: BattleActionData[], allUnits: BattleUnitData[]) => {
+    const newFloats: FloatingDamage[] = [];
+    for (const a of actions) {
+      const targetUnit = allUnits.find((u) => u.name === a.targetName);
+      if (!targetUnit) continue;
+      if (a.damage > 0) {
+        newFloats.push({ id: ++dmgSeq, unitId: targetUnit.unitId, value: a.damage, isHeal: false });
+      }
+      if (a.heal > 0) {
+        newFloats.push({ id: ++dmgSeq, unitId: targetUnit.unitId, value: a.heal, isHeal: true });
+      }
+    }
+    if (newFloats.length > 0) {
+      setFloats(newFloats);
+      setTimeout(() => setFloats([]), 1200);
+    }
+  }, []);
 
   const handleStart = useCallback(async () => {
     setLoading(true);
@@ -85,6 +148,8 @@ export default function BattlePage() {
       const res = await startBattle(bp);
       setBattle(res.battle);
       setLogs([]);
+      setFloats([]);
+      toast.info('战斗开始！');
     } catch { /* noop */ }
     setLoading(false);
   }, []);
@@ -93,36 +158,41 @@ export default function BattlePage() {
     if (!battle || battle.status !== 'ONGOING') return;
     setActing(true);
     try {
-      const target = battle.enemyUnits.find(u => u.hp > 0);
+      const target = battle.enemyUnits.find((u) => u.hp > 0);
       let actionType = 'ATTACK';
       if (skill.effectType === 'buff_defense') actionType = 'DEFEND';
       else if (skill.skillId !== 'attack') actionType = 'SKILL';
 
       const res = await battleAction(actionType, target?.unitId, skill.skillId);
       setBattle(res.battle);
-      setLogs(prev => [...prev, ...(res.battle.actionLog || [])]);
 
-      // 胜利后刷新货币
+      const newActions = res.battle.actionLog || [];
+      setLogs((prev) => [...prev, ...newActions]);
+
+      // 飘字
+      const allUnits = [...(res.battle.playerUnits || []), ...(res.battle.enemyUnits || [])];
+      addFloats(newActions, allUnits);
+
       if (res.battle.status === 'VICTORY') {
-        fetchPlayerCurrency().then(c => {
+        toast.reward('战斗胜利！');
+        fetchPlayerCurrency().then((c) => {
           usePlayerStore.getState().setCurrency(c.gold, c.diamond);
         }).catch(() => {});
+      } else if (res.battle.status === 'DEFEAT') {
+        toast.error('战斗失败...');
       }
     } catch { /* noop */ }
     setActing(false);
-  }, [battle]);
+  }, [battle, addFloats]);
 
   const finished = battle?.status === 'VICTORY' || battle?.status === 'DEFEAT';
   const player = battle?.playerUnits[0];
 
   return (
     <div className={styles.page}>
-      {/* 战斗主区域 */}
       <div className={styles.battleArea}>
         {loading ? (
-          <div className={styles.emptyState}>
-            <p>加载中...</p>
-          </div>
+          <div className={styles.emptyState}><p>加载中...</p></div>
         ) : !battle?.id ? (
           <div className={styles.emptyState}>
             <span className={styles.emptyIcon}>⚔️</span>
@@ -135,17 +205,17 @@ export default function BattlePage() {
         ) : (
           <>
             {/* 回合信息 */}
-            <div style={{
-              textAlign: 'center', fontSize: 12, color: 'var(--ink)', opacity: 0.5,
-              marginBottom: 8,
-            }}>
-              回合 {battle.round} · {battle.status === 'ONGOING' ? '进行中' : battle.status === 'VICTORY' ? '胜利' : '战败'}
+            <div className={styles.roundInfo}>
+              <span className={styles.roundBadge}>回合 {battle.round}</span>
+              <span className={`${styles.statusBadge} ${battle.status === 'VICTORY' ? styles.statusWin : battle.status === 'DEFEAT' ? styles.statusLose : ''}`}>
+                {battle.status === 'ONGOING' ? '战斗中' : battle.status === 'VICTORY' ? '胜利' : '战败'}
+              </span>
             </div>
 
             {/* 敌方 */}
             <div className={styles.sectionLabel}>敌方</div>
-            {battle.enemyUnits.map(u => (
-              <UnitCard key={u.unitId} unit={u} isPlayer={false} />
+            {battle.enemyUnits.map((u) => (
+              <UnitCard key={u.unitId} unit={u} isPlayer={false} floats={floats} />
             ))}
 
             {/* 战斗日志 */}
@@ -153,9 +223,13 @@ export default function BattlePage() {
               <div className={styles.logArea} ref={logRef}>
                 {logs.map((a, i) => (
                   <div key={i} className={styles.logEntry}>
-                    {a.damage > 0 && <span style={{ color: '#c44e52', fontWeight: 600 }}>-{a.damage} </span>}
-                    {a.heal > 0 && <span style={{ color: '#4caf50', fontWeight: 600 }}>+{a.heal} </span>}
-                    {a.description}
+                    <span className={styles.logActor}>{a.actorName}</span>
+                    {a.skillName && a.skillName !== 'attack' && (
+                      <span className={styles.logSkill}> [{a.skillName}]</span>
+                    )}
+                    {a.damage > 0 && <span className={styles.logDmg}> -{a.damage}</span>}
+                    {a.heal > 0 && <span className={styles.logHeal}> +{a.heal}</span>}
+                    <span className={styles.logDesc}> {a.description}</span>
                   </div>
                 ))}
               </div>
@@ -163,19 +237,17 @@ export default function BattlePage() {
 
             {/* 我方 */}
             <div className={styles.sectionLabel}>我方</div>
-            {battle.playerUnits.map(u => (
-              <UnitCard key={u.unitId} unit={u} isPlayer={true} />
+            {battle.playerUnits.map((u) => (
+              <UnitCard key={u.unitId} unit={u} isPlayer={true} floats={floats} />
             ))}
 
             {/* 战斗结果 */}
             {finished && (
-              <div className={styles.resultCard}
-                style={{ border: `1px solid ${battle.status === 'VICTORY' ? '#4caf50' : '#c44e52'}` }}>
+              <div className={`${styles.resultCard} ${battle.status === 'VICTORY' ? styles.resultWin : styles.resultLose}`}>
                 <div className={styles.resultEmoji}>
                   {battle.status === 'VICTORY' ? '🏆' : '💀'}
                 </div>
-                <div className={styles.resultTitle}
-                  style={{ color: battle.status === 'VICTORY' ? '#4caf50' : '#c44e52' }}>
+                <div className={styles.resultTitle}>
                   {battle.status === 'VICTORY' ? '胜利！' : '战败...'}
                 </div>
                 {battle.rewardDetail && (
@@ -199,7 +271,7 @@ export default function BattlePage() {
                 )}
                 <div className={styles.resultActions}>
                   <button className={styles.btnPrimary} onClick={handleStart}>再战一场</button>
-                  <button className={styles.btnSecondary} onClick={() => navigateTo('character')}>返回</button>
+                  <button className={styles.btnSecondary} onClick={() => navigateTo('home')}>返回</button>
                 </div>
               </div>
             )}
@@ -211,7 +283,7 @@ export default function BattlePage() {
       {battle?.id && !finished && (
         <div className={styles.skillPanel}>
           <div className={styles.skillGrid}>
-            {(battle.availableSkills || []).map(skill => {
+            {(battle.availableSkills || []).map((skill) => {
               const mpOk = !skill.mpCost || (player && player.mp >= skill.mpCost);
               return (
                 <button
@@ -220,10 +292,14 @@ export default function BattlePage() {
                   disabled={acting || !mpOk}
                   onClick={() => handleSkillAction(skill)}
                 >
+                  <SkillTooltip skill={skill} />
                   <span className={styles.skillIcon}>{skill.icon}</span>
                   <span className={styles.skillName}>{skill.name}</span>
                   {skill.mpCost > 0 && (
                     <span className={styles.skillCost}>{skill.mpCost} MP</span>
+                  )}
+                  {skill.damageMultiplier > 1 && (
+                    <span className={styles.skillMult}>{skill.damageMultiplier}x</span>
                   )}
                 </button>
               );

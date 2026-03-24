@@ -1,0 +1,323 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.header {
+  padding: 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--paper-darker);
+  flex-shrink: 0;
+}
+
+.title {
+  font-family: var(--font-main);
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+/* ── 灵侣列表 ── */
+.companionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.companionCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.companionCard:active { transform: scale(0.98); }
+
+.cardSelected {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, var(--paper-dark), rgba(201, 168, 76, 0.06));
+}
+
+.companionAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--paper-darker);
+  background: linear-gradient(135deg, var(--paper), var(--paper-dark));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarText {
+  font-family: var(--font-main);
+  font-size: 18px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.levelBadge {
+  position: absolute;
+  bottom: -4px;
+  font-size: 9px;
+  padding: 0 5px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.companionBrief {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.companionName {
+  font-family: var(--font-main);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.companionMeta {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.bondBadge {
+  display: inline-block;
+  width: fit-content;
+  font-size: 10px;
+  padding: 1px 8px;
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold-dim);
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+/* ── 详情面板 ── */
+.detailPanel {
+  padding: 16px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-lg);
+}
+
+.detailHeader {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.detailName {
+  font-family: var(--font-main);
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+
+.detailType {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+/* HP */
+.hpSection { margin-bottom: 14px; }
+
+.hpLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.hpTrack {
+  height: 6px;
+  background: var(--paper-darker);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hpFill {
+  height: 100%;
+  background: linear-gradient(90deg, #c04040, #4caf50);
+  border-radius: 3px;
+  transition: width var(--transition-normal);
+}
+
+/* 属性 */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statCell {
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+}
+
+.statLabel {
+  display: block;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  margin-bottom: 2px;
+}
+
+.statValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* 技能 */
+.skillSection { margin-bottom: 16px; }
+
+.skillTitle {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--ink);
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.skillList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skillItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+}
+
+.skillIcon {
+  font-size: 16px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  color: var(--gold);
+}
+
+.skillInfo { flex: 1; min-width: 0; }
+
+.skillName {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 600;
+  display: block;
+}
+
+.skillDesc {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  line-height: 1.4;
+}
+
+.skillLoading, .skillEmpty {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.4;
+  text-align: center;
+  padding: 12px;
+}
+
+/* 操作按钮 */
+.actionRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.feedBtn, .activeBtn {
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all var(--transition-fast);
+}
+
+.feedBtn {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.feedBtn:active { background: var(--gold-dim); }
+.feedBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.activeBtn {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper-darker);
+}
+
+.activeBtn:active { background: var(--paper-darker); }
+.activeBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 空态 ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 60px 0;
+  color: var(--ink);
+  opacity: 0.5;
+  text-align: center;
+}
+
+.placeholderIcon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-size: 12px;
+  opacity: 0.6;
+}

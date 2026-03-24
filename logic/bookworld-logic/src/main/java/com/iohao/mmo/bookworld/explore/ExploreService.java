@@ -81,6 +81,12 @@ public class ExploreService {
         return result;
     }
 
+    /** 获取今日探索次数 */
+    public int getTodayCount(long userId) {
+        ExploreState state = getOrCreateState(userId);
+        return state.getTodayExploreCount();
+    }
+
     /**
      * 执行一次探索：消耗行动力 → AI生成事件 → 返回事件数据
      */

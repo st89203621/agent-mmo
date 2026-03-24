@@ -144,6 +144,14 @@ public class ShopService {
         mongoTemplate.save(currency);
     }
 
+    /** 增加货币（签到、成就等奖励） */
+    public void addCurrency(long userId, int gold, int diamond) {
+        PlayerCurrency currency = getPlayerCurrency(userId);
+        if (gold > 0) currency.setGold(currency.getGold() + gold);
+        if (diamond > 0) currency.setDiamond(currency.getDiamond() + diamond);
+        mongoTemplate.save(currency);
+    }
+
     public Map<String, Object> purchaseItem(long userId, String itemId, int quantity) {
         Map<String, Object> result = new HashMap<>();
         

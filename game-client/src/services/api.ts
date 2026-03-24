@@ -805,3 +805,74 @@ export function resolveExploreCombat(eventId: string): Promise<ExploreReward> {
     body: JSON.stringify({ eventId }),
   });
 }
+
+// ── 签到 ──────────────────────────────────────
+
+export function fetchCheckinStatus(): Promise<{
+  todayChecked: boolean;
+  consecutiveDays: number;
+  totalDays: number;
+}> {
+  return request('/checkin/status');
+}
+
+export function doCheckin(): Promise<{
+  todayChecked: boolean;
+  consecutiveDays: number;
+  totalDays: number;
+  reward: string;
+}> {
+  return request('/checkin/do', { method: 'POST' });
+}
+
+// ── 成就 ──────────────────────────────────────
+
+export interface AchievementData {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  progress: number;
+  target: number;
+  unlocked: boolean;
+  reward: string;
+  unlockedAt: string | null;
+}
+
+export function fetchAchievements(): Promise<{
+  achievements: AchievementData[];
+  totalUnlocked: number;
+  totalCount: number;
+}> {
+  return request('/achievement/list');
+}
+
+export function claimAchievementReward(achievementId: string): Promise<{ reward: string }> {
+  return request('/achievement/claim', {
+    method: 'POST',
+    body: JSON.stringify({ achievementId }),
+  });
+}
+
+// ── 灵侣增强 ──────────────────────────────────────
+
+export function feedCompanion(companionId: string): Promise<CompanionData> {
+  return request('/companion/feed', {
+    method: 'POST',
+    body: JSON.stringify({ companionId }),
+  });
+}
+
+export function setCompanionActive(companionId: string): Promise<{ success: boolean }> {
+  return request('/companion/set-active', {
+    method: 'POST',
+    body: JSON.stringify({ companionId }),
+  });
+}
+
+export function fetchCompanionSkills(companionId: string): Promise<{
+  skills: { name: string; description: string; level: number; icon: string }[];
+}> {
+  return request(`/companion/${companionId}/skills`);
+}

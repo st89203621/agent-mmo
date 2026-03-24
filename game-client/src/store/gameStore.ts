@@ -21,7 +21,7 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
-  currentPage: 'story',
+  currentPage: 'home',
   previousPage: null,
   isTransitioning: false,
   currentBookWorld: null,

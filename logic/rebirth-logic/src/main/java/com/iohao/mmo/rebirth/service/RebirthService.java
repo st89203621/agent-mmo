@@ -55,6 +55,14 @@ public class RebirthService {
         return ofPlayerWorld(userId);
     }
 
+    /** 获取已完成的轮回次数 */
+    public int getRebirthCount(long userId) {
+        PlayerWorld pw = ofPlayerWorld(userId);
+        return (int) pw.getWorlds().stream()
+                .filter(w -> w.getStatus() == WorldStatus.COMPLETED)
+                .count();
+    }
+
     public WorldRecord selectNextBook(long userId, String bookId, String bookTitle) {
         PlayerWorld playerWorld = ofPlayerWorld(userId);
         int nextIndex = playerWorld.getCurrentWorldIndex() + 1;

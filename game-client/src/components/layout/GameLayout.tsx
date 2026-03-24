@@ -11,11 +11,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { id: 'home', label: '主页', icon: '🏠' },
   { id: 'story', label: '剧情', icon: '📜' },
   { id: 'explore', label: '探索', icon: '🗺️' },
   { id: 'character', label: '角色', icon: '👤' },
-  { id: 'inventory', label: '背包', icon: '🎒' },
-  { id: 'achievement', label: '缘分', icon: '💫' },
+  { id: 'achievement', label: '成就', icon: '🏅' },
 ];
 
 /** 这些页面是从角色页等入口进入的子页面，需要显示返回按钮 */
@@ -30,10 +30,12 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'book-world': { label: '书库', back: 'character' },
   'codex': { label: '图鉴', back: 'character' },
   'dungeon': { label: '副本', back: 'character' },
-  'quest': { label: '任务', back: 'character' },
+  'quest': { label: '任务', back: 'home' },
   'shop': { label: '商城', back: 'character' },
   'companion': { label: '灵侣', back: 'character' },
   'rank': { label: '排行', back: 'achievement' },
+  'battle': { label: '战斗', back: 'home' },
+  'inventory': { label: '背包', back: 'character' },
 };
 
 interface Props {

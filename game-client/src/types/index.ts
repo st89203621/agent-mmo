@@ -171,7 +171,7 @@ export interface ExploreReward {
 
 /** 页面ID枚举 */
 export type PageId =
-  | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
+  | 'home' | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
   | 'character' | 'equip-detail' | 'enchant' | 'skill-tree'
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'

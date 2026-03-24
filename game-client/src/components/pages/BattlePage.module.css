@@ -35,6 +35,10 @@
   box-shadow: 0 0 8px rgba(102, 153, 255, 0.2);
 }
 
+.unitCard.shake {
+  animation: shakeHit 0.4s ease;
+}
+
 .unitAvatar {
   width: 48px;
   height: 48px;
@@ -45,6 +49,34 @@
   border-radius: 50%;
   background: var(--paper-darker);
   flex-shrink: 0;
+  position: relative;
+}
+
+/* 浮动伤害数字 */
+.floatDamage {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #e04040;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  animation: floatUp 1.2s ease forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.floatHeal {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #4caf50;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  animation: floatUp 1.2s ease forwards;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .unitInfo {
@@ -128,6 +160,21 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  30% { opacity: 1; transform: translateY(-16px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-36px) scale(0.8); }
+}
+
+@keyframes shakeHit {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-4px); }
+  30% { transform: translateX(4px); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-1px); }
 }
 
 /* ── 技能面板 ── */
@@ -267,4 +314,121 @@
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* ── 回合信息 ── */
+.roundInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.roundBadge {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.statusBadge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--gold-dim);
+}
+
+.statusWin {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.statusLose {
+  background: rgba(196, 78, 82, 0.1);
+  color: #c44e52;
+}
+
+/* ── 结果卡牌变体 ── */
+.resultWin { border: 1px solid #4caf50; }
+.resultWin .resultTitle { color: #4caf50; }
+
+.resultLose { border: 1px solid #c44e52; }
+.resultLose .resultTitle { color: #c44e52; }
+
+/* ── 日志格式化 ── */
+.logActor {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.logSkill {
+  color: var(--gold-dim);
+  font-size: 11px;
+}
+
+.logDmg {
+  color: #c44e52;
+  font-weight: 700;
+}
+
+.logHeal {
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.logDesc {
+  opacity: 0.6;
+}
+
+/* ── 技能倍率标签 ── */
+.skillMult {
+  font-size: 9px;
+  color: var(--gold-dim);
+  background: rgba(201, 168, 76, 0.1);
+  padding: 0 4px;
+  border-radius: 3px;
+  margin-top: 1px;
+}
+
+/* ── 技能Tooltip ── */
+.tooltipWrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  animation: fadeIn 0.15s ease;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+
+/* 技能按钮增加relative */
+.skillBtn {
+  position: relative;
 }

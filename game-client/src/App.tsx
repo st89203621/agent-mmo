@@ -3,7 +3,9 @@ import { useGameStore } from './store/gameStore';
 import { usePlayerStore } from './store/playerStore';
 import { getMe, fetchPersonInfo, fetchSelectedBook, fetchPlayerCurrency } from './services/api';
 import GameLayout from './components/layout/GameLayout';
+import Toast from './components/common/Toast';
 import LoginPage from './components/pages/LoginPage';
+import HomePage from './components/pages/HomePage';
 import StoryPage from './components/pages/StoryPage';
 import BattlePage from './components/pages/BattlePage';
 import ExplorePage from './components/pages/ExplorePage';
@@ -28,6 +30,7 @@ import CompanionPage from './components/pages/CompanionPage';
 import type { PageId } from './types';
 
 const PAGE_MAP: Record<PageId, React.FC> = {
+  'home': HomePage,
   'story': StoryPage,
   'battle': BattlePage,
   'explore': ExplorePage,
@@ -86,35 +89,49 @@ export default function App() {
 
   if (checking) {
     return (
-      <div style={{
-        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#0e0b09', color: '#c9a84c', fontFamily: 'serif', fontSize: '18px',
-      }}>
-        七世轮回书
-      </div>
+      <>
+        <Toast />
+        <div style={{
+          height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#0e0b09', color: '#c9a84c', fontFamily: 'serif', fontSize: '18px',
+        }}>
+          七世轮回书
+        </div>
+      </>
     );
   }
 
   // 未登录显示登录页
   if (!playerId) {
-    return <LoginPage />;
+    return (
+      <>
+        <Toast />
+        <LoginPage />
+      </>
+    );
   }
 
   // 未创角则显示创角页
   if (!personCreated && currentPage !== 'char-create') {
     const CreatePage = PAGE_MAP['char-create'];
     return (
-      <GameLayout>
-        <CreatePage />
-      </GameLayout>
+      <>
+        <Toast />
+        <GameLayout>
+          <CreatePage />
+        </GameLayout>
+      </>
     );
   }
 
-  const PageComponent = PAGE_MAP[currentPage] || StoryPage;
+  const PageComponent = PAGE_MAP[currentPage] || HomePage;
 
   return (
-    <GameLayout>
-      <PageComponent />
-    </GameLayout>
+    <>
+      <Toast />
+      <GameLayout>
+        <PageComponent />
+      </GameLayout>
+    </>
   );
 }
