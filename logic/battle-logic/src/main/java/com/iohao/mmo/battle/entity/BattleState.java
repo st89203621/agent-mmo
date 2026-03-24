@@ -30,6 +30,19 @@ public class BattleState {
     private long startTime;
     /** 奖励描述 */
     private String rewards;
+    /** 可用技能列表 */
+    private List<BattleSkill> availableSkills = new ArrayList<>();
+
+    @Data
+    public static class BattleSkill {
+        private String skillId;
+        private String name;
+        private String icon;
+        private int mpCost;
+        private double damageMultiplier;
+        /** physical_damage / magic_damage / heal / buff_defense */
+        private String effectType;
+    }
 
     public boolean isFinished() {
         return "VICTORY".equals(status) || "DEFEAT".equals(status);

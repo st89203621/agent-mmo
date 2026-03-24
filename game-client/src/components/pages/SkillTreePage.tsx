@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  fetchSkillTemplates, fetchPlayerSkills, unlockSkill, upgradeSkill,
+  fetchSkillTemplates, fetchPlayerSkills, unlockSkill, upgradeSkill, fetchPlayerCurrency,
   type SkillTemplateData, type PlayerSkillData,
 } from '../../services/api';
+import { usePlayerStore } from '../../store/playerStore';
 import styles from './PageSkeleton.module.css';
 
 type Branch = 'EMOTION' | 'COMBAT';
@@ -12,13 +13,26 @@ const BRANCH_META: Record<Branch, { label: string; icon: string }> = {
   COMBAT: { label: '战斗系', icon: '⚔️' },
 };
 
+const EFFECT_LABELS: Record<string, string> = {
+  physical_damage: '物理伤害',
+  magic_damage: '魔法伤害',
+  heal: '治疗',
+  buff_defense: '防御增益',
+};
+
+function parseEffectJson(json?: string): Record<string, unknown> | null {
+  if (!json) return null;
+  try { return JSON.parse(json); } catch { return null; }
+}
+
 export default function SkillTreePage() {
   const [templates, setTemplates] = useState<SkillTemplateData[]>([]);
   const [playerSkills, setPlayerSkills] = useState<PlayerSkillData[]>([]);
-  const [branch, setBranch] = useState<Branch>('EMOTION');
+  const [branch, setBranch] = useState<Branch>('COMBAT');
   const [loading, setLoading] = useState(true);
   const [operating, setOperating] = useState<string | null>(null);
   const [selected, setSelected] = useState<SkillTemplateData | null>(null);
+  const { gold } = usePlayerStore();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -53,33 +67,40 @@ export default function SkillTreePage() {
     });
   }, [skillMap]);
 
+  const syncCurrency = useCallback(async () => {
+    try {
+      const c = await fetchPlayerCurrency();
+      usePlayerStore.getState().setCurrency(c.gold, c.diamond);
+    } catch { /* noop */ }
+  }, []);
+
   const handleUnlock = useCallback(async (templateId: string) => {
     setOperating(templateId);
     try {
       await unlockSkill(templateId);
-      await loadData();
+      await Promise.all([loadData(), syncCurrency()]);
     } catch { /* noop */ }
     setOperating(null);
-  }, [loadData]);
+  }, [loadData, syncCurrency]);
 
   const handleUpgrade = useCallback(async (templateId: string) => {
     setOperating(templateId);
     try {
       await upgradeSkill(templateId);
-      await loadData();
+      await Promise.all([loadData(), syncCurrency()]);
     } catch { /* noop */ }
     setOperating(null);
-  }, [loadData]);
+  }, [loadData, syncCurrency]);
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h2 className={styles.title}>技能树</h2>
-        <p className={styles.subtitle}>七世轮回，逐步觉醒</p>
+        <p className={styles.subtitle}>七世轮回，逐步觉醒 · 金币 {gold}</p>
       </div>
 
       <div className={styles.tabRow}>
-        {(['EMOTION', 'COMBAT'] as Branch[]).map(b => (
+        {(['COMBAT', 'EMOTION'] as Branch[]).map(b => (
           <button
             key={b}
             className={`${styles.tab} ${branch === b ? styles.tabActive : ''}`}
@@ -102,6 +123,8 @@ export default function SkillTreePage() {
               const maxed = level >= t.maxLevel;
               const prereqMet = canUnlock(t);
               const isSelected = selected?.id === t.id;
+              const effect = parseEffectJson(t.effectJson);
+              const canAfford = gold >= (t.costPerLevel || 0);
 
               return (
                 <button
@@ -120,7 +143,7 @@ export default function SkillTreePage() {
                       <p className={styles.cardMeta}>
                         {t.type === 'ACTIVE' ? '主动' : '被动'}
                         {' · '}Lv.{level}/{t.maxLevel}
-                        {t.requiredLevel > 0 && ` · 需要等级${t.requiredLevel}`}
+                        {effect?.mpCost ? ` · ${effect.mpCost}MP` : ''}
                       </p>
                     </div>
                     {unlocked && (
@@ -137,10 +160,11 @@ export default function SkillTreePage() {
                     {!unlocked && prereqMet && (
                       <span style={{
                         fontSize: '11px', padding: '2px 8px',
-                        background: 'rgba(201,168,76,0.1)', borderRadius: '999px',
-                        color: 'var(--gold-dim)',
+                        background: canAfford ? 'rgba(201,168,76,0.1)' : 'rgba(200,60,60,0.1)',
+                        borderRadius: '999px',
+                        color: canAfford ? 'var(--gold-dim)' : '#c44e52',
                       }}>
-                        可学习
+                        {canAfford ? '可学习' : '金币不足'}
                       </span>
                     )}
                   </div>
@@ -150,20 +174,40 @@ export default function SkillTreePage() {
                       <p style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.7, lineHeight: 1.6 }}>
                         {t.description || '暂无描述'}
                       </p>
+
+                      {/* 战斗效果 */}
+                      {effect && branch === 'COMBAT' && t.type === 'ACTIVE' && (
+                        <div style={{
+                          display: 'flex', gap: 12, marginTop: 6,
+                          fontSize: 12, color: 'var(--ink)', opacity: 0.6,
+                        }}>
+                          {effect.effectType ? (
+                            <span>{EFFECT_LABELS[String(effect.effectType)] || String(effect.effectType)}</span>
+                          ) : null}
+                          {effect.multiplier ? <span>{`${Number(effect.multiplier)}x 倍率`}</span> : null}
+                          {effect.mpCost ? <span>{`消耗 ${Number(effect.mpCost)} MP`}</span> : null}
+                        </div>
+                      )}
+
+                      {/* 消耗信息 */}
                       {t.costPerLevel > 0 && (
-                        <p style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.5, marginTop: '4px' }}>
-                          每级消耗：{t.costPerLevel} 技能点
+                        <p style={{
+                          fontSize: '12px', marginTop: '6px',
+                          color: canAfford ? '#d4a84c' : '#c44e52',
+                        }}>
+                          💰 {!unlocked ? '学习' : '升级'}消耗：{t.costPerLevel} 金币
                         </p>
                       )}
+
                       <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                         {!unlocked && prereqMet && (
                           <button
                             className={styles.actionBtn}
-                            style={{ marginTop: 0, fontSize: '12px', padding: '6px 16px' }}
-                            disabled={operating === t.id}
+                            style={{ marginTop: 0, fontSize: '12px', padding: '6px 16px', opacity: canAfford ? 1 : 0.5 }}
+                            disabled={operating === t.id || !canAfford}
                             onClick={(e) => { e.stopPropagation(); handleUnlock(t.id); }}
                           >
-                            {operating === t.id ? '...' : '学习'}
+                            {operating === t.id ? '...' : `学习 (${t.costPerLevel}💰)`}
                           </button>
                         )}
                         {unlocked && !maxed && (

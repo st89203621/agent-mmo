@@ -20,13 +20,16 @@ public class BattleUnit {
     private int magicAttack;
     private int magicDefense;
     private int speed;
+    /** 防御状态，受击减伤50% */
+    private boolean defending;
 
     public boolean isAlive() {
         return hp > 0;
     }
 
     public int takeDamage(int damage) {
-        int actual = Math.min(hp, Math.max(0, damage));
+        int reduced = defending ? damage / 2 : damage;
+        int actual = Math.min(hp, Math.max(0, reduced));
         hp -= actual;
         return actual;
     }

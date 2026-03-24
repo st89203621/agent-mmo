@@ -338,6 +338,11 @@ export interface BagItemData {
   id: string;
   itemTypeId: string;
   quantity: number;
+  name?: string;
+  icon?: string;
+  description?: string;
+  category?: string;
+  quality?: string;
 }
 
 export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
@@ -497,6 +502,7 @@ export interface SkillTemplateData {
   requiredLevel: number;
   prerequisites: string[] | null;
   costPerLevel: number;
+  effectJson?: string;
   icon: string;
   sortOrder: number;
 }
@@ -541,6 +547,7 @@ export interface BattleUnitData {
   mp: number;
   maxMp: number;
   speed: number;
+  defending: boolean;
 }
 
 export interface BattleActionData {
@@ -553,6 +560,22 @@ export interface BattleActionData {
   description: string;
 }
 
+export interface BattleSkillData {
+  skillId: string;
+  name: string;
+  icon: string;
+  mpCost: number;
+  damageMultiplier: number;
+  effectType: string;
+}
+
+export interface BattleRewardDetail {
+  gold?: number;
+  exp?: number;
+  dropItem?: string;
+  dropIcon?: string;
+}
+
 export interface BattleData {
   id: string;
   round: number;
@@ -561,6 +584,8 @@ export interface BattleData {
   playerUnits: BattleUnitData[];
   enemyUnits: BattleUnitData[];
   actionLog: BattleActionData[];
+  availableSkills: BattleSkillData[];
+  rewardDetail?: BattleRewardDetail;
 }
 
 export function startBattle(stats: Record<string, number>): Promise<{ battle: BattleData }> {
@@ -574,10 +599,10 @@ export function getBattleState(): Promise<{ battle: BattleData }> {
   return request('/battle/state');
 }
 
-export function battleAction(actionType: string, targetId?: string): Promise<{ battle: BattleData }> {
+export function battleAction(actionType: string, targetId?: string, skillId?: string): Promise<{ battle: BattleData }> {
   return request('/battle/action', {
     method: 'POST',
-    body: JSON.stringify({ actionType, targetId }),
+    body: JSON.stringify({ actionType, targetId, skillId }),
   });
 }
 

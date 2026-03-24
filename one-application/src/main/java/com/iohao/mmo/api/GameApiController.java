@@ -708,10 +708,22 @@ public class GameApiController {
         List<Map<String, Object>> items = new ArrayList<>();
         if (bag.getItemMap() != null) {
             bag.getItemMap().forEach((id, item) -> {
-                Map<String, Object> m = new HashMap<>();
+                Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", item.getId());
                 m.put("itemTypeId", item.getItemTypeId());
                 m.put("quantity", item.getQuantity());
+                // 补充物品元信息
+                ShopItem shopItem = shopService.getItem(item.getItemTypeId());
+                if (shopItem != null) {
+                    m.put("name", shopItem.getName());
+                    m.put("icon", shopItem.getIcon());
+                    m.put("description", shopItem.getDescription());
+                    m.put("category", shopItem.getCategory());
+                    m.put("quality", shopItem.getQuality());
+                } else {
+                    m.put("name", item.getItemTypeId());
+                    m.put("icon", "📦");
+                }
                 items.add(m);
             });
         }
@@ -1177,6 +1189,7 @@ public class GameApiController {
             m.put("requiredLevel", t.getRequiredLevel());
             m.put("prerequisites", t.getPrerequisites());
             m.put("costPerLevel", t.getCostPerLevel());
+            m.put("effectJson", t.getEffectJson());
             m.put("icon", t.getIcon());
             m.put("sortOrder", t.getSortOrder());
             list.add(m);
@@ -1206,9 +1219,18 @@ public class GameApiController {
         Long userId = requireLogin(session);
         if (userId == null) return err("未登录");
         try {
-            PlayerSkill skill = skillService.unlockSkill(userId, body.get("skillTemplateId"));
+            PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+            SkillService.UnlockResult result = skillService.unlockSkill(userId, body.get("skillTemplateId"), currency.getGold());
+            // 扣除金币
+            if (result.goldCost() > 0) {
+                currency.addGold(-result.goldCost());
+                shopService.saveCurrency(currency);
+            }
+            PlayerSkill skill = result.skill();
             return ok(Map.of("skillTemplateId", skill.getSkillTemplateId(),
-                    "level", skill.getLevel(), "unlocked", skill.isUnlocked()));
+                    "level", skill.getLevel(), "unlocked", skill.isUnlocked(),
+                    "goldCost", result.goldCost(),
+                    "remainingGold", currency.getGold()));
         } catch (Exception e) {
             return err(e.getMessage());
         }
@@ -1240,8 +1262,50 @@ public class GameApiController {
         int mAtk = ((Number) body.getOrDefault("magicAttack", 8)).intValue();
         int mDef = ((Number) body.getOrDefault("magicDefense", 5)).intValue();
         int speed = ((Number) body.getOrDefault("speed", 10)).intValue();
-        BattleState state = battleService.startBattle(userId, hp, mp, pAtk, pDef, mAtk, mDef, speed);
+        // 查询玩家已学的COMBAT主动技能，构建BattleSkill列表
+        List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
+        BattleState state = battleService.startBattle(userId, hp, mp, pAtk, pDef, mAtk, mDef, speed, battleSkills);
         return ok(Map.of("battle", battleToMap(state)));
+    }
+
+    /** 从玩家已学技能中提取战斗技能 */
+    private List<BattleState.BattleSkill> buildBattleSkills(long userId) {
+        List<BattleState.BattleSkill> result = new ArrayList<>();
+        List<PlayerSkill> playerSkills = skillService.listPlayerSkills(userId);
+        List<SkillTemplate> templates = skillService.listTemplates();
+        Map<String, SkillTemplate> templateMap = new HashMap<>();
+        templates.forEach(t -> templateMap.put(t.getId(), t));
+
+        for (PlayerSkill ps : playerSkills) {
+            if (!ps.isUnlocked()) continue;
+            SkillTemplate tpl = templateMap.get(ps.getSkillTemplateId());
+            if (tpl == null || !"COMBAT".equalsIgnoreCase(tpl.getBranch()) || !"ACTIVE".equalsIgnoreCase(tpl.getType())) continue;
+
+            BattleState.BattleSkill bs = new BattleState.BattleSkill();
+            bs.setSkillId(tpl.getId());
+            bs.setName(tpl.getName());
+            bs.setIcon(tpl.getIcon() != null ? tpl.getIcon() : "✨");
+
+            // 解析 effectJson
+            if (tpl.getEffectJson() != null && !tpl.getEffectJson().isBlank()) {
+                try {
+                    var effectMap = JSON.parseObject(tpl.getEffectJson());
+                    bs.setMpCost(effectMap.getIntValue("mpCost"));
+                    bs.setDamageMultiplier(effectMap.getDoubleValue("multiplier"));
+                    bs.setEffectType(effectMap.getString("effectType"));
+                } catch (Exception e) {
+                    bs.setMpCost(10);
+                    bs.setDamageMultiplier(1.5);
+                    bs.setEffectType("physical_damage");
+                }
+            } else {
+                bs.setMpCost(10);
+                bs.setDamageMultiplier(1.5);
+                bs.setEffectType("physical_damage");
+            }
+            result.add(bs);
+        }
+        return result;
     }
 
     @GetMapping("/battle/state")
@@ -1259,9 +1323,48 @@ public class GameApiController {
         if (userId == null) return err("未登录");
         String actionType = body.getOrDefault("actionType", "ATTACK");
         String targetId = body.get("targetId");
-        BattleState state = battleService.executeAction(userId, actionType, targetId);
+        String skillId = body.get("skillId");
+        BattleState state = battleService.executeAction(userId, actionType, targetId, skillId);
         if (state == null) return err("无进行中的战斗");
-        return ok(Map.of("battle", battleToMap(state)));
+
+        Map<String, Object> battleMap = battleToMap(state);
+        // 胜利时发放奖励
+        if ("VICTORY".equals(state.getStatus())) {
+            Map<String, Object> rewardDetail = distributeBattleRewards(userId, state);
+            battleMap.put("rewardDetail", rewardDetail);
+        }
+        return ok(Map.of("battle", battleMap));
+    }
+
+    /** 发放战斗胜利奖励 */
+    private Map<String, Object> distributeBattleRewards(long userId, BattleState state) {
+        int rewardGold = 80 + new Random().nextInt(41); // 80~120
+        int rewardExp = 40 + new Random().nextInt(21);   // 40~60
+
+        PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+        currency.addGold(rewardGold);
+        shopService.saveCurrency(currency);
+
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("gold", rewardGold);
+        detail.put("exp", rewardExp);
+
+        // 20%概率掉落消耗品
+        String[] dropPool = {"consumable_001", "consumable_002", "consumable_003"};
+        if (new Random().nextInt(5) == 0) {
+            String dropId = dropPool[new Random().nextInt(dropPool.length)];
+            ShopItem dropItem = shopService.getItem(dropId);
+            if (dropItem != null) {
+                BagItem bagItem = new BagItem();
+                bagItem.setId(dropId);
+                bagItem.setItemTypeId(dropId);
+                bagItem.setQuantity(1);
+                bagService.incrementItem(bagItem, userId);
+                detail.put("dropItem", dropItem.getName());
+                detail.put("dropIcon", dropItem.getIcon());
+            }
+        }
+        return detail;
     }
 
     // ── 商城 ──────────────────────────────────────
@@ -1306,9 +1409,38 @@ public class GameApiController {
         int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
         try {
             Map<String, Object> result = shopService.purchaseItem(userId, itemId, quantity);
+            // 购买成功后，物品入背包
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                ShopItem shopItem = shopService.getItem(itemId);
+                if (shopItem != null) {
+                    deliverShopItemToBag(userId, shopItem, quantity);
+                }
+            }
             return ok(result);
         } catch (Exception e) {
             return err(e.getMessage());
+        }
+    }
+
+    /** 商城物品发放到背包 */
+    private void deliverShopItemToBag(long userId, ShopItem shopItem, int quantity) {
+        String category = shopItem.getCategory();
+        // 武器/防具：不可叠加，每件独立
+        if ("weapon".equals(category) || "armor".equals(category)) {
+            for (int i = 0; i < quantity; i++) {
+                BagItem bagItem = new BagItem();
+                bagItem.setId(UUID.randomUUID().toString());
+                bagItem.setItemTypeId(shopItem.getId());
+                bagItem.setQuantity(1);
+                bagService.incrementItem(bagItem, userId);
+            }
+        } else {
+            // 消耗品/特殊物品：可叠加
+            BagItem bagItem = new BagItem();
+            bagItem.setId(shopItem.getId());
+            bagItem.setItemTypeId(shopItem.getId());
+            bagItem.setQuantity(quantity);
+            bagService.incrementItem(bagItem, userId);
         }
     }
 
@@ -1393,10 +1525,54 @@ public class GameApiController {
         int stars = ((Number) body.getOrDefault("stars", 3)).intValue();
         try {
             Dungeon d = adventureService.completeStage(userId, dungeonId, stageId, stars);
-            return ok(Map.of("dungeon", dungeonToMap(d)));
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("dungeon", dungeonToMap(d));
+
+            // 副本完成时发放奖励
+            if (d.getStatus() == Dungeon.DungeonStatus.COMPLETED && d.getReward() != null) {
+                Map<String, Object> rewardDetail = distributeDungeonRewards(userId, d.getReward());
+                result.put("rewardDetail", rewardDetail);
+            }
+            return ok(result);
         } catch (Exception e) {
             return err(e.getMessage());
         }
+    }
+
+    /** 发放副本通关奖励 */
+    private Map<String, Object> distributeDungeonRewards(long userId, Dungeon.DungeonReward reward) {
+        PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+        if (reward.getGold() > 0) {
+            currency.addGold(reward.getGold());
+        }
+        shopService.saveCurrency(currency);
+
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("gold", reward.getGold());
+        detail.put("exp", reward.getExp());
+
+        // 发放掉落物品到背包
+        List<Map<String, Object>> droppedItems = new ArrayList<>();
+        if (reward.getItems() != null) {
+            for (Dungeon.ItemDrop drop : reward.getItems()) {
+                BagItem bagItem = new BagItem();
+                bagItem.setId(drop.getItemId());
+                bagItem.setItemTypeId(drop.getItemId());
+                bagItem.setQuantity(drop.getQuantity());
+                bagService.incrementItem(bagItem, userId);
+                droppedItems.add(Map.of(
+                        "itemName", drop.getItemName(),
+                        "quantity", drop.getQuantity(),
+                        "rarity", drop.getRarity()
+                ));
+            }
+        }
+        detail.put("items", droppedItems);
+
+        if (reward.getTitle() != null) detail.put("title", reward.getTitle());
+        if (reward.getAchievement() != null) detail.put("achievement", reward.getAchievement());
+
+        return detail;
     }
 
     @PostMapping("/dungeon/exit")
@@ -1659,19 +1835,40 @@ public class GameApiController {
                 memoryService.createMemory(userId, targetNpcId, npcName, worldIndex, bookTitle, fateScore, memoryTitle);
             }
 
-            // 3. 物品奖励 → BagService
+            // 3. 物品奖励 → BagService（映射到商城预定义物品）
             String itemName = (String) reward.get("itemName");
             if (itemName != null && !itemName.isBlank()) {
+                String mappedItemId = mapExploreItemToShopItem(itemName);
                 BagItem bagItem = new BagItem();
-                String itemId = "explore_" + itemName.hashCode();
-                bagItem.setId(itemId);
-                bagItem.setItemTypeId(itemId);
+                bagItem.setId(mappedItemId);
+                bagItem.setItemTypeId(mappedItemId);
                 bagItem.setQuantity(1);
                 bagService.incrementItem(bagItem, userId);
+            }
+
+            // 4. 金币奖励
+            int goldReward = reward.get("gold") instanceof Number n ? n.intValue() : 0;
+            if (goldReward > 0) {
+                PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+                currency.addGold(goldReward);
+                shopService.saveCurrency(currency);
             }
         } catch (Exception e) {
             log.warn("探索奖励发放异常: userId={}, eventId={}, err={}", userId, eventId, e.getMessage());
         }
+    }
+
+    /** 将AI生成的探索物品名映射到商城预定义物品ID */
+    private String mapExploreItemToShopItem(String itemName) {
+        if (itemName == null) return "consumable_001";
+        String lower = itemName.toLowerCase();
+        if (lower.contains("药") || lower.contains("heal") || lower.contains("生命")) return "consumable_001";
+        if (lower.contains("魔") || lower.contains("mana") || lower.contains("法力")) return "consumable_002";
+        if (lower.contains("经验") || lower.contains("exp")) return "consumable_003";
+        if (lower.contains("卷轴") || lower.contains("scroll") || lower.contains("传送")) return "special_002";
+        if (lower.contains("蛋") || lower.contains("egg") || lower.contains("宠物")) return "special_001";
+        // 默认掉落生命药水
+        return "consumable_001";
     }
 
     // ── 工具方法 ──────────────────────────────────────
@@ -1737,6 +1934,21 @@ public class GameApiController {
             actions.add(am);
         }
         m.put("actionLog", actions);
+        // 可用技能列表
+        List<Map<String, Object>> skills = new ArrayList<>();
+        if (state.getAvailableSkills() != null) {
+            for (BattleState.BattleSkill s : state.getAvailableSkills()) {
+                Map<String, Object> sm = new LinkedHashMap<>();
+                sm.put("skillId", s.getSkillId());
+                sm.put("name", s.getName());
+                sm.put("icon", s.getIcon());
+                sm.put("mpCost", s.getMpCost());
+                sm.put("damageMultiplier", s.getDamageMultiplier());
+                sm.put("effectType", s.getEffectType());
+                skills.add(sm);
+            }
+        }
+        m.put("availableSkills", skills);
         return m;
     }
 
@@ -1750,6 +1962,7 @@ public class GameApiController {
         m.put("mp", u.getMp());
         m.put("maxMp", u.getMaxMp());
         m.put("speed", u.getSpeed());
+        m.put("defending", u.isDefending());
         return m;
     }
 

@@ -4,6 +4,9 @@ import com.iohao.mmo.shop.entity.PlayerCurrency;
 import com.iohao.mmo.shop.entity.PurchaseHistory;
 import com.iohao.mmo.shop.entity.ShopItem;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -14,9 +17,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ShopService {
+    private final MongoTemplate mongoTemplate;
     private final Map<String, ShopItem> shopItems = new ConcurrentHashMap<>();
-    private final Map<Long, PlayerCurrency> playerCurrencies = new ConcurrentHashMap<>();
-    private final Map<Long, List<PurchaseHistory>> purchaseHistories = new ConcurrentHashMap<>();
+
+    public ShopService(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
+    }
 
     @PostConstruct
     public void init() {
@@ -124,7 +130,18 @@ public class ShopService {
     }
 
     public PlayerCurrency getPlayerCurrency(long userId) {
-        return playerCurrencies.computeIfAbsent(userId, PlayerCurrency::new);
+        PlayerCurrency currency = mongoTemplate.findOne(
+                Query.query(Criteria.where("userId").is(userId)), PlayerCurrency.class);
+        if (currency == null) {
+            currency = new PlayerCurrency(userId);
+            mongoTemplate.save(currency);
+        }
+        return currency;
+    }
+
+    /** 保存货币变更到数据库 */
+    public void saveCurrency(PlayerCurrency currency) {
+        mongoTemplate.save(currency);
     }
 
     public Map<String, Object> purchaseItem(long userId, String itemId, int quantity) {
@@ -153,6 +170,7 @@ public class ShopService {
         }
 
         currency.deduct(item.getCurrency(), totalPrice);
+        mongoTemplate.save(currency);
         item.setStock(item.getStock() - quantity);
 
         PurchaseHistory history = new PurchaseHistory();
@@ -163,8 +181,7 @@ public class ShopService {
         history.setPrice(totalPrice);
         history.setCurrency(item.getCurrency());
         history.setTimestamp(System.currentTimeMillis());
-
-        purchaseHistories.computeIfAbsent(userId, k -> new ArrayList<>()).add(history);
+        mongoTemplate.save(history);
 
         result.put("success", true);
         result.put("message", "购买成功");
@@ -177,7 +194,8 @@ public class ShopService {
     }
 
     public List<PurchaseHistory> getPurchaseHistory(long userId) {
-        return purchaseHistories.getOrDefault(userId, new ArrayList<>());
+        return mongoTemplate.find(
+                Query.query(Criteria.where("userId").is(userId)), PurchaseHistory.class);
     }
 }
 
