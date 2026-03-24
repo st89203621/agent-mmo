@@ -26,8 +26,11 @@ public class SceneImageService {
 
     private final SceneImageRepository sceneImageRepository;
 
+    @Value("${volcengine.image-api-key:}")
+    private String imageApiKey;
+
     @Value("${volcengine.chat-api-key:3e2f9349-8892-4a67-ae9c-7e8fbd75f071}")
-    private String apiKey;
+    private String chatApiKey;
 
     @Value("${volcengine.model:doubao-seedream-4-0-250828}")
     private String model;
@@ -41,18 +44,21 @@ public class SceneImageService {
 
     @PostConstruct
     public void init() {
+        // 图片生成优先使用独立的image-api-key，未配置时回退到chat-api-key
+        String effectiveKey = (imageApiKey != null && !imageApiKey.isBlank()) ? imageApiKey : chatApiKey;
         ConnectionPool pool = new ConnectionPool(5, 1, TimeUnit.SECONDS);
         this.arkService = ArkService.builder()
                 .dispatcher(new Dispatcher())
                 .connectionPool(pool)
-                .apiKey(apiKey)
+                .apiKey(effectiveKey)
                 .build();
         this.httpClient = new OkHttpClient.Builder()
                 .connectionPool(pool)
                 .connectTimeout(60, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
                 .build();
-        log.info("SceneImageService 初始化完成, model={}", model);
+        log.info("SceneImageService 初始化完成, model={}, apiKey={}",
+                model, (imageApiKey != null && !imageApiKey.isBlank()) ? "独立图片账号" : "与对话共用");
     }
 
     /**

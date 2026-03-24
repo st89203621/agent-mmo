@@ -55,13 +55,14 @@ public class VolcengineAiImageGenerator {
     public VolcengineAiImageGenerator(VolcengineConfig config) {
         this.config = config;
 
-        // 初始化ArkService（参照ImageGenerationsExample）
+        // 初始化ArkService - 使用图片专用API Key
+        String imageApiKey = config.getEffectiveImageApiKey();
         ConnectionPool connectionPool = new ConnectionPool(5, 1, TimeUnit.SECONDS);
         Dispatcher dispatcher = new Dispatcher();
         this.arkService = ArkService.builder()
                 .dispatcher(dispatcher)
                 .connectionPool(connectionPool)
-                .apiKey(config.getApiKey())
+                .apiKey(imageApiKey)
                 .build();
 
         // 初始化HTTP客户端用于下载图片
@@ -76,9 +77,9 @@ public class VolcengineAiImageGenerator {
         // 确保保存目录存在
         ensureDirectoryExists();
 
-        log.info("✅ ArkService初始化成功，使用API Key: {}...",
-                config.getApiKey().substring(0, Math.min(10, config.getApiKey().length())));
-        log.info("📁 图片保存路径: {}", config.getFrontendAssetsPath());
+        log.info("ArkService(图片)初始化成功，API Key: {}...",
+                imageApiKey.substring(0, Math.min(10, imageApiKey.length())));
+        log.info("图片保存路径: {}", config.getFrontendAssetsPath());
     }
 
     /**

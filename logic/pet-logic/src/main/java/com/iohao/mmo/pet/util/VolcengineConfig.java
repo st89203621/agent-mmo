@@ -36,11 +36,13 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "volcengine")
 public class VolcengineConfig {
 
-    // ArkService API Key（参照ImageGenerationsExample）
-    private String apiKey = "3e2f9349-8892-4a67-ae9c-7e8fbd75f071";
+    // AI对话API Key
+    private String chatApiKey = "3e2f9349-8892-4a67-ae9c-7e8fbd75f071";
+
+    // AI图片生成API Key（可使用不同账号，未配置时回退到chatApiKey）
+    private String imageApiKey;
 
     // 图片生成模型（参照ImageGenerationsExample）
-    //private String model = "doubao-seedream-4-0-250828";
     private String model = "doubao-seedream-5-0-260128";
 
 
@@ -69,17 +71,34 @@ public class VolcengineConfig {
     private String secretAccessKey = "";
 
     /**
+     * 获取图片生成使用的API Key（优先使用imageApiKey，未配置时回退到chatApiKey）
+     */
+    public String getEffectiveImageApiKey() {
+        if (imageApiKey != null && !imageApiKey.isBlank()) {
+            return imageApiKey;
+        }
+        return chatApiKey;
+    }
+
+    /**
+     * 获取对话使用的API Key
+     */
+    public String getEffectiveChatApiKey() {
+        return chatApiKey;
+    }
+
+    /**
      * 初始化配置 - 自动处理frontendServerUrl
      */
     @PostConstruct
     public void init() {
         resolvedUrl = resolveFrontendServerUrl(frontendServerUrl);
-        log.info("🌐 Volcengine配置初始化完成");
+        log.info("Volcengine配置初始化完成");
         log.info("   - 前端服务器URL配置: {}", frontendServerUrl);
         log.info("   - 当前解析URL: {}", resolvedUrl);
         log.info("   - 静态资源路径: {}", frontendAssetsPath);
-        log.info("   - 背景去除容差: {}", backgroundRemovalTolerance);
-        log.info("   - 背景去除亮度: {}", backgroundRemovalBrightness);
+        log.info("   - 图片API Key: {}",
+                imageApiKey != null && !imageApiKey.isBlank() ? "独立账号" : "与对话共用");
     }
 
     /**
