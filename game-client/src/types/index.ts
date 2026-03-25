@@ -60,6 +60,9 @@ export interface Relation {
   lastEmotion: Emotion;
   imageUrl: string;
   keyFacts: string[];
+  worldIndex: number;
+  lastInteractTime: number;
+  milestone: number;
 }
 
 /** 书籍世界 */
@@ -86,6 +89,29 @@ export interface MemoryFragment {
   fateScore: number;
   locked: boolean;
   emotionTone: Emotion;
+  bookTitle: string;
+  createTime: number;
+  unlockCondition: string | null;
+  imageUrl: string | null;
+  affectsNextWorld: boolean;
+}
+
+/** 记忆馆统计 */
+export interface MemoryHall {
+  totalFragments: number;
+  unlockedFragments: number;
+  worldStats: Record<number, number>;
+}
+
+/** 缘分关系详情（含NPC模板+记忆） */
+export interface RelationDetail extends Relation {
+  personality: string;
+  role: string;
+  gender: string;
+  age: string;
+  features: string;
+  bookTitle: string;
+  memories: MemoryFragment[];
 }
 
 /** 玩家世界状态 */

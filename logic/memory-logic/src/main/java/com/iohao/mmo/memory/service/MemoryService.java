@@ -132,6 +132,20 @@ public class MemoryService {
         return Optional.of(fragment);
     }
 
+    public MemoryFragment unlockMemory(MemoryFragment fragment) {
+        fragment.setLocked(false);
+        fragment.setUnlockCondition(null);
+        fragment = memoryFragmentRepository.save(fragment);
+
+        // 更新记忆馆解锁计数
+        MemoryHall hall = getOrCreateHall(fragment.getPlayerId());
+        hall.setUnlockedFragments(hall.getUnlockedFragments() + 1);
+        memoryHallRepository.save(hall);
+
+        log.info("玩家 {} 解锁记忆碎片：{}", fragment.getPlayerId(), fragment.getTitle());
+        return fragment;
+    }
+
     public String buildMemoryTitle(String npcName, int fateScore) {
         if (fateScore >= 80) {
             return npcName + "：若有来世";

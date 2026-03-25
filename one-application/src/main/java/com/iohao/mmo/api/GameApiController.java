@@ -604,18 +604,60 @@ public class GameApiController {
         Long userId = requireLogin(session);
         if (userId == null) return err("未登录");
         List<Relation> relations = fateService.getRelations(userId);
-        List<Map<String, Object>> list = relations.stream().map(r -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("npcId", r.getNpcId());
-            m.put("npcName", r.getNpcName());
-            m.put("fateScore", r.getFateScore());
-            m.put("trustScore", r.getTrustScore());
-            m.put("worldIndex", r.getWorldIndex());
-            m.put("emotion", r.getLastEmotion());
-            m.put("milestone", r.isAtMilestone());
-            return m;
-        }).toList();
+        List<Map<String, Object>> list = relations.stream().map(this::relationToMap).toList();
         return ok(Map.of("relations", list));
+    }
+
+    @GetMapping("/fate/relation/{npcId}")
+    public ResponseEntity<Map<String, Object>> getRelationDetail(@PathVariable String npcId,
+                                                                   @RequestParam(defaultValue = "0") int worldIndex,
+                                                                   HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        Relation relation = fateService.getOrCreate(userId, npcId, worldIndex);
+        Map<String, Object> data = relationToMap(relation);
+
+        // 附带该NPC的记忆碎片
+        List<MemoryFragment> memories = memoryService.listMemories(userId).stream()
+                .filter(m -> npcId.equals(m.getNpcId()))
+                .toList();
+        data.put("memories", memories.stream().map(this::memoryToMap).toList());
+
+        // 附带NPC模板信息
+        fateService.getNpcTemplate(npcId).ifPresent(npc -> {
+            data.put("personality", npc.getPersonality());
+            data.put("role", npc.getRole());
+            data.put("gender", npc.getGender());
+            data.put("age", npc.getAge());
+            data.put("features", npc.getFeatures());
+            data.put("bookTitle", npc.getBookTitle());
+        });
+
+        return ok(data);
+    }
+
+    @PostMapping("/fate/decay")
+    public ResponseEntity<Map<String, Object>> decayFateScores(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        fateService.applyDecayAll(userId);
+        return ok(Map.of("msg", "衰减已应用"));
+    }
+
+    private Map<String, Object> relationToMap(Relation r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("relationId", r.getId());
+        m.put("npcId", r.getNpcId());
+        m.put("npcName", r.getNpcName());
+        m.put("fateScore", r.getFateScore());
+        m.put("trustScore", r.getTrustScore());
+        m.put("worldIndex", r.getWorldIndex());
+        m.put("lastEmotion", r.getLastEmotion());
+        m.put("imageUrl", r.getImageUrl());
+        m.put("keyFacts", r.getKeyFacts());
+        m.put("lastInteractTime", r.getUpdatedAt());
+        m.put("milestone", r.isAtMilestone());
+        return m;
     }
 
     // ── 七世轮回 ──────────────────────────────────────
@@ -1232,26 +1274,75 @@ public class GameApiController {
         if (userId == null) return err("未登录");
         List<MemoryFragment> memories;
         if (worldIndex != null) {
-            memories = memoryService.listMemories(userId).stream()
-                    .filter(m -> m.getWorldIndex() == worldIndex)
-                    .toList();
+            memories = memoryService.listByWorld(userId, worldIndex);
         } else {
             memories = memoryService.listMemories(userId);
         }
-        List<Map<String, Object>> list = memories.stream().map(m -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", m.getId());
-            map.put("npcId", m.getNpcId());
-            map.put("npcName", m.getNpcName());
-            map.put("worldIndex", m.getWorldIndex());
-            map.put("title", m.getTitle());
-            map.put("excerpt", m.getExcerpt());
-            map.put("fateScore", m.getFateScore());
-            map.put("locked", m.isLocked());
-            map.put("emotionTone", m.getEmotionTone());
-            return map;
-        }).toList();
+        List<Map<String, Object>> list = memories.stream().map(this::memoryToMap).toList();
         return ok(Map.of("memories", list));
+    }
+
+    @GetMapping("/memory/hall")
+    public ResponseEntity<Map<String, Object>> getMemoryHall(HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        var hall = memoryService.getOrCreateHall(userId);
+        List<MemoryFragment> all = memoryService.listMemories(userId);
+
+        Map<Integer, Long> worldStats = new HashMap<>();
+        for (MemoryFragment f : all) {
+            worldStats.merge(f.getWorldIndex(), 1L, Long::sum);
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("totalFragments", hall.getTotalFragments());
+        data.put("unlockedFragments", hall.getUnlockedFragments());
+        data.put("worldStats", worldStats);
+        return ok(data);
+    }
+
+    @PostMapping("/memory/unlock")
+    public ResponseEntity<Map<String, Object>> unlockMemory(@RequestBody Map<String, Object> body, HttpSession session) {
+        Long userId = requireLogin(session);
+        if (userId == null) return err("未登录");
+        String fragmentId = (String) body.get("fragmentId");
+        if (fragmentId == null) return err("缺少fragmentId");
+
+        var opt = memoryService.getMemory(fragmentId);
+        if (opt.isEmpty()) return err("记忆碎片不存在");
+        MemoryFragment fragment = opt.get();
+        if (fragment.getPlayerId() != userId) return err("无权操作");
+        if (!fragment.isLocked()) return ok(memoryToMap(fragment));
+
+        // 检查对应NPC缘分是否达标
+        List<Relation> relations = fateService.getRelations(userId);
+        int currentFate = relations.stream()
+                .filter(r -> r.getNpcId() != null && r.getNpcId().equals(fragment.getNpcId()))
+                .mapToInt(Relation::getFateScore)
+                .max().orElse(0);
+        if (currentFate < 40) return err("缘分不足，需达到40");
+
+        fragment = memoryService.unlockMemory(fragment);
+        return ok(memoryToMap(fragment));
+    }
+
+    private Map<String, Object> memoryToMap(MemoryFragment m) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", m.getId());
+        map.put("npcId", m.getNpcId());
+        map.put("npcName", m.getNpcName());
+        map.put("worldIndex", m.getWorldIndex());
+        map.put("title", m.getTitle());
+        map.put("excerpt", m.getExcerpt());
+        map.put("fateScore", m.getFateScore());
+        map.put("locked", m.isLocked());
+        map.put("emotionTone", m.getEmotionTone());
+        map.put("bookTitle", m.getBookTitle());
+        map.put("createTime", m.getCreateTime());
+        map.put("unlockCondition", m.getUnlockCondition());
+        map.put("imageUrl", m.getImageUrl());
+        map.put("affectsNextWorld", m.isAffectsNextWorld());
+        return map;
     }
 
     // ── 宠物 ──────────────────────────────────────

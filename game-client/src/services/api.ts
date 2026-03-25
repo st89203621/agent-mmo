@@ -1,4 +1,4 @@
-import type { DialogueChoice, NpcInfo, Relation, BookWorld, MemoryFragment, ExploreStatus, ExploreEvent, ExploreReward } from '../types';
+import type { DialogueChoice, NpcInfo, Relation, RelationDetail, BookWorld, MemoryFragment, MemoryHall, ExploreStatus, ExploreEvent, ExploreReward } from '../types';
 
 const BASE_URL = '/api';
 
@@ -227,6 +227,10 @@ export function fetchFateMap() {
   return request<{ nodes: Relation[]; totalNpcs: number }>('/fate/map');
 }
 
+export function fetchRelationDetail(npcId: string, worldIndex = 0): Promise<RelationDetail> {
+  return request(`/fate/relation/${npcId}?worldIndex=${worldIndex}`);
+}
+
 // ── 书籍世界 ──────────────────────────────────────
 
 export function fetchBookWorlds(): Promise<{ books: BookWorld[] }> {
@@ -278,6 +282,17 @@ export function addBookFromWeb(title: string) {
 export function fetchMemories(worldIndex?: number): Promise<{ memories: MemoryFragment[] }> {
   const query = worldIndex !== undefined ? `?worldIndex=${worldIndex}` : '';
   return request(`/memory/list${query}`);
+}
+
+export function fetchMemoryHall(): Promise<MemoryHall> {
+  return request('/memory/hall');
+}
+
+export function unlockMemory(fragmentId: string): Promise<MemoryFragment> {
+  return request('/memory/unlock', {
+    method: 'POST',
+    body: JSON.stringify({ fragmentId }),
+  });
 }
 
 // ── 装备 ──────────────────────────────────────

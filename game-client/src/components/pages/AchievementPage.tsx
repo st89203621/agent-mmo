@@ -3,9 +3,10 @@ import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import {
-  fetchRelations, fetchRankList, fetchAchievements, claimAchievementReward,
+  fetchRelations, fetchRelationDetail, fetchRankList, fetchAchievements, claimAchievementReward,
   type RankEntryData, type AchievementData,
 } from '../../services/api';
+import type { RelationDetail } from '../../types';
 import FateBar from '../common/FateBar';
 import styles from './AchievementPage.module.css';
 
@@ -28,6 +29,21 @@ const RANK_TYPES = [
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉'];
 
+const MILESTONE_LABELS: Record<number, string> = {
+  60: '缘起', 80: '情深', 95: '命定',
+};
+
+const FATE_LEVEL_LABELS: { min: number; label: string; color: string }[] = [
+  { min: 80, label: '情深缘定', color: '#c04060' },
+  { min: 60, label: '心意相通', color: '#c08040' },
+  { min: 30, label: '渐生情愫', color: '#7ca8c6' },
+  { min: 0, label: '萍水相逢', color: '#9e9e9e' },
+];
+
+function getFateLevel(score: number) {
+  return FATE_LEVEL_LABELS.find(l => score >= l.min) || FATE_LEVEL_LABELS[3];
+}
+
 export default function AchievementPage() {
   const [tab, setTab] = useState<Tab>('achievement');
   const { relations, setRelations } = usePlayerStore();
@@ -39,6 +55,11 @@ export default function AchievementPage() {
   const [achieveStats, setAchieveStats] = useState({ total: 0, unlocked: 0 });
   const [achieveLoading, setAchieveLoading] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
+
+  // 缘分谱
+  const [selectedRelation, setSelectedRelation] = useState<RelationDetail | null>(null);
+  const [fateDetailLoading, setFateDetailLoading] = useState(false);
+  const [fateSortBy, setFateSortBy] = useState<'fate' | 'trust' | 'time'>('fate');
 
   // 排行
   const [rankType, setRankType] = useState('level');
@@ -88,6 +109,23 @@ export default function AchievementPage() {
     }
     setClaiming(null);
   }, [loadAchievements]);
+
+  const handleOpenRelation = useCallback(async (npcId: string, worldIndex: number) => {
+    setFateDetailLoading(true);
+    try {
+      const detail = await fetchRelationDetail(npcId, worldIndex);
+      setSelectedRelation(detail);
+    } catch {
+      toast.error('加载关系详情失败');
+    }
+    setFateDetailLoading(false);
+  }, []);
+
+  const sortedRelations = [...relations].sort((a, b) => {
+    if (fateSortBy === 'fate') return b.fateScore - a.fateScore;
+    if (fateSortBy === 'trust') return b.trustScore - a.trustScore;
+    return (b.lastInteractTime || 0) - (a.lastInteractTime || 0);
+  });
 
   const filteredAchievements = achieveCategory
     ? achievements.filter((a) => a.category === achieveCategory)
@@ -187,34 +225,154 @@ export default function AchievementPage() {
 
         {/* ── 缘分谱 ── */}
         {tab === 'fate' && (
-          relations.length > 0 ? (
-            <div className={styles.fateList}>
-              {relations.map((r, i) => (
-                <button
-                  key={r.relationId || i}
-                  className={styles.fateCard}
-                  onClick={() => navigateTo('story')}
-                >
-                  <div className={styles.fateAvatar}>{r.npcName.charAt(0)}</div>
-                  <div className={styles.fateInfo}>
-                    <div className={styles.fateName}>{r.npcName}</div>
-                    <FateBar fateScore={r.fateScore} trustScore={r.trustScore} npcName={r.npcName} />
-                    {r.keyFacts && r.keyFacts.length > 0 && (
-                      <div className={styles.fateKeyFact}>
-                        {r.keyFacts[r.keyFacts.length - 1]}
-                      </div>
+          <>
+            {/* 关系详情弹窗 */}
+            {selectedRelation && (
+              <div className={styles.fateDetail}>
+                <div className={styles.fateDetailHeader}>
+                  <div className={styles.fateDetailAvatar}>
+                    {selectedRelation.imageUrl ? (
+                      <img src={selectedRelation.imageUrl} alt="" className={styles.fateDetailImg}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : null}
+                    <span className={styles.fateDetailChar}>{selectedRelation.npcName.charAt(0)}</span>
+                  </div>
+                  <div className={styles.fateDetailInfo}>
+                    <div className={styles.fateDetailName}>{selectedRelation.npcName}</div>
+                    <div className={styles.fateDetailSub}>
+                      {selectedRelation.bookTitle && <span>{selectedRelation.bookTitle}</span>}
+                      {selectedRelation.role && <span> · {selectedRelation.role}</span>}
+                    </div>
+                    {selectedRelation.personality && (
+                      <div className={styles.fateDetailPersonality}>{selectedRelation.personality}</div>
                     )}
                   </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <span className={styles.placeholderIcon}>💫</span>
-              <p>尚无缘分记录</p>
-              <p className={styles.hint}>与NPC对话积累缘分</p>
-            </div>
-          )
+                  <button className={styles.fateDetailClose} onClick={() => setSelectedRelation(null)}>收起</button>
+                </div>
+
+                <FateBar fateScore={selectedRelation.fateScore} trustScore={selectedRelation.trustScore} npcName={selectedRelation.npcName} />
+
+                {/* 里程碑 */}
+                <div className={styles.milestoneRow}>
+                  {[60, 80, 95].map(ms => {
+                    const reached = selectedRelation.fateScore >= ms;
+                    return (
+                      <div key={ms} className={`${styles.milestoneItem} ${reached ? styles.milestoneReached : ''}`}>
+                        <span className={styles.milestoneNum}>{ms}</span>
+                        <span className={styles.milestoneLabel}>{MILESTONE_LABELS[ms]}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* NPC特征 */}
+                {(selectedRelation.gender || selectedRelation.age || selectedRelation.features) && (
+                  <div className={styles.npcTraits}>
+                    {selectedRelation.gender && <span className={styles.traitTag}>{selectedRelation.gender}</span>}
+                    {selectedRelation.age && <span className={styles.traitTag}>{selectedRelation.age}</span>}
+                    {selectedRelation.features && <span className={styles.traitTag}>{selectedRelation.features}</span>}
+                  </div>
+                )}
+
+                {/* 关键事件 */}
+                {selectedRelation.keyFacts && selectedRelation.keyFacts.length > 0 && (
+                  <div className={styles.keyFactsSection}>
+                    <div className={styles.keyFactsTitle}>关键事件</div>
+                    <div className={styles.keyFactsList}>
+                      {selectedRelation.keyFacts.map((fact, i) => (
+                        <div key={i} className={styles.keyFactItem}>{fact}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 关联记忆碎片 */}
+                {selectedRelation.memories && selectedRelation.memories.length > 0 && (
+                  <div className={styles.keyFactsSection}>
+                    <div className={styles.keyFactsTitle}>记忆碎片</div>
+                    <div className={styles.keyFactsList}>
+                      {selectedRelation.memories.map(m => (
+                        <div key={m.id} className={styles.keyFactItem}>
+                          {m.locked ? '???' : m.title}
+                          {!m.locked && m.fateScore > 0 && <span className={styles.memoryFate}> · 缘{m.fateScore}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button className={styles.goStoryBtn} onClick={() => navigateTo('story')}>前往对话</button>
+              </div>
+            )}
+
+            {/* 排序按钮 */}
+            {relations.length > 0 && !selectedRelation && (
+              <div className={styles.categoryRow}>
+                {([
+                  { key: 'fate' as const, label: '缘分排序' },
+                  { key: 'trust' as const, label: '信任排序' },
+                  { key: 'time' as const, label: '最近互动' },
+                ]).map(s => (
+                  <button
+                    key={s.key}
+                    className={`${styles.categoryBtn} ${fateSortBy === s.key ? styles.categoryActive : ''}`}
+                    onClick={() => setFateSortBy(s.key)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!selectedRelation && (
+              sortedRelations.length > 0 ? (
+                <div className={styles.fateList}>
+                  {sortedRelations.map((r, i) => {
+                    const level = getFateLevel(r.fateScore);
+                    return (
+                      <button
+                        key={r.relationId || i}
+                        className={styles.fateCard}
+                        onClick={() => handleOpenRelation(r.npcId, r.worldIndex || 0)}
+                        disabled={fateDetailLoading}
+                      >
+                        <div className={styles.fateAvatar} style={{ borderColor: level.color }}>
+                          {r.imageUrl ? (
+                            <img src={r.imageUrl} alt="" className={styles.fateAvatarImg}
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          ) : null}
+                          <span>{r.npcName.charAt(0)}</span>
+                        </div>
+                        <div className={styles.fateInfo}>
+                          <div className={styles.fateNameRow}>
+                            <span className={styles.fateName}>{r.npcName}</span>
+                            <span className={styles.fateLevel} style={{ color: level.color }}>{level.label}</span>
+                          </div>
+                          <FateBar fateScore={r.fateScore} trustScore={r.trustScore} npcName={r.npcName} compact />
+                          {r.milestone > 0 && (
+                            <span className={styles.fateMilestone}>
+                              {MILESTONE_LABELS[r.milestone] || `里程碑${r.milestone}`}
+                            </span>
+                          )}
+                          {r.keyFacts && r.keyFacts.length > 0 && (
+                            <div className={styles.fateKeyFact}>
+                              {r.keyFacts[r.keyFacts.length - 1]}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={styles.empty}>
+                  <span className={styles.placeholderIcon}>&#128171;</span>
+                  <p>尚无缘分记录</p>
+                  <p className={styles.hint}>与NPC对话积累缘分</p>
+                </div>
+              )
+            )}
+          </>
         )}
 
         {/* ── 排行榜 ── */}

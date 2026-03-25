@@ -215,10 +215,11 @@
 }
 
 .fateCard:active { transform: scale(0.98); }
+.fateCard:disabled { opacity: 0.6; cursor: wait; }
 
 .fateAvatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--paper-darker), var(--gold-dim));
   color: var(--ink);
@@ -229,15 +230,49 @@
   font-size: 16px;
   font-weight: 700;
   flex-shrink: 0;
+  border: 2px solid var(--paper-darker);
+  position: relative;
+  overflow: hidden;
+}
+
+.fateAvatarImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .fateInfo { flex: 1; min-width: 0; }
+
+.fateNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
 
 .fateName {
   font-family: var(--font-main);
   font-size: 15px;
   color: var(--ink);
-  margin-bottom: 4px;
+}
+
+.fateLevel {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-main);
+}
+
+.fateMilestone {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--gold-dim);
+  border: 1px solid var(--gold);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-top: 4px;
 }
 
 .fateKeyFact {
@@ -250,6 +285,204 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── 缘分详情弹窗 ── */
+.fateDetail {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fateDetailHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fateDetailAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--paper-darker), var(--gold-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.fateDetailImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.fateDetailChar {
+  position: relative;
+  z-index: 1;
+}
+
+.fateDetailInfo { flex: 1; min-width: 0; }
+
+.fateDetailName {
+  font-family: var(--font-main);
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.fateDetailSub {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.fateDetailPersonality {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.4;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.fateDetailClose {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.4;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+  padding: 2px 6px;
+}
+
+.fateDetailClose:hover { opacity: 0.7; }
+
+/* 里程碑 */
+.milestoneRow {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px 0;
+  margin: 8px 0;
+}
+
+.milestoneItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.3;
+  transition: opacity var(--transition-fast);
+}
+
+.milestoneReached {
+  opacity: 1;
+}
+
+.milestoneNum {
+  font-family: var(--font-main);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold-dim);
+}
+
+.milestoneReached .milestoneNum {
+  color: var(--gold);
+}
+
+.milestoneLabel {
+  font-size: 11px;
+  color: var(--ink);
+}
+
+/* NPC特征 */
+.npcTraits {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.traitTag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--paper-darker);
+  border-radius: 999px;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+/* 关键事件 */
+.keyFactsSection {
+  margin-top: 10px;
+}
+
+.keyFactsTitle {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  margin-bottom: 6px;
+  font-family: var(--font-main);
+}
+
+.keyFactsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.keyFactItem {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.65;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--paper-darker);
+  line-height: 1.5;
+}
+
+.keyFactItem:last-child { border-bottom: none; }
+
+.memoryFate {
+  color: #e8b4c8;
+  font-weight: 500;
+}
+
+.goStoryBtn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: opacity var(--transition-fast);
+}
+
+.goStoryBtn:active { opacity: 0.8; }
 
 /* ── 排行 ── */
 .myRankBanner {
