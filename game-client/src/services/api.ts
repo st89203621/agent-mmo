@@ -425,6 +425,23 @@ export function generatePortrait(params?: {
   });
 }
 
+export interface EditPortraitParams {
+  hairstyle?: string;
+  expression?: string;
+  clothing?: string;
+  accessory?: string;
+  pose?: string;
+  hairColor?: string;
+  custom?: string;
+}
+
+export function editPortrait(params: EditPortraitParams): Promise<{ portraitUrl: string }> {
+  return request('/person/portrait/edit', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
 export function generateBackground(params?: {
   theme?: string;
 }): Promise<{ bgUrl: string }> {

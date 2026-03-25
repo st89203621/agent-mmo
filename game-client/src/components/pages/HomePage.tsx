@@ -7,8 +7,8 @@ import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
   fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait, generateBackground,
-  logout,
-  type PersonData, type PetData, type CompanionData,
+  editPortrait, logout,
+  type PersonData, type PetData, type CompanionData, type EditPortraitParams,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
@@ -52,7 +52,36 @@ const BG_THEMES = [
   { key: '晨雾山岚', label: '晨雾山岚' },
 ];
 
-type PickerMode = 'portrait' | 'background' | null;
+type PickerMode = 'portrait' | 'background' | 'edit' | null;
+
+const EDIT_DIMENSIONS = {
+  hairstyle: {
+    label: '发型',
+    options: ['长发飘逸', '短发干练', '双马尾', '高马尾', '披肩卷发', '盘发', '半扎发', '寸头利落'],
+  },
+  expression: {
+    label: '表情',
+    options: ['温柔微笑', '冷酷凝视', '开朗大笑', '沉思忧郁', '傲然不屑', '害羞低眉', '坚毅自信', '邪魅一笑'],
+  },
+  clothing: {
+    label: '服饰',
+    options: ['华丽战甲', '飘逸长袍', '轻便皮甲', '素雅布衣', '宫廷礼服', '斗篷风衣', '武僧法衣', '龙纹锦袍'],
+  },
+  accessory: {
+    label: '配饰',
+    options: ['发簪玉冠', '面纱遮面', '耳坠项链', '肩甲护臂', '披风流苏', '额间宝石', '腰间佩剑', '手持法杖'],
+  },
+  pose: {
+    label: '姿态',
+    options: ['正面端庄', '侧身回眸', '抱臂而立', '单手托腮', '负手而立', '御剑而行', '掐诀凝气', '倚靠斜卧'],
+  },
+  hairColor: {
+    label: '发色',
+    options: ['乌黑亮泽', '银白如雪', '赤红似火', '金色璀璨', '湛蓝如海', '翠绿如玉', '紫罗兰色', '渐变双色'],
+  },
+} as const;
+
+type EditDimKey = keyof typeof EDIT_DIMENSIONS;
 
 interface HomeData {
   person: PersonData | null;
@@ -81,6 +110,8 @@ export default function HomePage() {
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
   const [selectedTheme, setSelectedTheme] = useState(BG_THEMES[0].key);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [editSelections, setEditSelections] = useState<Partial<Record<EditDimKey, string>>>({});
+  const [editCustom, setEditCustom] = useState('');
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleNamePointerDown = useCallback(() => {
@@ -169,6 +200,33 @@ export default function HomePage() {
     setGeneratingBg(false);
   }, [generatingBg]);
 
+  const handleEditPortrait = useCallback(async () => {
+    if (generating) return;
+    const params: EditPortraitParams = { ...editSelections, custom: editCustom || undefined };
+    const hasAny = Object.values(params).some((v) => v);
+    if (!hasAny) { toast.error('请至少选择一项调整'); return; }
+
+    setGenerating(true);
+    setPickerMode(null);
+    try {
+      const res = await editPortrait(params);
+      setPortraitUrl(res.portraitUrl);
+      setEditSelections({});
+      setEditCustom('');
+      toast.success('立绘调整完成');
+    } catch {
+      toast.error('立绘调整失败');
+    }
+    setGenerating(false);
+  }, [generating, editSelections, editCustom]);
+
+  const toggleEditSelection = useCallback((dim: EditDimKey, value: string) => {
+    setEditSelections((prev) => ({
+      ...prev,
+      [dim]: prev[dim] === value ? undefined : value,
+    }));
+  }, []);
+
   const transparentPortrait = useTransparentPortrait(portraitUrl);
 
   const person = data.person;
@@ -250,12 +308,19 @@ export default function HomePage() {
             {generating ? (
               <span className={styles.genStatus}>生成中…</span>
             ) : (
-              <button
-                className={styles.styleToggle}
-                onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
-              >
-                {portraitUrl ? '换立绘' : '生成立绘'}
-              </button>
+              <>
+                <button
+                  className={styles.styleToggle}
+                  onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
+                >
+                  {portraitUrl ? '换立绘' : '生成立绘'}
+                </button>
+                {portraitUrl && (
+                  <button className={styles.styleToggle} onClick={() => setPickerMode('edit')}>
+                    调整立绘
+                  </button>
+                )}
+              </>
             )}
             {generatingBg ? (
               <span className={styles.genStatus}>生成中…</span>
@@ -326,49 +391,87 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 风格选择面板 */}
-      {pickerMode && (
+      {/* 风格/编辑选择面板 */}
+      {pickerMode === 'portrait' && (
         <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.pickerTitle}>
-              {pickerMode === 'portrait' ? '选择立绘风格' : '选择背景主题'}
-            </h3>
-            <p className={styles.pickerHint}>
-              {pickerMode === 'portrait' ? '根据角色信息生成对应风格立绘' : '选择一个清新的场景主题'}
-            </p>
+            <h3 className={styles.pickerTitle}>选择立绘风格</h3>
+            <p className={styles.pickerHint}>根据角色信息生成对应风格立绘</p>
             <div className={styles.pickerGrid}>
-              {pickerMode === 'portrait'
-                ? ART_STYLES.map((s) => (
-                    <button
-                      key={s.key}
-                      className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
-                      onClick={() => setSelectedStyle(s.key)}
-                    >
-                      {s.label}
-                    </button>
-                  ))
-                : BG_THEMES.map((t) => (
-                    <button
-                      key={t.key}
-                      className={`${styles.pickerItem} ${selectedTheme === t.key ? styles.pickerActive : ''}`}
-                      onClick={() => setSelectedTheme(t.key)}
-                    >
-                      {t.label}
-                    </button>
-                  ))
-              }
+              {ART_STYLES.map((s) => (
+                <button
+                  key={s.key}
+                  className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
+                  onClick={() => setSelectedStyle(s.key)}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
-            <button
-              className={styles.pickerConfirm}
-              onClick={() => pickerMode === 'portrait'
-                ? handleGenerate(selectedStyle)
-                : handleGenerateBg(selectedTheme)
-              }
-            >
-              {pickerMode === 'portrait'
-                ? `生成「${ART_STYLES.find((s) => s.key === selectedStyle)?.label}」立绘`
-                : `生成「${BG_THEMES.find((t) => t.key === selectedTheme)?.label}」背景`
-              }
+            <button className={styles.pickerConfirm} onClick={() => handleGenerate(selectedStyle)}>
+              生成「{ART_STYLES.find((s) => s.key === selectedStyle)?.label}」立绘
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pickerMode === 'background' && (
+        <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
+          <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.pickerTitle}>选择背景主题</h3>
+            <p className={styles.pickerHint}>选择一个清新的场景主题</p>
+            <div className={styles.pickerGrid}>
+              {BG_THEMES.map((t) => (
+                <button
+                  key={t.key}
+                  className={`${styles.pickerItem} ${selectedTheme === t.key ? styles.pickerActive : ''}`}
+                  onClick={() => setSelectedTheme(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <button className={styles.pickerConfirm} onClick={() => handleGenerateBg(selectedTheme)}>
+              生成「{BG_THEMES.find((t) => t.key === selectedTheme)?.label}」背景
+            </button>
+          </div>
+        </div>
+      )}
+
+      {pickerMode === 'edit' && (
+        <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
+          <div className={`${styles.pickerPanel} ${styles.editPanel}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.pickerTitle}>调整立绘</h3>
+            <p className={styles.pickerHint}>选择想要调整的维度，也可输入自定义描述</p>
+            <div className={styles.editScroll}>
+              {(Object.entries(EDIT_DIMENSIONS) as [EditDimKey, typeof EDIT_DIMENSIONS[EditDimKey]][]).map(([dim, cfg]) => (
+                <div key={dim} className={styles.editSection}>
+                  <span className={styles.editDimLabel}>{cfg.label}</span>
+                  <div className={styles.editOptionRow}>
+                    {cfg.options.map((opt) => (
+                      <button
+                        key={opt}
+                        className={`${styles.editOption} ${editSelections[dim] === opt ? styles.pickerActive : ''}`}
+                        onClick={() => toggleEditSelection(dim, opt)}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className={styles.editSection}>
+                <span className={styles.editDimLabel}>自定义描述</span>
+                <input
+                  className={styles.editInput}
+                  placeholder="例：增加一道伤疤、换成红色眼瞳…"
+                  value={editCustom}
+                  onChange={(e) => setEditCustom(e.target.value)}
+                />
+              </div>
+            </div>
+            <button className={styles.pickerConfirm} onClick={handleEditPortrait}>
+              应用调整
             </button>
           </div>
         </div>

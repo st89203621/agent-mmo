@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -107,6 +108,60 @@ public class SceneImageService {
      */
     public Optional<SceneImage> getById(String id) {
         return sceneImageRepository.findById(id);
+    }
+
+    /**
+     * 基于原图编辑生成新图片（图生图）
+     */
+    public Optional<SceneImage> editImage(String sourceImageId, String editPrompt) {
+        Optional<SceneImage> source = sceneImageRepository.findById(sourceImageId);
+        if (source.isEmpty() || source.get().getImageData() == null) {
+            log.warn("编辑图片失败：原图不存在 id={}", sourceImageId);
+            return Optional.empty();
+        }
+
+        String base64 = Base64.getEncoder().encodeToString(source.get().getImageData());
+        String cacheKey = "edit_" + sourceImageId + "_" + editPrompt.hashCode() + "_" + System.currentTimeMillis();
+
+        try {
+            byte[] imageBytes = editAndDownload(base64, editPrompt);
+            if (imageBytes == null || imageBytes.length == 0) {
+                return Optional.empty();
+            }
+
+            SceneImage si = new SceneImage();
+            si.setId(UUID.randomUUID().toString());
+            si.setCacheKey(cacheKey);
+            si.setImageData(imageBytes);
+            si.setContentType("image/png");
+            si.setPrompt(editPrompt);
+            si.setCreateTime(System.currentTimeMillis());
+            sceneImageRepository.save(si);
+
+            log.info("图片编辑成功: sourceId={}, size={}KB", sourceImageId, imageBytes.length / 1024);
+            return Optional.of(si);
+        } catch (Exception e) {
+            log.warn("图片编辑失败: sourceId={}, error={}", sourceImageId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private byte[] editAndDownload(String imageBase64, String prompt) throws Exception {
+        GenerateImagesRequest request = GenerateImagesRequest.builder()
+                .model(model)
+                .prompt(prompt)
+                .image(List.of(imageBase64))
+                .size("1024x1024")
+                .watermark(false)
+                .build();
+
+        ImagesResponse response = arkService.generateImages(request);
+        if (response == null || response.getData() == null || response.getData().isEmpty()) {
+            return null;
+        }
+
+        String imageUrl = response.getData().get(0).getUrl();
+        return downloadImage(imageUrl);
     }
 
     private byte[] generateAndDownload(String prompt) throws Exception {

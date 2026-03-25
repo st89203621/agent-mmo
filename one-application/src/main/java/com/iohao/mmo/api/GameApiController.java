@@ -729,6 +729,80 @@ public class GameApiController {
         return ok(result);
     }
 
+    /**
+     * 基于当前立绘进行编辑调整（图生图）
+     */
+    @PostMapping("/person/portrait/edit")
+    public ResponseEntity<Map<String, Object>> editPortrait(@RequestBody Map<String, Object> body, HttpSession session) throws Exception {
+        long userId = requireLogin(session);
+        Person person = personService.getPersonById(userId);
+        if (person == null) return err("角色不存在");
+        if (person.getPortraitImageId() == null) return err("请先生成立绘");
+
+        String editPrompt = buildEditPrompt(person, body);
+
+        var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                () -> sceneImageService.editImage(person.getPortraitImageId(), editPrompt), sseExecutor);
+
+        Optional<SceneImage> editResult = result.get(120, java.util.concurrent.TimeUnit.SECONDS);
+        if (editResult.isEmpty()) return err("立绘编辑失败");
+
+        person.setPortraitImageId(editResult.get().getId());
+        personService.savePerson(person);
+
+        return ok(Map.of("portraitUrl", "/api/story/scene-image/" + editResult.get().getId()));
+    }
+
+    private String buildEditPrompt(Person person, Map<String, Object> body) {
+        StringBuilder sb = new StringBuilder();
+
+        // 基础描述：保持角色一致性
+        sb.append("基于原图进行局部调整，保持角色整体形象和画风一致，");
+
+        // 各维度调整
+        String hairstyle = (String) body.get("hairstyle");
+        if (hairstyle != null && !hairstyle.isEmpty()) {
+            sb.append("发型改为").append(hairstyle).append("，");
+        }
+
+        String expression = (String) body.get("expression");
+        if (expression != null && !expression.isEmpty()) {
+            sb.append("表情改为").append(expression).append("，");
+        }
+
+        String clothing = (String) body.get("clothing");
+        if (clothing != null && !clothing.isEmpty()) {
+            sb.append("服饰改为").append(clothing).append("，");
+        }
+
+        String accessory = (String) body.get("accessory");
+        if (accessory != null && !accessory.isEmpty()) {
+            sb.append("配饰改为").append(accessory).append("，");
+        }
+
+        String pose = (String) body.get("pose");
+        if (pose != null && !pose.isEmpty()) {
+            sb.append("姿态改为").append(pose).append("，");
+        }
+
+        String hairColor = (String) body.get("hairColor");
+        if (hairColor != null && !hairColor.isEmpty()) {
+            sb.append("发色改为").append(hairColor).append("，");
+        }
+
+        String custom = (String) body.get("custom");
+        if (custom != null && !custom.isEmpty()) {
+            sb.append(custom).append("，");
+        }
+
+        // 保持立绘规范
+        sb.append("单人半身立绘（从头到腰部），人物占画面80%以上，");
+        sb.append("面部清晰精致，主体居中，");
+        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，");
+        sb.append("高清，精致细节，清晰边缘");
+        return sb.toString();
+    }
+
     @PostMapping("/person/background")
     public ResponseEntity<Map<String, Object>> generateBackground(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
