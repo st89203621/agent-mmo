@@ -81,6 +81,9 @@ public class SpiritCompanion {
     
     /** AI生成的形象URL */
     String avatarUrl;
+
+    /** 立绘图片ID（对应SceneImage） */
+    String portraitImageId;
     
     /** 形象风格 */
     String avatarStyle;

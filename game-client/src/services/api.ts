@@ -425,18 +425,32 @@ export function generatePortrait(params?: {
   });
 }
 
+export type PortraitTarget = 'person' | 'companion' | 'pet';
+
+export function generateSubjectPortrait(params: {
+  target: PortraitTarget; targetId?: string; style?: string;
+}): Promise<{ portraitUrl: string }> {
+  return request('/portrait/generate', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
 export interface EditPortraitParams {
+  target: PortraitTarget;
+  targetId?: string;
   hairstyle?: string;
   expression?: string;
   clothing?: string;
   accessory?: string;
   pose?: string;
   hairColor?: string;
+  bodyColor?: string;
   custom?: string;
 }
 
-export function editPortrait(params: EditPortraitParams): Promise<{ portraitUrl: string }> {
-  return request('/person/portrait/edit', {
+export function editSubjectPortrait(params: EditPortraitParams): Promise<{ portraitUrl: string }> {
+  return request('/portrait/edit', {
     method: 'POST',
     body: JSON.stringify(params),
   });
@@ -505,6 +519,7 @@ export interface PetData {
   aiImageUrl: string;
   petType: string;
   element: string;
+  portraitUrl?: string;
 }
 
 export interface PetTemplateData {
@@ -814,6 +829,7 @@ export interface CompanionData {
   spd: number;
   currentHp: number;
   maxHp: number;
+  portraitUrl?: string;
 }
 
 export function fetchCompanions(): Promise<{ companions: CompanionData[] }> {

@@ -6,9 +6,12 @@ import { usePhaserGame } from '../../phaser/usePhaserGame';
 import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
-  fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait, generateBackground,
-  editPortrait, logout,
-  type PersonData, type PetData, type CompanionData, type EditPortraitParams,
+  fetchRebirthStatus, fetchCheckinStatus, doCheckin,
+  generatePortrait, generateBackground,
+  generateSubjectPortrait, editSubjectPortrait,
+  logout,
+  type PersonData, type PetData, type CompanionData,
+  type PortraitTarget, type EditPortraitParams,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
@@ -54,42 +57,48 @@ const BG_THEMES = [
 
 type PickerMode = 'portrait' | 'background' | 'edit' | null;
 
-const EDIT_DIMENSIONS = {
-  hairstyle: {
-    label: '发型',
-    options: ['长发飘逸', '短发干练', '双马尾', '高马尾', '披肩卷发', '盘发', '半扎发', '寸头利落'],
-  },
-  expression: {
-    label: '表情',
-    options: ['温柔微笑', '冷酷凝视', '开朗大笑', '沉思忧郁', '傲然不屑', '害羞低眉', '坚毅自信', '邪魅一笑'],
-  },
-  clothing: {
-    label: '服饰',
-    options: ['华丽战甲', '飘逸长袍', '轻便皮甲', '素雅布衣', '宫廷礼服', '斗篷风衣', '武僧法衣', '龙纹锦袍'],
-  },
-  accessory: {
-    label: '配饰',
-    options: ['发簪玉冠', '面纱遮面', '耳坠项链', '肩甲护臂', '披风流苏', '额间宝石', '腰间佩剑', '手持法杖'],
-  },
-  pose: {
-    label: '姿态',
-    options: ['正面端庄', '侧身回眸', '抱臂而立', '单手托腮', '负手而立', '御剑而行', '掐诀凝气', '倚靠斜卧'],
-  },
-  hairColor: {
-    label: '发色',
-    options: ['乌黑亮泽', '银白如雪', '赤红似火', '金色璀璨', '湛蓝如海', '翠绿如玉', '紫罗兰色', '渐变双色'],
-  },
+/* ── 编辑维度配置 ── */
+const PERSON_DIMS = {
+  hairstyle: { label: '发型', options: ['长发飘逸', '短发干练', '双马尾', '高马尾', '披肩卷发', '盘发', '半扎发', '寸头利落'] },
+  expression: { label: '表情', options: ['温柔微笑', '冷酷凝视', '开朗大笑', '沉思忧郁', '傲然不屑', '害羞低眉', '坚毅自信', '邪魅一笑'] },
+  clothing: { label: '服饰', options: ['华丽战甲', '飘逸长袍', '轻便皮甲', '素雅布衣', '宫廷礼服', '斗篷风衣', '武僧法衣', '龙纹锦袍'] },
+  accessory: { label: '配饰', options: ['发簪玉冠', '面纱遮面', '耳坠项链', '肩甲护臂', '披风流苏', '额间宝石', '腰间佩剑', '手持法杖'] },
+  pose: { label: '姿态', options: ['正面端庄', '侧身回眸', '抱臂而立', '单手托腮', '负手而立', '御剑而行', '掐诀凝气', '倚靠斜卧'] },
+  hairColor: { label: '发色', options: ['乌黑亮泽', '银白如雪', '赤红似火', '金色璀璨', '湛蓝如海', '翠绿如玉', '紫罗兰色', '渐变双色'] },
 } as const;
 
-type EditDimKey = keyof typeof EDIT_DIMENSIONS;
+const COMPANION_DIMS = {
+  expression: { label: '表情', options: ['温柔微笑', '冷酷凝视', '开朗大笑', '沉思忧郁', '傲然不屑', '害羞低眉', '坚毅自信', '邪魅一笑'] },
+  clothing: { label: '服饰', options: ['华丽战甲', '飘逸长袍', '轻便皮甲', '素雅布衣', '宫廷礼服', '斗篷风衣', '武僧法衣', '龙纹锦袍'] },
+  accessory: { label: '配饰', options: ['发簪玉冠', '面纱遮面', '耳坠项链', '肩甲护臂', '披风流苏', '额间宝石', '腰间佩剑', '手持法杖'] },
+  pose: { label: '姿态', options: ['正面端庄', '侧身回眸', '抱臂而立', '单手托腮', '负手而立', '御剑而行', '掐诀凝气', '倚靠斜卧'] },
+  hairColor: { label: '发色', options: ['乌黑亮泽', '银白如雪', '赤红似火', '金色璀璨', '湛蓝如海', '翠绿如玉', '紫罗兰色', '渐变双色'] },
+} as const;
+
+const PET_DIMS = {
+  bodyColor: { label: '体色', options: ['烈焰红', '冰霜蓝', '翡翠绿', '暗影紫', '金光闪耀', '银白冰晶', '漆黑如墨', '彩虹渐变'] },
+  pose: { label: '姿态', options: ['威严站立', '展翅高飞', '蜷伏休憩', '怒吼咆哮', '灵动跳跃', '回首凝望', '俯冲攻击', '温驯依偎'] },
+  expression: { label: '神态', options: ['威严霸气', '灵动俏皮', '温驯忠诚', '凶猛狂暴', '高傲冷峻', '憨态可掬', '神秘深邃', '活泼好动'] },
+  accessory: { label: '装饰', options: ['铠甲披挂', '灵光环绕', '宝石镶嵌', '符文刻印', '鞍具缰绳', '花环装饰', '火焰尾迹', '冰晶覆体'] },
+} as const;
+
+type EditDims = Record<string, { label: string; options: readonly string[] }>;
+
+function getEditDims(target: PortraitTarget): EditDims {
+  switch (target) {
+    case 'companion': return COMPANION_DIMS;
+    case 'pet': return PET_DIMS;
+    default: return PERSON_DIMS;
+  }
+}
 
 interface HomeData {
   person: PersonData | null;
   explore: ExploreStatus | null;
   rebirthInfo: { currentWorldIndex: number; currentBook: string; totalRebirths: number } | null;
   checkin: { todayChecked: boolean; consecutiveDays: number; totalDays: number } | null;
-  pet: PetData | null;
-  companion: CompanionData | null;
+  pets: PetData[];
+  companions: CompanionData[];
 }
 
 export default function HomePage() {
@@ -99,10 +108,9 @@ export default function HomePage() {
   usePhaserGame(phaserRef, [HomeScene]);
 
   const [data, setData] = useState<HomeData>({
-    person: null, explore: null, rebirthInfo: null, checkin: null, pet: null, companion: null,
+    person: null, explore: null, rebirthInfo: null, checkin: null, pets: [], companions: [],
   });
   const [loading, setLoading] = useState(true);
-  const [portraitUrl, setPortraitUrl] = useState<string | null>(null);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generatingBg, setGeneratingBg] = useState(false);
@@ -110,30 +118,50 @@ export default function HomePage() {
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
   const [selectedTheme, setSelectedTheme] = useState(BG_THEMES[0].key);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [editSelections, setEditSelections] = useState<Partial<Record<EditDimKey, string>>>({});
+  const [editSelections, setEditSelections] = useState<Record<string, string | undefined>>({});
   const [editCustom, setEditCustom] = useState('');
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /* ── 多主体立绘切换 ── */
+  const [activeSubject, setActiveSubject] = useState<PortraitTarget>('person');
+  const [portraitUrls, setPortraitUrls] = useState<Record<string, string | null>>({ person: null });
+
+  const activePortraitUrl = (() => {
+    if (activeSubject === 'person') return portraitUrls.person ?? null;
+    if (activeSubject === 'companion') {
+      const comp = data.companions[0];
+      return comp ? (portraitUrls[`comp_${comp.id}`] ?? null) : null;
+    }
+    const pet = data.pets[0];
+    return pet ? (portraitUrls[`pet_${pet.id}`] ?? null) : null;
+  })();
+
+  const activeTargetId = (() => {
+    if (activeSubject === 'companion') return data.companions[0]?.id;
+    if (activeSubject === 'pet') return data.pets[0]?.id;
+    return undefined;
+  })();
+
+  const activeLabel = (() => {
+    if (activeSubject === 'companion') return data.companions[0]?.name ?? '灵侣';
+    if (activeSubject === 'pet') return data.pets[0]?.nickname ?? '宠物';
+    return data.person?.name || playerName || '无名侠客';
+  })();
+
+  /* ── 事件处理 ── */
   const handleNamePointerDown = useCallback(() => {
     longPressTimer.current = setTimeout(() => setShowLogoutConfirm(true), 800);
   }, []);
-
   const handleNamePointerUp = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   }, []);
-
   const handleLogout = useCallback(() => {
     setShowLogoutConfirm(false);
     clearPlayer();
     logout().catch(() => {});
   }, [clearPlayer]);
 
-  useEffect(() => () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current);
-  }, []);
+  useEffect(() => () => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }, []);
 
   useEffect(() => {
     Promise.all([
@@ -152,10 +180,15 @@ export default function HomePage() {
         explore: explore as ExploreStatus | null,
         rebirthInfo: rebirth as HomeData['rebirthInfo'],
         checkin: checkin as HomeData['checkin'],
-        pet: pets[0] || null,
-        companion: companions[0] || null,
+        pets,
+        companions,
       });
-      if (p?.portraitUrl) setPortraitUrl(p.portraitUrl);
+      // 初始化各主体已有的立绘URL
+      const urls: Record<string, string | null> = {};
+      urls.person = p?.portraitUrl ?? null;
+      pets.forEach((pet) => { if (pet.portraitUrl) urls[`pet_${pet.id}`] = pet.portraitUrl; });
+      companions.forEach((c) => { if (c.portraitUrl) urls[`comp_${c.id}`] = c.portraitUrl; });
+      setPortraitUrls(urls);
       if (p?.bgUrl) setBgUrl(p.bgUrl);
       setLoading(false);
     });
@@ -167,24 +200,38 @@ export default function HomePage() {
       const res = await doCheckin();
       setData((prev) => ({ ...prev, checkin: res }));
       toast.reward('签到成功！');
-    } catch {
-      toast.error('签到失败');
-    }
+    } catch { toast.error('签到失败'); }
   }, [data.checkin]);
 
-  const handleGenerate = useCallback(async (style: string) => {
+  /* ── 人物立绘（保留原有逻辑，同时生成背景） ── */
+  const handleGeneratePersonPortrait = useCallback(async (style: string) => {
     if (generating) return;
     setGenerating(true);
     setPickerMode(null);
     try {
-      const res = await generatePortrait({ style, force: !!portraitUrl });
-      setPortraitUrl(res.portraitUrl);
+      const res = await generatePortrait({ style, force: !!portraitUrls.person });
+      setPortraitUrls((prev) => ({ ...prev, person: res.portraitUrl }));
+      if (res.bgUrl) setBgUrl(res.bgUrl);
       toast.success('立绘生成完成');
-    } catch {
-      toast.error('立绘生成失败');
-    }
+    } catch { toast.error('立绘生成失败'); }
     setGenerating(false);
-  }, [generating, portraitUrl]);
+  }, [generating, portraitUrls.person]);
+
+  /* ── 统一立绘生成（灵侣/宠物/也可用于人物） ── */
+  const handleGenerateSubject = useCallback(async (style: string) => {
+    if (generating) return;
+    if (activeSubject === 'person') { handleGeneratePersonPortrait(style); return; }
+
+    setGenerating(true);
+    setPickerMode(null);
+    try {
+      const res = await generateSubjectPortrait({ target: activeSubject, targetId: activeTargetId, style });
+      const key = activeSubject === 'companion' ? `comp_${activeTargetId}` : `pet_${activeTargetId}`;
+      setPortraitUrls((prev) => ({ ...prev, [key]: res.portraitUrl }));
+      toast.success('立绘生成完成');
+    } catch { toast.error('立绘生成失败'); }
+    setGenerating(false);
+  }, [generating, activeSubject, activeTargetId, handleGeneratePersonPortrait]);
 
   const handleGenerateBg = useCallback(async (theme: string) => {
     if (generatingBg) return;
@@ -194,45 +241,56 @@ export default function HomePage() {
       const res = await generateBackground({ theme });
       setBgUrl(res.bgUrl);
       toast.success('背景生成完成');
-    } catch {
-      toast.error('背景生成失败');
-    }
+    } catch { toast.error('背景生成失败'); }
     setGeneratingBg(false);
   }, [generatingBg]);
 
+  /* ── 统一立绘编辑 ── */
   const handleEditPortrait = useCallback(async () => {
     if (generating) return;
-    const params: EditPortraitParams = { ...editSelections, custom: editCustom || undefined };
-    const hasAny = Object.values(params).some((v) => v);
+    const params: EditPortraitParams = {
+      target: activeSubject,
+      targetId: activeTargetId,
+      ...editSelections,
+      custom: editCustom || undefined,
+    };
+    const hasAny = Object.entries(params).some(([k, v]) => k !== 'target' && k !== 'targetId' && v);
     if (!hasAny) { toast.error('请至少选择一项调整'); return; }
 
     setGenerating(true);
     setPickerMode(null);
     try {
-      const res = await editPortrait(params);
-      setPortraitUrl(res.portraitUrl);
+      const res = await editSubjectPortrait(params);
+      const key = activeSubject === 'person' ? 'person'
+        : activeSubject === 'companion' ? `comp_${activeTargetId}`
+        : `pet_${activeTargetId}`;
+      setPortraitUrls((prev) => ({ ...prev, [key]: res.portraitUrl }));
       setEditSelections({});
       setEditCustom('');
       toast.success('立绘调整完成');
-    } catch {
-      toast.error('立绘调整失败');
-    }
+    } catch { toast.error('立绘调整失败'); }
     setGenerating(false);
-  }, [generating, editSelections, editCustom]);
+  }, [generating, activeSubject, activeTargetId, editSelections, editCustom]);
 
-  const toggleEditSelection = useCallback((dim: EditDimKey, value: string) => {
-    setEditSelections((prev) => ({
-      ...prev,
-      [dim]: prev[dim] === value ? undefined : value,
-    }));
+  const toggleEditSelection = useCallback((dim: string, value: string) => {
+    setEditSelections((prev) => ({ ...prev, [dim]: prev[dim] === value ? undefined : value }));
   }, []);
 
-  const transparentPortrait = useTransparentPortrait(portraitUrl);
+  const transparentPortrait = useTransparentPortrait(activePortraitUrl);
 
   const person = data.person;
   const worldLabel = data.rebirthInfo ? `第${data.rebirthInfo.currentWorldIndex + 1}世` : '';
   const bookLabel = data.rebirthInfo?.currentBook || currentBookWorld?.title || '';
   const hasBg = !!bgUrl;
+
+  /* 可切换的主体列表 */
+  const subjects: { key: PortraitTarget; label: string; available: boolean }[] = [
+    { key: 'person', label: '角色', available: true },
+    { key: 'companion', label: data.companions[0]?.name ?? '灵侣', available: data.companions.length > 0 },
+    { key: 'pet', label: data.pets[0]?.nickname ?? '宠物', available: data.pets.length > 0 },
+  ];
+
+  const editDims = getEditDims(activeSubject);
 
   if (loading) {
     return (
@@ -248,10 +306,7 @@ export default function HomePage() {
       className={styles.page}
       style={hasBg ? { backgroundImage: `url(${bgUrl})` } : undefined}
     >
-      {/* 背景暗角遮罩 */}
       {hasBg && <div className={styles.bgVignette} />}
-
-      {/* Phaser 粒子（有背景时降低存在感） */}
       <div ref={phaserRef} className={`${styles.phaserLayer} ${hasBg ? styles.phaserDim : ''}`} />
 
       {/* HUD */}
@@ -275,61 +330,17 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 第二行：角色名 + 伙伴 + 操作按钮 */}
+        {/* 第二行：角色名 */}
         <div className={styles.row2}>
           <h1
             className={styles.charName}
-            onClick={() => navigateTo('character')}
+            onClick={() => navigateTo(activeSubject === 'pet' ? 'pet' : activeSubject === 'companion' ? 'companion' : 'character')}
             onPointerDown={handleNamePointerDown}
             onPointerUp={handleNamePointerUp}
             onPointerLeave={handleNamePointerUp}
           >
-            {person?.name || playerName || '无名侠客'}
+            {activeLabel}
           </h1>
-          <div className={styles.companionGroup}>
-            {data.pet && (
-              <button className={styles.companionChip} onClick={() => navigateTo('pet')}>
-                {data.pet.aiImageUrl
-                  ? <img src={data.pet.aiImageUrl} alt={data.pet.nickname} className={styles.companionImg} />
-                  : <span className={styles.companionIcon}>🐾</span>}
-                <span className={styles.companionLabel}>{data.pet.nickname || '宠物'}</span>
-              </button>
-            )}
-            {data.companion && (
-              <button className={styles.companionChip} onClick={() => navigateTo('companion')}>
-                <span className={styles.companionIcon}>💫</span>
-                <span className={styles.companionLabel}>{data.companion.name}</span>
-                <span className={styles.companionLevel}>Lv.{data.companion.level}</span>
-              </button>
-            )}
-          </div>
-          <div className={styles.row2Spacer} />
-          <div className={styles.actionGroup}>
-            {generating ? (
-              <span className={styles.genStatus}>生成中…</span>
-            ) : (
-              <>
-                <button
-                  className={styles.styleToggle}
-                  onClick={() => portraitUrl ? setPickerMode('portrait') : handleGenerate(selectedStyle)}
-                >
-                  {portraitUrl ? '换立绘' : '生成立绘'}
-                </button>
-                {portraitUrl && (
-                  <button className={styles.styleToggle} onClick={() => setPickerMode('edit')}>
-                    调整立绘
-                  </button>
-                )}
-              </>
-            )}
-            {generatingBg ? (
-              <span className={styles.genStatus}>生成中…</span>
-            ) : (
-              <button className={styles.styleToggle} onClick={() => setPickerMode('background')}>
-                换背景
-              </button>
-            )}
-          </div>
         </div>
 
         {/* 第三行：属性 + 行动力 */}
@@ -353,22 +364,65 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 立绘：占满全部剩余空间 */}
+        {/* 立绘区域 */}
         <section className={styles.portraitZone}>
           <div
-            className={`${styles.portraitFrame} ${portraitUrl ? styles.alive : ''}`}
-            onClick={() => navigateTo('character')}
+            className={`${styles.portraitFrame} ${activePortraitUrl ? styles.alive : ''}`}
+            onClick={() => navigateTo(activeSubject === 'pet' ? 'pet' : activeSubject === 'companion' ? 'companion' : 'character')}
           >
             {transparentPortrait ? (
               <img src={transparentPortrait} alt="立绘" className={styles.portraitImg} />
             ) : (
               <div className={styles.portraitPlaceholder}>
                 <span className={styles.portraitChar}>
-                  {person?.name?.charAt(0) || playerName?.charAt(0) || '侠'}
+                  {activeLabel.charAt(0) || '侠'}
                 </span>
               </div>
             )}
-            {portraitUrl && <div className={styles.shineOverlay} />}
+          </div>
+
+          {/* 底部操作栏：主体切换 + 生成/编辑按钮 */}
+          <div className={styles.bottomBar}>
+            {/* 主体切换标签 */}
+            <div className={styles.subjectTabs}>
+              {subjects.filter((s) => s.available).map((s) => (
+                <button
+                  key={s.key}
+                  className={`${styles.subjectTab} ${activeSubject === s.key ? styles.subjectTabActive : ''}`}
+                  onClick={() => { setActiveSubject(s.key); setEditSelections({}); setEditCustom(''); }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 操作按钮 */}
+            <div className={styles.actionGroup}>
+              {generating ? (
+                <span className={styles.genStatus}>生成中…</span>
+              ) : (
+                <>
+                  <button
+                    className={styles.actionBtn}
+                    onClick={() => activePortraitUrl ? setPickerMode('portrait') : handleGenerateSubject(selectedStyle)}
+                  >
+                    {activePortraitUrl ? '换立绘' : '生成立绘'}
+                  </button>
+                  {activePortraitUrl && (
+                    <button className={styles.actionBtn} onClick={() => setPickerMode('edit')}>
+                      调整
+                    </button>
+                  )}
+                </>
+              )}
+              {generatingBg ? (
+                <span className={styles.genStatus}>…</span>
+              ) : (
+                <button className={styles.actionBtn} onClick={() => setPickerMode('background')}>
+                  换背景
+                </button>
+              )}
+            </div>
           </div>
         </section>
       </div>
@@ -380,41 +434,36 @@ export default function HomePage() {
             <h3 className={styles.pickerTitle}>退出登录</h3>
             <p className={styles.pickerHint}>确定要退出当前账号吗？</p>
             <div className={styles.confirmActions}>
-              <button className={`${styles.pickerItem} ${styles.confirmBtn}`} onClick={() => setShowLogoutConfirm(false)}>
-                取消
-              </button>
-              <button className={`${styles.pickerConfirm} ${styles.confirmBtn}`} onClick={handleLogout}>
-                退出
-              </button>
+              <button className={`${styles.pickerItem} ${styles.confirmBtn}`} onClick={() => setShowLogoutConfirm(false)}>取消</button>
+              <button className={`${styles.pickerConfirm} ${styles.confirmBtn}`} onClick={handleLogout}>退出</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 风格/编辑选择面板 */}
+      {/* 风格选择面板 */}
       {pickerMode === 'portrait' && (
         <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.pickerTitle}>选择立绘风格</h3>
-            <p className={styles.pickerHint}>根据角色信息生成对应风格立绘</p>
+            <p className={styles.pickerHint}>为「{activeLabel}」生成对应风格立绘</p>
             <div className={styles.pickerGrid}>
               {ART_STYLES.map((s) => (
                 <button
                   key={s.key}
                   className={`${styles.pickerItem} ${selectedStyle === s.key ? styles.pickerActive : ''}`}
                   onClick={() => setSelectedStyle(s.key)}
-                >
-                  {s.label}
-                </button>
+                >{s.label}</button>
               ))}
             </div>
-            <button className={styles.pickerConfirm} onClick={() => handleGenerate(selectedStyle)}>
+            <button className={styles.pickerConfirm} onClick={() => handleGenerateSubject(selectedStyle)}>
               生成「{ART_STYLES.find((s) => s.key === selectedStyle)?.label}」立绘
             </button>
           </div>
         </div>
       )}
 
+      {/* 背景选择面板 */}
       {pickerMode === 'background' && (
         <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={styles.pickerPanel} onClick={(e) => e.stopPropagation()}>
@@ -426,9 +475,7 @@ export default function HomePage() {
                   key={t.key}
                   className={`${styles.pickerItem} ${selectedTheme === t.key ? styles.pickerActive : ''}`}
                   onClick={() => setSelectedTheme(t.key)}
-                >
-                  {t.label}
-                </button>
+                >{t.label}</button>
               ))}
             </div>
             <button className={styles.pickerConfirm} onClick={() => handleGenerateBg(selectedTheme)}>
@@ -438,24 +485,23 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* 立绘编辑面板 */}
       {pickerMode === 'edit' && (
         <div className={styles.pickerOverlay} onClick={() => setPickerMode(null)}>
           <div className={`${styles.pickerPanel} ${styles.editPanel}`} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.pickerTitle}>调整立绘</h3>
+            <h3 className={styles.pickerTitle}>调整「{activeLabel}」立绘</h3>
             <p className={styles.pickerHint}>选择想要调整的维度，也可输入自定义描述</p>
             <div className={styles.editScroll}>
-              {(Object.entries(EDIT_DIMENSIONS) as [EditDimKey, typeof EDIT_DIMENSIONS[EditDimKey]][]).map(([dim, cfg]) => (
+              {Object.entries(editDims).map(([dim, cfg]) => (
                 <div key={dim} className={styles.editSection}>
                   <span className={styles.editDimLabel}>{cfg.label}</span>
                   <div className={styles.editOptionRow}>
                     {cfg.options.map((opt) => (
                       <button
                         key={opt}
-                        className={`${styles.editOption} ${editSelections[dim] === opt ? styles.pickerActive : ''}`}
+                        className={`${styles.editOption} ${editSelections[dim] === opt ? styles.editOptionActive : ''}`}
                         onClick={() => toggleEditSelection(dim, opt)}
-                      >
-                        {opt}
-                      </button>
+                      >{opt}</button>
                     ))}
                   </div>
                 </div>
@@ -470,9 +516,7 @@ export default function HomePage() {
                 />
               </div>
             </div>
-            <button className={styles.pickerConfirm} onClick={handleEditPortrait}>
-              应用调整
-            </button>
+            <button className={styles.pickerConfirm} onClick={handleEditPortrait}>应用调整</button>
           </div>
         </div>
       )}

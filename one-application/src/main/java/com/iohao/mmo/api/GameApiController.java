@@ -51,8 +51,10 @@ import com.iohao.mmo.rank.entity.RankEntry;
 import com.iohao.mmo.rank.service.RankService;
 import com.iohao.mmo.bookworld.explore.ExploreEvent;
 import com.iohao.mmo.bookworld.explore.ExploreService;
+import com.iohao.mmo.companion.entity.CompanionBag;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
+import com.iohao.mmo.pet.entity.PetBag;
 import com.iohao.mmo.story.entity.SceneImage;
 import com.iohao.mmo.story.service.SceneImageService;
 import jakarta.annotation.Resource;
@@ -729,78 +731,183 @@ public class GameApiController {
         return ok(result);
     }
 
-    /**
-     * 基于当前立绘进行编辑调整（图生图）
-     */
-    @PostMapping("/person/portrait/edit")
-    public ResponseEntity<Map<String, Object>> editPortrait(@RequestBody Map<String, Object> body, HttpSession session) throws Exception {
+    // ── 统一立绘生成（角色/灵侣/宠物） ──────────────────
+
+    @PostMapping("/portrait/generate")
+    public ResponseEntity<Map<String, Object>> generateSubjectPortrait(@RequestBody Map<String, Object> body, HttpSession session) throws Exception {
         long userId = requireLogin(session);
-        Person person = personService.getPersonById(userId);
-        if (person == null) return err("角色不存在");
-        if (person.getPortraitImageId() == null) return err("请先生成立绘");
+        String target = (String) body.getOrDefault("target", "person");
+        String targetId = (String) body.get("targetId");
+        String style = (String) body.getOrDefault("style", "仙侠水墨风");
 
-        String editPrompt = buildEditPrompt(person, body);
+        String prompt;
+        String cacheKey;
+        long ts = System.currentTimeMillis();
 
-        var result = java.util.concurrent.CompletableFuture.supplyAsync(
-                () -> sceneImageService.editImage(person.getPortraitImageId(), editPrompt), sseExecutor);
+        switch (target) {
+            case "companion" -> {
+                CompanionBag bag = companionService.ofCompanionBag(userId);
+                SpiritCompanion comp = findCompanionById(bag, targetId);
+                if (comp == null) return err("灵侣不存在");
+                prompt = buildCompanionPortraitPrompt(comp, style);
+                cacheKey = "portrait_comp_" + comp.getId() + "_" + style.hashCode() + "_" + ts;
 
-        Optional<SceneImage> editResult = result.get(120, java.util.concurrent.TimeUnit.SECONDS);
-        if (editResult.isEmpty()) return err("立绘编辑失败");
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.getOrGenerate(cacheKey, prompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("灵侣立绘生成失败");
 
-        person.setPortraitImageId(editResult.get().getId());
-        personService.savePerson(person);
+                comp.setPortraitImageId(result.get().getId());
+                companionService.save(bag);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+            case "pet" -> {
+                PetBag petBag = petService.ofPetBag(userId);
+                Pet pet = petBag.getPet(targetId);
+                if (pet == null) return err("宠物不存在");
+                prompt = buildPetPortraitPrompt(pet, style);
+                cacheKey = "portrait_pet_" + pet.getId() + "_" + style.hashCode() + "_" + ts;
 
-        return ok(Map.of("portraitUrl", "/api/story/scene-image/" + editResult.get().getId()));
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.getOrGenerate(cacheKey, prompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("宠物立绘生成失败");
+
+                pet.setPortraitImageId(result.get().getId());
+                petService.save(petBag);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+            default -> {
+                // person 走原有流程
+                Person person = personService.getPersonById(userId);
+                if (person == null) return err("角色不存在");
+                prompt = buildPortraitPrompt(person.getName(), style, person.getGender(), person.getFeatures());
+                cacheKey = "portrait_" + userId + "_" + style.hashCode() + "_" + ts;
+
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.getOrGenerate(cacheKey, prompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("立绘生成失败");
+
+                person.setPortraitImageId(result.get().getId());
+                personService.savePerson(person);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+        }
     }
 
-    private String buildEditPrompt(Person person, Map<String, Object> body) {
+    @PostMapping("/portrait/edit")
+    public ResponseEntity<Map<String, Object>> editSubjectPortrait(@RequestBody Map<String, Object> body, HttpSession session) throws Exception {
+        long userId = requireLogin(session);
+        String target = (String) body.getOrDefault("target", "person");
+        String targetId = (String) body.get("targetId");
+
+        String sourceImageId;
+        switch (target) {
+            case "companion" -> {
+                CompanionBag bag = companionService.ofCompanionBag(userId);
+                SpiritCompanion comp = findCompanionById(bag, targetId);
+                if (comp == null) return err("灵侣不存在");
+                if (comp.getPortraitImageId() == null) return err("请先生成灵侣立绘");
+                sourceImageId = comp.getPortraitImageId();
+
+                String editPrompt = buildEditPrompt(body, "灵侣");
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.editImage(sourceImageId, editPrompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("灵侣立绘调整失败");
+
+                comp.setPortraitImageId(result.get().getId());
+                companionService.save(bag);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+            case "pet" -> {
+                PetBag petBag = petService.ofPetBag(userId);
+                Pet pet = petBag.getPet(targetId);
+                if (pet == null) return err("宠物不存在");
+                if (pet.getPortraitImageId() == null) return err("请先生成宠物立绘");
+                sourceImageId = pet.getPortraitImageId();
+
+                String editPrompt = buildEditPrompt(body, "宠物");
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.editImage(sourceImageId, editPrompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("宠物立绘调整失败");
+
+                pet.setPortraitImageId(result.get().getId());
+                petService.save(petBag);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+            default -> {
+                Person person = personService.getPersonById(userId);
+                if (person == null) return err("角色不存在");
+                if (person.getPortraitImageId() == null) return err("请先生成立绘");
+                sourceImageId = person.getPortraitImageId();
+
+                String editPrompt = buildEditPrompt(body, "角色");
+                var result = java.util.concurrent.CompletableFuture.supplyAsync(
+                        () -> sceneImageService.editImage(sourceImageId, editPrompt), sseExecutor)
+                        .get(120, java.util.concurrent.TimeUnit.SECONDS);
+                if (result.isEmpty()) return err("立绘调整失败");
+
+                person.setPortraitImageId(result.get().getId());
+                personService.savePerson(person);
+                return ok(Map.of("portraitUrl", "/api/story/scene-image/" + result.get().getId()));
+            }
+        }
+    }
+
+    private String buildCompanionPortraitPrompt(SpiritCompanion comp, String style) {
+        return style + "灵侣立绘，" + comp.getName() + "，"
+                + comp.getType() + "属性，" + comp.getRealm() + "境界，"
+                + "仙侠角色，气质出众，"
+                + "单人半身立绘（从头到腰部），正面或四分之三侧面，"
+                + "人物占画面80%以上，面部清晰精致，表情生动，"
+                + "姿态自然飘逸，主体居中，"
+                + "纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，"
+                + "高清，精致细节，清晰边缘";
+    }
+
+    private String buildPetPortraitPrompt(Pet pet, String style) {
+        String typeLabel = pet.getPetType() != null ? pet.getPetType() : "神兽";
+        String elementLabel = pet.getElement() != null ? pet.getElement() + "属性" : "";
+        return style + "宠物立绘，" + (pet.getNickname() != null ? pet.getNickname() + "，" : "")
+                + typeLabel + "，" + elementLabel + "，"
+                + "神话幻想生物，威严灵动，"
+                + "完整全身像，主体居中占画面80%以上，"
+                + "纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，"
+                + "高清，精致细节，清晰边缘";
+    }
+
+    private String buildEditPrompt(Map<String, Object> body, String subjectType) {
         StringBuilder sb = new StringBuilder();
+        sb.append("基于原图进行局部调整，保持").append(subjectType).append("整体形象和画风一致，");
 
-        // 基础描述：保持角色一致性
-        sb.append("基于原图进行局部调整，保持角色整体形象和画风一致，");
-
-        // 各维度调整
-        String hairstyle = (String) body.get("hairstyle");
-        if (hairstyle != null && !hairstyle.isEmpty()) {
-            sb.append("发型改为").append(hairstyle).append("，");
-        }
-
-        String expression = (String) body.get("expression");
-        if (expression != null && !expression.isEmpty()) {
-            sb.append("表情改为").append(expression).append("，");
-        }
-
-        String clothing = (String) body.get("clothing");
-        if (clothing != null && !clothing.isEmpty()) {
-            sb.append("服饰改为").append(clothing).append("，");
-        }
-
-        String accessory = (String) body.get("accessory");
-        if (accessory != null && !accessory.isEmpty()) {
-            sb.append("配饰改为").append(accessory).append("，");
-        }
-
-        String pose = (String) body.get("pose");
-        if (pose != null && !pose.isEmpty()) {
-            sb.append("姿态改为").append(pose).append("，");
-        }
-
-        String hairColor = (String) body.get("hairColor");
-        if (hairColor != null && !hairColor.isEmpty()) {
-            sb.append("发色改为").append(hairColor).append("，");
-        }
+        appendDim(sb, body, "hairstyle", "发型");
+        appendDim(sb, body, "expression", "表情");
+        appendDim(sb, body, "clothing", "服饰");
+        appendDim(sb, body, "accessory", "配饰");
+        appendDim(sb, body, "pose", "姿态");
+        appendDim(sb, body, "hairColor", "发色");
+        appendDim(sb, body, "bodyColor", "体色");
 
         String custom = (String) body.get("custom");
-        if (custom != null && !custom.isEmpty()) {
-            sb.append(custom).append("，");
-        }
+        if (custom != null && !custom.isEmpty()) sb.append(custom).append("，");
 
-        // 保持立绘规范
-        sb.append("单人半身立绘（从头到腰部），人物占画面80%以上，");
-        sb.append("面部清晰精致，主体居中，");
+        sb.append("主体占画面80%以上，主体居中，");
         sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，");
         sb.append("高清，精致细节，清晰边缘");
         return sb.toString();
+    }
+
+    private SpiritCompanion findCompanionById(CompanionBag bag, String id) {
+        if (bag.getCompanions() == null || id == null) return null;
+        return bag.getCompanions().stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
+    }
+
+    private void appendDim(StringBuilder sb, Map<String, Object> body, String key, String label) {
+        String val = (String) body.get(key);
+        if (val != null && !val.isEmpty()) sb.append(label).append("改为").append(val).append("，");
     }
 
     @PostMapping("/person/background")
@@ -2092,6 +2199,9 @@ public class GameApiController {
         m.put("spd", c.getSpd());
         m.put("currentHp", c.getCurrentHp());
         m.put("maxHp", c.getMaxHp());
+        if (c.getPortraitImageId() != null) {
+            m.put("portraitUrl", "/api/story/scene-image/" + c.getPortraitImageId());
+        }
         return m;
     }
 
@@ -2210,6 +2320,9 @@ public class GameApiController {
         m.put("aiImageUrl", pet.getAiImageUrl());
         m.put("petType", pet.getPetType());
         m.put("element", pet.getElement());
+        if (pet.getPortraitImageId() != null) {
+            m.put("portraitUrl", "/api/story/scene-image/" + pet.getPortraitImageId());
+        }
         return m;
     }
 

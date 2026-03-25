@@ -77,6 +77,8 @@ public class Pet {
     String element;
     /** 艺术风格 (3D, 2D等) */
     String artStyle;
+    /** 立绘图片ID（对应SceneImage） */
+    String portraitImageId;
 
     public void addSkill(PetSkill petSkill) {
         int index = petSkill.getIndex();
