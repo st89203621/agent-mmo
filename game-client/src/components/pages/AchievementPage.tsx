@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
@@ -47,7 +47,8 @@ function getFateLevel(score: number) {
 export default function AchievementPage() {
   const [tab, setTab] = useState<Tab>('achievement');
   const { relations, setRelations } = usePlayerStore();
-  const { navigateTo, pageParams } = useGameStore();
+  const navigateTo = useGameStore(s => s.navigateTo);
+  const pageTab = useGameStore(s => s.pageParams.tab);
 
   // 成就
   const [achievements, setAchievements] = useState<AchievementData[]>([]);
@@ -69,10 +70,10 @@ export default function AchievementPage() {
 
   // 支持从外部导航时指定 tab（如角色页快捷入口"因缘谱"）
   useEffect(() => {
-    if (pageParams.tab === 'fate' || pageParams.tab === 'rank') {
-      setTab(pageParams.tab as Tab);
+    if (pageTab === 'fate' || pageTab === 'rank') {
+      setTab(pageTab as Tab);
     }
-  }, [pageParams.tab]);
+  }, [pageTab]);
 
   useEffect(() => {
     if (relations.length === 0) {
@@ -128,11 +129,11 @@ export default function AchievementPage() {
     setFateDetailLoading(false);
   }, []);
 
-  const sortedRelations = [...relations].sort((a, b) => {
+  const sortedRelations = useMemo(() => [...relations].sort((a, b) => {
     if (fateSortBy === 'fate') return b.fateScore - a.fateScore;
     if (fateSortBy === 'trust') return b.trustScore - a.trustScore;
     return (b.lastInteractTime || 0) - (a.lastInteractTime || 0);
-  });
+  }), [relations, fateSortBy]);
 
   const filteredAchievements = achieveCategory
     ? achievements.filter((a) => a.category === achieveCategory)

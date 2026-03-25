@@ -30,7 +30,7 @@ import type { PageId } from './types';
 
 /** 错误边界：防止子组件崩溃导致整个页面黑屏 */
 class PageErrorBoundary extends React.Component<
-  { children: React.ReactNode; onReset?: () => void },
+  { children: React.ReactNode },
   { hasError: boolean }
 > {
   state = { hasError: false };
