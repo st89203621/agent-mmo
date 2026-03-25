@@ -47,7 +47,7 @@ public class VolcengineConfig {
 
 
     // 前端静态资源目录（图片保存路径）- 默认使用项目相对路径
-    private String frontendAssetsPath = "./my-phaser-game/assets/pets/ai-generated";
+    private String frontendAssetsPath = "./game-client/dist/assets/pets/ai-generated";
 
     // 前端服务器URL配置值（用于生成完整的图片访问URL）
     // 支持三种配置方式:

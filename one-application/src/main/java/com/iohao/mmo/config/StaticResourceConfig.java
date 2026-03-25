@@ -38,7 +38,7 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
     private final VolcengineConfig volcengineConfig;
 
-    @Value("${game.frontend-path:C:/deye-6.4/agent-mmo/my-phaser-game}")
+    @Value("${game.frontend-path:C:/deye-6.4/agent-mmo/game-client/dist}")
     private String gameFrontendPath;
 
     public StaticResourceConfig(VolcengineConfig volcengineConfig) {
