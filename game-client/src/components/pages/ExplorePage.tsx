@@ -3,11 +3,10 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchExploreStatus, exploreAction, resolveExploreChoice, fetchExploreHistory,
-  startExploreCombat, resolveExploreCombat, battleAction, getBattleState,
+  startExploreCombat, resolveExploreCombat,
   fetchPlayerCurrency, fetchRelations,
 } from '../../services/api';
 import type { ExploreStatus, ExploreEvent, ExploreReward } from '../../types';
-import type { BattleData } from '../../services/api';
 import styles from './ExplorePage.module.css';
 
 const EVENT_ICONS: Record<string, string> = {
@@ -53,10 +52,8 @@ export default function ExplorePage() {
   const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
   const [recoverCountdown, setRecoverCountdown] = useState(0);
 
-  // 战斗状态
-  const [battle, setBattle] = useState<BattleData | null>(null);
+  // 战斗加载状态
   const [battleLoading, setBattleLoading] = useState(false);
-  const [battleLog, setBattleLog] = useState<string[]>([]);
 
   const { navigateTo } = useGameStore();
   const bookTitle = currentBookWorld?.title || '';
@@ -136,8 +133,6 @@ export default function ExplorePage() {
     if (exploring || !status || status.actionPoints <= 0) return;
     setExploring(true);
     setCurrentReward(null);
-    setBattle(null);
-    setBattleLog([]);
     try {
       const { event } = await exploreAction(currentWorldIndex, bookTitle);
       setCurrentEvent(event);
@@ -155,14 +150,12 @@ export default function ExplorePage() {
   const handleChoice = useCallback(async (choiceId: number) => {
     if (resolving || !currentEvent) return;
 
-    // combat 类型：choiceId=0 是迎战，choiceId=1 是逃跑
+    // combat 类型：choiceId=0 是迎战，跳转独立战斗界面
     if (currentEvent.type === 'combat' && choiceId === 0) {
-      // 进入战斗
       setBattleLoading(true);
       try {
-        const { battle: b } = await startExploreCombat(currentEvent.eventId, currentEvent.enemyName || '妖兽');
-        setBattle(b);
-        setBattleLog([]);
+        await startExploreCombat(currentEvent.eventId, currentEvent.enemyName || '妖兽');
+        navigateTo('battle', { exploreEventId: currentEvent.eventId });
       } catch (e: unknown) {
         alert(e instanceof Error ? e.message : '战斗发起失败');
       } finally {
@@ -185,45 +178,25 @@ export default function ExplorePage() {
     }
   }, [resolving, currentEvent]);
 
-  // 战斗行动
-  const handleBattleAction = useCallback(async (actionType: string) => {
-    if (!battle || battleLoading) return;
-    setBattleLoading(true);
-    try {
-      const { battle: b } = await battleAction(actionType);
-      setBattle(b);
-      // 累积战斗日志
-      if (b.actionLog) {
-        setBattleLog(prev => [...prev, ...b.actionLog.map(a => a.description)]);
-      }
-      // 战斗结束 → 自动结算
-      if (b.status === 'VICTORY' || b.status === 'DEFEAT') {
-        // 延迟一下让玩家看到最后一击
-        setTimeout(async () => {
-          if (!currentEvent) return;
-          try {
-            const reward = await resolveExploreCombat(currentEvent.eventId);
-            setCurrentReward(reward);
-            setHistory(prev => [{ event: currentEvent, reward }, ...prev]);
-            syncAfterReward();
-          } catch {
-            // 静默
-          }
-        }, 1200);
-      }
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '战斗操作失败');
-    } finally {
-      setBattleLoading(false);
+  // 从战斗页返回时自动结算探索战斗
+  const pendingResolveRef = useRef<string | null>(null);
+  useEffect(() => {
+    const params = useGameStore.getState().pageParams;
+    const resolvedEventId = params?.resolvedBattleEventId as string | undefined;
+    if (resolvedEventId && resolvedEventId !== pendingResolveRef.current) {
+      pendingResolveRef.current = resolvedEventId;
+      resolveExploreCombat(resolvedEventId).then((reward) => {
+        setCurrentReward(reward);
+        setCurrentEvent(null);
+        syncAfterReward();
+      }).catch(() => {});
     }
-  }, [battle, battleLoading, currentEvent]);
+  });
 
   // 关闭奖励
   const handleDismissReward = useCallback(() => {
     setCurrentEvent(null);
     setCurrentReward(null);
-    setBattle(null);
-    setBattleLog([]);
   }, []);
 
   if (loading) {
@@ -243,11 +216,6 @@ export default function ExplorePage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const hpPercent = (hp: number, maxHp: number) => Math.max(0, Math.min(100, (hp / maxHp) * 100));
-  const hpColor = (pct: number) => pct > 50 ? '#8bc563' : pct > 20 ? '#d4a84c' : '#c44e52';
-
-  // 是否正在战斗中（显示战斗面板而非选择按钮）
-  const inCombat = !!battle && !currentReward;
 
   return (
     <div className={styles.page}>
@@ -287,8 +255,8 @@ export default function ExplorePage() {
             </div>
             <div className={styles.eventDesc}>{currentEvent.description}</div>
 
-            {/* 非战斗状态：显示选择按钮 */}
-            {!inCombat && !battleLoading && (
+            {/* 选择按钮 */}
+            {!battleLoading && (
               <div className={styles.choicesRow}>
                 {currentEvent.choices.map(c => (
                   <button
@@ -312,9 +280,8 @@ export default function ExplorePage() {
                     className={styles.choiceBtn}
                     style={{ borderColor: 'var(--gold-dim)' }}
                     onClick={() => {
-                      // 先 resolve 事件（选择第一个），再跳转对话
                       resolveExploreChoice(currentEvent.eventId, 0)
-                        .then((reward) => {
+                        .then(() => {
                           setCurrentReward(null);
                           setCurrentEvent(null);
                           syncAfterReward();
@@ -330,109 +297,8 @@ export default function ExplorePage() {
             )}
 
             {/* 战斗加载中 */}
-            {battleLoading && !battle && (
+            {battleLoading && (
               <div className={styles.generating}>拔剑出鞘...</div>
-            )}
-
-            {/* ── 内嵌战斗面板 ── */}
-            {inCombat && (
-              <div className={styles.battlePanel}>
-                {/* 敌方 */}
-                {battle.enemyUnits.map(u => (
-                  <div key={u.unitId} className={styles.battleUnit} style={{ opacity: u.hp > 0 ? 1 : 0.4 }}>
-                    <div className={styles.unitHeader}>
-                      <span className={styles.unitName} data-type="enemy">{u.name}</span>
-                      <span className={styles.unitHpText}>{u.hp}/{u.maxHp}</span>
-                    </div>
-                    <div className={styles.hpBarBg}>
-                      <div
-                        className={styles.hpBar}
-                        style={{
-                          width: `${hpPercent(u.hp, u.maxHp)}%`,
-                          background: hpColor(hpPercent(u.hp, u.maxHp)),
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                <div className={styles.battleDivider}>VS</div>
-
-                {/* 我方 */}
-                {battle.playerUnits.map(u => (
-                  <div key={u.unitId} className={styles.battleUnit}>
-                    <div className={styles.unitHeader}>
-                      <span className={styles.unitName} data-type="player">{u.name}</span>
-                      <span className={styles.unitHpText}>{u.hp}/{u.maxHp}</span>
-                    </div>
-                    <div className={styles.hpBarBg}>
-                      <div
-                        className={styles.hpBar}
-                        style={{
-                          width: `${hpPercent(u.hp, u.maxHp)}%`,
-                          background: hpColor(hpPercent(u.hp, u.maxHp)),
-                        }}
-                      />
-                    </div>
-                    <div className={styles.hpBarBg} style={{ marginTop: 3 }}>
-                      <div
-                        className={styles.hpBar}
-                        style={{
-                          width: `${hpPercent(u.mp, u.maxMp)}%`,
-                          background: '#55a5db',
-                        }}
-                      />
-                    </div>
-                    <div className={styles.mpText}>MP {u.mp}/{u.maxMp}</div>
-                  </div>
-                ))}
-
-                {/* 战斗日志 */}
-                {battleLog.length > 0 && (
-                  <div className={styles.battleLogArea}>
-                    {battleLog.slice(-4).map((msg, i) => (
-                      <div key={i} className={styles.battleLogLine}>{msg}</div>
-                    ))}
-                  </div>
-                )}
-
-                {/* 战斗结果 */}
-                {(battle.status === 'VICTORY' || battle.status === 'DEFEAT') && (
-                  <div className={styles.battleResult} data-result={battle.status}>
-                    {battle.status === 'VICTORY' ? '胜利！' : '战败...'}
-                  </div>
-                )}
-
-                {/* 行动按钮 */}
-                {battle.status === 'ONGOING' && (
-                  <div className={styles.battleActions}>
-                    <button
-                      className={styles.battleBtn}
-                      data-action="attack"
-                      disabled={battleLoading}
-                      onClick={() => handleBattleAction('ATTACK')}
-                    >
-                      攻击
-                    </button>
-                    <button
-                      className={styles.battleBtn}
-                      data-action="skill"
-                      disabled={battleLoading || (battle.playerUnits[0]?.mp ?? 0) < 10}
-                      onClick={() => handleBattleAction('SKILL')}
-                    >
-                      法术
-                    </button>
-                    <button
-                      className={styles.battleBtn}
-                      data-action="defend"
-                      disabled={battleLoading}
-                      onClick={() => handleBattleAction('DEFEND')}
-                    >
-                      防御
-                    </button>
-                  </div>
-                )}
-              </div>
             )}
           </div>
         )}

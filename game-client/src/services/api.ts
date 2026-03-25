@@ -615,6 +615,7 @@ export interface BattleUnitData {
   maxMp: number;
   speed: number;
   defending: boolean;
+  portraitUrl?: string;
 }
 
 export interface BattleActionData {

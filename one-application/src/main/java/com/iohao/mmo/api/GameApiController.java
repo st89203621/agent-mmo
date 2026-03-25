@@ -147,6 +147,9 @@ public class GameApiController {
     SceneImageService sceneImageService;
 
     @Resource
+    org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
+    @Resource
     ExploreService exploreService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
@@ -1525,6 +1528,8 @@ public class GameApiController {
         // 查询玩家已学的COMBAT主动技能，构建BattleSkill列表
         List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
         BattleState state = battleService.startBattle(userId, hp, mp, pAtk, pDef, mAtk, mDef, speed, battleSkills);
+        // 设置立绘：玩家使用已有立绘，怪物异步生成
+        attachBattlePortraits(userId, state);
         return ok(Map.of("battle", battleToMap(state)));
     }
 
@@ -1623,6 +1628,39 @@ public class GameApiController {
             }
         }
         return detail;
+    }
+
+    /** 为战斗单位附加立绘URL：玩家用已有立绘，怪物AI生成 */
+    private void attachBattlePortraits(long userId, BattleState state) {
+        // 玩家立绘
+        Person person = personService.getPersonById(userId);
+        if (person != null && person.getPortraitImageId() != null) {
+            String playerPortrait = "/api/story/scene-image/" + person.getPortraitImageId();
+            state.getPlayerUnits().forEach(u -> u.setPortraitUrl(playerPortrait));
+        }
+        // 怪物立绘（同步生成，使用缓存避免重复）
+        for (BattleUnit enemy : state.getEnemyUnits()) {
+            String cacheKey = "monster_portrait_" + enemy.getName();
+            String prompt = buildMonsterPortraitPrompt(enemy.getName());
+            try {
+                var result = sceneImageService.getOrGenerate(cacheKey, prompt);
+                if (result.isPresent()) {
+                    enemy.setPortraitUrl("/api/story/scene-image/" + result.get().getId());
+                }
+            } catch (Exception e) {
+                log.warn("怪物立绘生成失败: {}", enemy.getName(), e);
+            }
+        }
+        mongoTemplate.save(state);
+    }
+
+    private String buildMonsterPortraitPrompt(String monsterName) {
+        return "仙侠CG插画风，怪物立绘，" + monsterName + "，"
+                + "凶猛的妖兽形态，气势威严，带有灵气/妖气光效，"
+                + "单体全身立绘，主体居中占画面80%以上，面部清晰精致，"
+                + "【背景要求】纯黑色背景(#000000)，绝对纯黑无任何纹理光效，"
+                + "主体轮廓边缘极其锐利清晰，无模糊无光晕无渐变过渡，"
+                + "高清8K，精致细节";
     }
 
     // ── 商城 ──────────────────────────────────────
@@ -1951,6 +1989,7 @@ public class GameApiController {
                 bp.getMagicAttack(), bp.getMagicDefense(),
                 bp.getSpeed());
         exploreService.linkBattle(eventId, state.getId());
+        attachBattlePortraits(userId, state);
         return ok(Map.of("battle", battleToMap(state)));
     }
 
@@ -2303,6 +2342,7 @@ public class GameApiController {
         m.put("maxMp", u.getMaxMp());
         m.put("speed", u.getSpeed());
         m.put("defending", u.isDefending());
+        m.put("portraitUrl", u.getPortraitUrl());
         return m;
     }
 

@@ -22,6 +22,8 @@ public class BattleUnit {
     private int speed;
     /** 防御状态，受击减伤50% */
     private boolean defending;
+    /** 立绘URL（玩家用已有立绘，怪物AI生成） */
+    private String portraitUrl;
 
     public boolean isAlive() {
         return hp > 0;

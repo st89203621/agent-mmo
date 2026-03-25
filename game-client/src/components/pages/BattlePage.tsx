@@ -1,72 +1,28 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
+import { usePhaserGame } from '../../phaser/usePhaserGame';
+import BattleScene from '../../phaser/BattleScene';
+import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
 import {
   startBattle, getBattleState, battleAction, fetchPersonInfo, fetchPlayerCurrency,
   type BattleData, type BattleUnitData, type BattleActionData, type BattleSkillData,
 } from '../../services/api';
 import styles from './BattlePage.module.css';
 
-const ENEMY_AVATARS: Record<string, string> = {
-  妖狐: '🦊', 石魔: '🗿', 幽灵: '👻', 蛮兽: '🐗', 暗影刺客: '🥷',
-  血蝠: '🦇', 冰魄: '❄️', 火灵: '🔥', 毒蛛: '🕷️', 魔龙: '🐉',
+const EFFECT_TYPES: Record<string, string> = {
+  physical_damage: '物理伤害',
+  magic_damage: '魔法伤害',
+  buff_defense: '提升防御',
+  heal: '恢复生命',
 };
 
-interface FloatingDamage {
-  id: number;
-  unitId: string;
-  value: number;
-  isHeal: boolean;
-}
+/* ── 浮动伤害 ── */
+interface FloatingNumber { id: number; unitId: string; value: number; isHeal: boolean }
+let seqId = 0;
 
-let dmgSeq = 0;
-
-function UnitCard({ unit, isPlayer, floats }: { unit: BattleUnitData; isPlayer: boolean; floats: FloatingDamage[] }) {
-  const hpPct = unit.maxHp > 0 ? Math.round((unit.hp / unit.maxHp) * 100) : 0;
-  const mpPct = unit.maxMp > 0 ? Math.round((unit.mp / unit.maxMp) * 100) : 0;
-  const hpColor = hpPct > 50 ? '#4caf50' : hpPct > 20 ? '#d4a84c' : '#c44e52';
-  const avatar = isPlayer ? '🧙' : (ENEMY_AVATARS[unit.name] || '👹');
-  const myFloats = floats.filter((f) => f.unitId === unit.unitId);
-  const isHit = myFloats.some((f) => !f.isHeal);
-
-  return (
-    <div className={`${styles.unitCard} ${unit.hp <= 0 ? styles.dead : ''} ${unit.defending ? styles.defending : ''} ${isHit ? styles.shake : ''}`}>
-      <div className={styles.unitAvatar}>
-        {avatar}
-        {/* 浮动伤害数字 */}
-        {myFloats.map((f) => (
-          <span key={f.id} className={f.isHeal ? styles.floatHeal : styles.floatDamage}>
-            {f.isHeal ? '+' : '-'}{f.value}
-          </span>
-        ))}
-      </div>
-      <div className={styles.unitInfo}>
-        <div className={styles.unitName}>
-          {unit.name}
-          {unit.defending && <span className={styles.defendTag}>防御中</span>}
-        </div>
-        <div className={styles.barRow}>
-          <span className={styles.barLabel}>HP</span>
-          <div className={styles.barTrack}>
-            <div className={styles.barFill} style={{ width: `${hpPct}%`, background: hpColor }} />
-          </div>
-          <span className={styles.barValue}>{unit.hp}/{unit.maxHp}</span>
-        </div>
-        {unit.maxMp > 0 && (
-          <div className={styles.barRow}>
-            <span className={styles.barLabel}>MP</span>
-            <div className={styles.barTrack}>
-              <div className={styles.barFill} style={{ width: `${mpPct}%`, background: '#6699ff' }} />
-            </div>
-            <span className={styles.barValue}>{unit.mp}/{unit.maxMp}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
+/* ═══════════ 技能Tooltip ═══════════ */
 function SkillTooltip({ skill }: { skill: BattleSkillData }) {
   const [show, setShow] = useState(false);
   return (
@@ -78,29 +34,118 @@ function SkillTooltip({ skill }: { skill: BattleSkillData }) {
         <div className={styles.tooltip}>
           <strong>{skill.name}</strong>
           {skill.mpCost > 0 && <span> (消耗 {skill.mpCost} MP)</span>}
-          {skill.damageMultiplier > 0 && <div>伤害倍率: {skill.damageMultiplier}x</div>}
-          {skill.effectType && <div>效果: {
-            skill.effectType === 'physical_damage' ? '物理伤害' :
-            skill.effectType === 'magic_damage' ? '魔法伤害' :
-            skill.effectType === 'buff_defense' ? '提升防御' :
-            skill.effectType === 'heal' ? '恢复生命' :
-            skill.effectType
-          }</div>}
+          {skill.damageMultiplier > 0 && <div>倍率: {skill.damageMultiplier}x</div>}
+          {skill.effectType && <div>{EFFECT_TYPES[skill.effectType] || skill.effectType}</div>}
         </div>
       )}
     </div>
   );
 }
 
+/* ═══════════ 立绘组件（支持AI生成图+透明背景处理） ═══════════ */
+function PortraitImage({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boolean }) {
+  const transparentSrc = useTransparentPortrait(unit.portraitUrl || null);
+  const fallbackEmoji = isPlayer ? '🧙' : '👹';
+
+  if (transparentSrc) {
+    return (
+      <div className={`${styles.portraitImg} ${isPlayer ? styles.playerImg : styles.enemyImg}`}>
+        <img src={transparentSrc} alt={unit.name} draggable={false} />
+      </div>
+    );
+  }
+
+  // 无立绘时用大号emoji占位
+  return (
+    <div className={`${styles.portraitEmoji} ${isPlayer ? styles.playerEmoji : styles.enemyEmoji}`}>
+      {fallbackEmoji}
+    </div>
+  );
+}
+
+/* ═══════════ 角色区块 ═══════════ */
+function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
+  unit: BattleUnitData; isPlayer: boolean;
+  floats: FloatingNumber[]; hitIds: Set<string>; attackAnim: string | null;
+}) {
+  const hpPct = unit.maxHp > 0 ? (unit.hp / unit.maxHp) * 100 : 0;
+  const mpPct = unit.maxMp > 0 ? (unit.mp / unit.maxMp) * 100 : 0;
+  const hpClass = hpPct > 50 ? styles.hpHigh : hpPct > 20 ? styles.hpMid : styles.hpLow;
+  const isHit = hitIds.has(unit.unitId);
+  const isAttacking = attackAnim === unit.unitId;
+  const myFloats = floats.filter(f => f.unitId === unit.unitId);
+
+  const slotCls = [
+    styles.unitSlot,
+    unit.hp <= 0 && styles.dead,
+    unit.defending && styles.defending,
+    isHit && styles.hit,
+    isAttacking && (isPlayer ? styles.attackUp : styles.attackDown),
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className={slotCls}>
+      <PortraitImage unit={unit} isPlayer={isPlayer} />
+      {/* 浮动数字 */}
+      {myFloats.map(f => (
+        <span key={f.id} className={`${styles.floatNumber} ${f.isHeal ? styles.heal : styles.damage}`}>
+          {f.isHeal ? '+' : '-'}{f.value}
+        </span>
+      ))}
+      {/* HP/MP 条 */}
+      <div className={styles.statusOverlay}>
+        <div className={styles.unitName}>{unit.name}</div>
+        <div className={styles.barRow}>
+          <span className={styles.barLabel}>HP</span>
+          <div className={styles.barTrack}>
+            <div className={`${styles.barFill} ${hpClass}`} style={{ width: `${hpPct}%` }} />
+          </div>
+          <span className={styles.barValue}>{unit.hp}/{unit.maxHp}</span>
+        </div>
+        {unit.maxMp > 0 && (
+          <div className={styles.barRow}>
+            <span className={styles.barLabel}>MP</span>
+            <div className={styles.barTrack}>
+              <div className={`${styles.barFill} ${styles.mp}`} style={{ width: `${mpPct}%` }} />
+            </div>
+            <span className={styles.barValue}>{unit.mp}/{unit.maxMp}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ 主战斗页面 ═══════════ */
 export default function BattlePage() {
-  const { navigateTo } = useGameStore();
+  const { navigateTo, pageParams, previousPage } = useGameStore();
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [logs, setLogs] = useState<BattleActionData[]>([]);
-  const [floats, setFloats] = useState<FloatingDamage[]>([]);
-  const logRef = useRef<HTMLDivElement>(null);
+  const [floats, setFloats] = useState<FloatingNumber[]>([]);
+  const [hitIds, setHitIds] = useState<Set<string>>(new Set());
+  const [attackAnim, setAttackAnim] = useState<string | null>(null);
+  const [autoMode, setAutoMode] = useState(false);
+  const autoRef = useRef(false);
+  const battleRef = useRef<BattleData | null>(null);
 
+  // Phaser 引擎
+  const phaserRef = useRef<HTMLDivElement>(null);
+  const gameRef = usePhaserGame(phaserRef, [BattleScene]);
+
+  const getScene = useCallback((): BattleScene | null => {
+    const game = gameRef.current;
+    if (!game) return null;
+    return game.scene.getScene('BattleScene') as BattleScene | null;
+  }, [gameRef]);
+
+  useEffect(() => { autoRef.current = autoMode; }, [autoMode]);
+  useEffect(() => { battleRef.current = battle; }, [battle]);
+
+  const exploreEventId = pageParams?.exploreEventId as string | undefined;
+
+  /* ── 加载已有战斗 ── */
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -115,28 +160,7 @@ export default function BattlePage() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [logs]);
-
-  const addFloats = useCallback((actions: BattleActionData[], allUnits: BattleUnitData[]) => {
-    const newFloats: FloatingDamage[] = [];
-    for (const a of actions) {
-      const targetUnit = allUnits.find((u) => u.name === a.targetName);
-      if (!targetUnit) continue;
-      if (a.damage > 0) {
-        newFloats.push({ id: ++dmgSeq, unitId: targetUnit.unitId, value: a.damage, isHeal: false });
-      }
-      if (a.heal > 0) {
-        newFloats.push({ id: ++dmgSeq, unitId: targetUnit.unitId, value: a.heal, isHeal: true });
-      }
-    }
-    if (newFloats.length > 0) {
-      setFloats(newFloats);
-      setTimeout(() => setFloats([]), 1200);
-    }
-  }, []);
-
+  /* ── 发起新战斗 ── */
   const handleStart = useCallback(async () => {
     setLoading(true);
     try {
@@ -149,16 +173,75 @@ export default function BattlePage() {
       setBattle(res.battle);
       setLogs([]);
       setFloats([]);
+      setAutoMode(false);
       toast.info('战斗开始！');
     } catch { /* noop */ }
     setLoading(false);
   }, []);
 
+  /* ── 播放特效（CSS + Phaser） ── */
+  const playEffects = useCallback((actions: BattleActionData[], allUnits: BattleUnitData[]) => {
+    const newFloats: FloatingNumber[] = [];
+    const newHits = new Set<string>();
+    const scene = getScene();
+    const { width = 400, height = 700 } = gameRef.current?.scale ?? {};
+
+    for (const a of actions) {
+      const target = allUnits.find(u => u.name === a.targetName);
+      const actor = allUnits.find(u => u.name === a.actorName);
+      if (!target) continue;
+
+      // 目标位置估算（敌方在上半，我方在下半）
+      const isTargetEnemy = target.unitType === 'MONSTER';
+      const tx = width * 0.5;
+      const ty = isTargetEnemy ? height * 0.28 : height * 0.68;
+
+      if (a.damage > 0) {
+        newFloats.push({ id: ++seqId, unitId: target.unitId, value: a.damage, isHeal: false });
+        newHits.add(target.unitId);
+        if (scene) {
+          if (a.actionType === 'SKILL' || a.skillName) {
+            scene.playMagic(tx, ty);
+          } else {
+            scene.playSlash(tx, ty);
+          }
+        }
+      }
+      if (a.heal > 0) {
+        newFloats.push({ id: ++seqId, unitId: target.unitId, value: a.heal, isHeal: true });
+        if (scene) scene.playHeal(tx, ty);
+      }
+      if (a.actionType === 'DEFEND') {
+        const ax = width * 0.5;
+        const ay = actor?.unitType === 'MONSTER' ? height * 0.28 : height * 0.68;
+        if (scene) scene.playShield(ax, ay);
+      }
+
+      // 攻击者动画
+      if (actor && a.actionType !== 'DEFEND') {
+        setAttackAnim(actor.unitId);
+        setTimeout(() => setAttackAnim(null), 500);
+      }
+    }
+
+    if (newFloats.length > 0) {
+      setFloats(newFloats);
+      setTimeout(() => setFloats([]), 1200);
+    }
+    if (newHits.size > 0) {
+      setHitIds(newHits);
+      setTimeout(() => setHitIds(new Set()), 400);
+      getScene()?.flashHit();
+    }
+  }, [getScene, gameRef]);
+
+  /* ── 执行技能行动 ── */
   const handleSkillAction = useCallback(async (skill: BattleSkillData) => {
-    if (!battle || battle.status !== 'ONGOING') return;
+    const b = battleRef.current;
+    if (!b || b.status !== 'ONGOING' || acting) return;
     setActing(true);
     try {
-      const target = battle.enemyUnits.find((u) => u.hp > 0);
+      const target = b.enemyUnits.find(u => u.hp > 0);
       let actionType = 'ATTACK';
       if (skill.effectType === 'buff_defense') actionType = 'DEFEND';
       else if (skill.skillId !== 'attack') actionType = 'SKILL';
@@ -167,145 +250,185 @@ export default function BattlePage() {
       setBattle(res.battle);
 
       const newActions = res.battle.actionLog || [];
-      setLogs((prev) => [...prev, ...newActions]);
+      setLogs(prev => [...prev, ...newActions]);
 
-      // 飘字
       const allUnits = [...(res.battle.playerUnits || []), ...(res.battle.enemyUnits || [])];
-      addFloats(newActions, allUnits);
+      playEffects(newActions, allUnits);
 
       if (res.battle.status === 'VICTORY') {
         toast.reward('战斗胜利！');
-        fetchPlayerCurrency().then((c) => {
+        setAutoMode(false);
+        getScene()?.flashVictory();
+        fetchPlayerCurrency().then(c => {
           usePlayerStore.getState().setCurrency(c.gold, c.diamond);
         }).catch(() => {});
       } else if (res.battle.status === 'DEFEAT') {
         toast.error('战斗失败...');
+        setAutoMode(false);
       }
     } catch { /* noop */ }
     setActing(false);
-  }, [battle, addFloats]);
+  }, [acting, playEffects, getScene]);
+
+  /* ── 自动战斗 ── */
+  useEffect(() => {
+    if (!autoMode) return;
+    const timer = setInterval(() => {
+      const b = battleRef.current;
+      if (!autoRef.current || !b || b.status !== 'ONGOING') {
+        clearInterval(timer);
+        return;
+      }
+      const player = b.playerUnits[0];
+      const skills = b.availableSkills || [];
+      const usable = skills
+        .filter(s => s.skillId !== 'attack' && s.effectType !== 'buff_defense' && (!s.mpCost || (player && player.mp >= s.mpCost)))
+        .sort((a, b) => (b.damageMultiplier || 0) - (a.damageMultiplier || 0));
+      const pick = usable[0] || skills.find(s => s.skillId === 'attack') || skills[0];
+      if (pick) handleSkillAction(pick);
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [autoMode, handleSkillAction]);
 
   const finished = battle?.status === 'VICTORY' || battle?.status === 'DEFEAT';
+
+  /* ── 返回 ── */
+  const handleBack = useCallback(() => {
+    if (exploreEventId) {
+      navigateTo('explore', finished ? { resolvedBattleEventId: exploreEventId } : {});
+    } else {
+      navigateTo(previousPage || 'home');
+    }
+  }, [navigateTo, previousPage, exploreEventId, finished]);
+
   const player = battle?.playerUnits[0];
 
+  /* ═══════════ 渲染 ═══════════ */
   return (
     <div className={styles.page}>
-      <div className={styles.battleArea}>
-        {loading ? (
-          <div className={styles.emptyState}><p>加载中...</p></div>
-        ) : !battle?.id ? (
-          <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>⚔️</span>
-            <p style={{ fontSize: 16, fontWeight: 600 }}>准备进入战斗</p>
-            <p style={{ fontSize: 13, opacity: 0.5 }}>以你的角色属性迎战随机敌人</p>
-            <button className={styles.btnPrimary} style={{ marginTop: 12 }} onClick={handleStart}>
-              开始战斗
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* 回合信息 */}
-            <div className={styles.roundInfo}>
-              <span className={styles.roundBadge}>回合 {battle.round}</span>
-              <span className={`${styles.statusBadge} ${battle.status === 'VICTORY' ? styles.statusWin : battle.status === 'DEFEAT' ? styles.statusLose : ''}`}>
-                {battle.status === 'ONGOING' ? '战斗中' : battle.status === 'VICTORY' ? '胜利' : '战败'}
-              </span>
+      {/* Phaser 特效层（透明覆盖整个页面） */}
+      <div ref={phaserRef} className={styles.phaserLayer} />
+
+      {loading ? (
+        <div className={styles.loadingState}>加载中...</div>
+      ) : !battle?.id ? (
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>⚔️</span>
+          <span className={styles.emptyTitle}>准备迎战</span>
+          <span className={styles.emptyHint}>以你的角色属性挑战随机敌人</span>
+          <button className={styles.startBtn} onClick={handleStart}>开始战斗</button>
+        </div>
+      ) : (
+        <>
+          {/* 战斗场景 */}
+          <div className={styles.battleScene}>
+            {/* 顶部信息栏 */}
+            <div className={styles.topBar}>
+              <button className={styles.backBtn} onClick={handleBack}>← 退出</button>
+              <span className={styles.roundBadge}>第 {battle.round} 回合</span>
+              {autoMode && <span className={styles.autoBadge}>自动战斗中</span>}
             </div>
 
-            {/* 敌方 */}
-            <div className={styles.sectionLabel}>敌方</div>
-            {battle.enemyUnits.map((u) => (
-              <UnitCard key={u.unitId} unit={u} isPlayer={false} floats={floats} />
-            ))}
+            {/* 敌方区域 — 上半 */}
+            <div className={styles.enemyZone}>
+              <div className={styles.unitsRow}>
+                {battle.enemyUnits.map(u => (
+                  <UnitBlock key={u.unitId} unit={u} isPlayer={false}
+                    floats={floats} hitIds={hitIds} attackAnim={attackAnim} />
+                ))}
+              </div>
+            </div>
 
             {/* 战斗日志 */}
             {logs.length > 0 && (
-              <div className={styles.logArea} ref={logRef}>
-                {logs.map((a, i) => (
-                  <div key={i} className={styles.logEntry}>
-                    <span className={styles.logActor}>{a.actorName}</span>
-                    {a.skillName && a.skillName !== 'attack' && (
-                      <span className={styles.logSkill}> [{a.skillName}]</span>
-                    )}
-                    {a.damage > 0 && <span className={styles.logDmg}> -{a.damage}</span>}
-                    {a.heal > 0 && <span className={styles.logHeal}> +{a.heal}</span>}
-                    <span className={styles.logDesc}> {a.description}</span>
-                  </div>
+              <div className={styles.logTicker}>
+                {logs.slice(-3).map((a, i) => (
+                  <div key={i} className={styles.logLine}>{a.description}</div>
                 ))}
               </div>
             )}
 
-            {/* 我方 */}
-            <div className={styles.sectionLabel}>我方</div>
-            {battle.playerUnits.map((u) => (
-              <UnitCard key={u.unitId} unit={u} isPlayer={true} floats={floats} />
-            ))}
-
-            {/* 战斗结果 */}
-            {finished && (
-              <div className={`${styles.resultCard} ${battle.status === 'VICTORY' ? styles.resultWin : styles.resultLose}`}>
-                <div className={styles.resultEmoji}>
-                  {battle.status === 'VICTORY' ? '🏆' : '💀'}
-                </div>
-                <div className={styles.resultTitle}>
-                  {battle.status === 'VICTORY' ? '胜利！' : '战败...'}
-                </div>
-                {battle.rewardDetail && (
-                  <div className={styles.rewardRow}>
-                    {battle.rewardDetail.gold != null && battle.rewardDetail.gold > 0 && (
-                      <span className={styles.rewardItem}>
-                        <span style={{ color: '#d4a84c' }}>💰</span> +{battle.rewardDetail.gold}
-                      </span>
-                    )}
-                    {battle.rewardDetail.exp != null && battle.rewardDetail.exp > 0 && (
-                      <span className={styles.rewardItem}>
-                        <span style={{ color: '#7ec8e3' }}>✨</span> +{battle.rewardDetail.exp} EXP
-                      </span>
-                    )}
-                    {battle.rewardDetail.dropItem && (
-                      <span className={styles.rewardItem}>
-                        {battle.rewardDetail.dropIcon || '📦'} {battle.rewardDetail.dropItem}
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className={styles.resultActions}>
-                  <button className={styles.btnPrimary} onClick={handleStart}>再战一场</button>
-                  <button className={styles.btnSecondary} onClick={() => navigateTo('home')}>返回</button>
-                </div>
+            {/* 我方区域 — 下半 */}
+            <div className={styles.playerZone}>
+              <div className={styles.unitsRow}>
+                {battle.playerUnits.map(u => (
+                  <UnitBlock key={u.unitId} unit={u} isPlayer={true}
+                    floats={floats} hitIds={hitIds} attackAnim={attackAnim} />
+                ))}
               </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* 底部技能面板 */}
-      {battle?.id && !finished && (
-        <div className={styles.skillPanel}>
-          <div className={styles.skillGrid}>
-            {(battle.availableSkills || []).map((skill) => {
-              const mpOk = !skill.mpCost || (player && player.mp >= skill.mpCost);
-              return (
-                <button
-                  key={skill.skillId}
-                  className={styles.skillBtn}
-                  disabled={acting || !mpOk}
-                  onClick={() => handleSkillAction(skill)}
-                >
-                  <SkillTooltip skill={skill} />
-                  <span className={styles.skillIcon}>{skill.icon}</span>
-                  <span className={styles.skillName}>{skill.name}</span>
-                  {skill.mpCost > 0 && (
-                    <span className={styles.skillCost}>{skill.mpCost} MP</span>
-                  )}
-                  {skill.damageMultiplier > 1 && (
-                    <span className={styles.skillMult}>{skill.damageMultiplier}x</span>
-                  )}
-                </button>
-              );
-            })}
+            </div>
           </div>
-        </div>
+
+          {/* 底部操作面板 */}
+          {!finished && (
+            <div className={styles.actionPanel}>
+              <div className={styles.skillRow}>
+                {(battle.availableSkills || []).map(skill => {
+                  const mpOk = !skill.mpCost || (player && player.mp >= skill.mpCost);
+                  return (
+                    <button key={skill.skillId} className={styles.skillBtn}
+                      disabled={acting || !mpOk || autoMode}
+                      onClick={() => handleSkillAction(skill)}
+                    >
+                      <SkillTooltip skill={skill} />
+                      {skill.damageMultiplier > 1 && <span className={styles.skillMult}>{skill.damageMultiplier}x</span>}
+                      {skill.mpCost > 0 && <span className={styles.skillCost}>{skill.mpCost}</span>}
+                      <span className={styles.skillIcon}>{skill.icon}</span>
+                      <span className={styles.skillName}>{skill.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className={styles.bottomRow}>
+                <button className={`${styles.autoBtn} ${autoMode ? styles.active : ''}`}
+                  onClick={() => setAutoMode(v => !v)}
+                >
+                  {autoMode ? '⏸ 停止自动' : '▶ 自动战斗'}
+                </button>
+                <button className={styles.fleeBtn} onClick={handleBack}>逃跑</button>
+              </div>
+            </div>
+          )}
+
+          {/* 结算遮罩 */}
+          {finished && (
+            <div className={`${styles.resultOverlay} ${battle.status === 'VICTORY' ? styles.victory : styles.defeat}`}>
+              <div className={styles.resultIcon}>{battle.status === 'VICTORY' ? '🏆' : '💀'}</div>
+              <div className={`${styles.resultTitle} ${battle.status === 'VICTORY' ? styles.victory : styles.defeat}`}>
+                {battle.status === 'VICTORY' ? '战 斗 胜 利' : '战 斗 失 败'}
+              </div>
+              {battle.rewardDetail && (
+                <div className={styles.rewardList}>
+                  {battle.rewardDetail.gold != null && battle.rewardDetail.gold > 0 && (
+                    <div className={styles.rewardItem}>
+                      <span className={styles.rewardIcon}>💰</span>
+                      <span className={styles.rewardValue}>+{battle.rewardDetail.gold}</span>
+                      <span className={styles.rewardLabel}>金币</span>
+                    </div>
+                  )}
+                  {battle.rewardDetail.exp != null && battle.rewardDetail.exp > 0 && (
+                    <div className={styles.rewardItem}>
+                      <span className={styles.rewardIcon}>✨</span>
+                      <span className={styles.rewardValue}>+{battle.rewardDetail.exp}</span>
+                      <span className={styles.rewardLabel}>经验</span>
+                    </div>
+                  )}
+                  {battle.rewardDetail.dropItem && (
+                    <div className={styles.rewardItem}>
+                      <span className={styles.rewardIcon}>{battle.rewardDetail.dropIcon || '📦'}</span>
+                      <span className={styles.rewardValue}>{battle.rewardDetail.dropItem}</span>
+                      <span className={styles.rewardLabel}>掉落</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className={styles.resultActions}>
+                <button className={styles.btnGold} onClick={handleStart}>再战一场</button>
+                <button className={styles.btnGhost} onClick={handleBack}>返回</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
