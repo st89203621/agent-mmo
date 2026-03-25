@@ -1316,8 +1316,9 @@ public class GameApiController {
 
         // 检查对应NPC缘分是否达标
         List<Relation> relations = fateService.getRelations(userId);
+        MemoryFragment finalFragment = fragment;
         int currentFate = relations.stream()
-                .filter(r -> r.getNpcId() != null && r.getNpcId().equals(fragment.getNpcId()))
+                .filter(r -> r.getNpcId() != null && r.getNpcId().equals(finalFragment.getNpcId()))
                 .mapToInt(Relation::getFateScore)
                 .max().orElse(0);
         if (currentFate < 40) return err("缘分不足，需达到40");
