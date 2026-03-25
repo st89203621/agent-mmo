@@ -150,7 +150,7 @@ public class SceneImageService {
         GenerateImagesRequest request = GenerateImagesRequest.builder()
                 .model(model)
                 .prompt(prompt)
-                .image(List.of(imageBase64))
+                .image(List.of("data:image/png;base64," + imageBase64))
                 .size("1024x1024")
                 .watermark(false)
                 .build();
