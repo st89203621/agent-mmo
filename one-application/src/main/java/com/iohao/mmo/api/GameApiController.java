@@ -864,8 +864,9 @@ public class GameApiController {
                 + "单人半身立绘（从头到腰部），正面或四分之三侧面，"
                 + "人物占画面80%以上，面部清晰精致，表情生动，"
                 + "姿态自然飘逸，主体居中，"
-                + "纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，"
-                + "高清，精致细节，清晰边缘";
+                + "【背景要求】纯黑色背景(#000000)，绝对纯黑无任何纹理光效，"
+                + "主体轮廓边缘极其锐利清晰，无模糊无光晕无渐变过渡，"
+                + "主体与背景之间无任何颜色溢出，高清8K，精致细节";
     }
 
     private String buildPetPortraitPrompt(Pet pet, String style) {
@@ -875,8 +876,9 @@ public class GameApiController {
                 + typeLabel + "，" + elementLabel + "，"
                 + "神话幻想生物，威严灵动，"
                 + "完整全身像，主体居中占画面80%以上，"
-                + "纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，"
-                + "高清，精致细节，清晰边缘";
+                + "【背景要求】纯黑色背景(#000000)，绝对纯黑无任何纹理光效，"
+                + "主体轮廓边缘极其锐利清晰，无模糊无光晕无渐变过渡，"
+                + "主体与背景之间无任何颜色溢出，高清8K，精致细节";
     }
 
     private String buildEditPrompt(Map<String, Object> body, String subjectType) {
@@ -895,8 +897,9 @@ public class GameApiController {
         if (custom != null && !custom.isEmpty()) sb.append(custom).append("，");
 
         sb.append("主体占画面80%以上，主体居中，");
-        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，");
-        sb.append("高清，精致细节，清晰边缘");
+        sb.append("【背景要求】纯黑色背景(#000000)，绝对纯黑无任何纹理光效，");
+        sb.append("主体轮廓边缘极其锐利清晰，无模糊无光晕无渐变过渡，");
+        sb.append("主体与背景之间无任何颜色溢出，高清8K，精致细节");
         return sb.toString();
     }
 
@@ -947,8 +950,9 @@ public class GameApiController {
         sb.append("，单人半身立绘（从头到腰部），正面或四分之三侧面，");
         sb.append("人物占画面80%以上，面部清晰精致，表情生动，");
         sb.append("姿态自然飘逸，主体居中，");
-        sb.append("纯黑色背景，背景必须是纯黑色(RGB 0,0,0)，");
-        sb.append("高清，精致细节，清晰边缘");
+        sb.append("【背景要求】纯黑色背景(#000000)，绝对纯黑无任何纹理光效，");
+        sb.append("主体轮廓边缘极其锐利清晰，无模糊无光晕无渐变过渡，");
+        sb.append("主体与背景之间无任何颜色溢出，高清8K，精致细节");
         return sb.toString();
     }
 
