@@ -47,7 +47,7 @@ function getFateLevel(score: number) {
 export default function AchievementPage() {
   const [tab, setTab] = useState<Tab>('achievement');
   const { relations, setRelations } = usePlayerStore();
-  const { navigateTo } = useGameStore();
+  const { navigateTo, pageParams } = useGameStore();
 
   // 成就
   const [achievements, setAchievements] = useState<AchievementData[]>([]);
@@ -66,6 +66,13 @@ export default function AchievementPage() {
   const [rankEntries, setRankEntries] = useState<RankEntryData[]>([]);
   const [myRank, setMyRank] = useState(0);
   const [rankLoading, setRankLoading] = useState(false);
+
+  // 支持从外部导航时指定 tab（如角色页快捷入口"因缘谱"）
+  useEffect(() => {
+    if (pageParams.tab === 'fate' || pageParams.tab === 'rank') {
+      setTab(pageParams.tab as Tab);
+    }
+  }, [pageParams.tab]);
 
   useEffect(() => {
     if (relations.length === 0) {
@@ -235,10 +242,10 @@ export default function AchievementPage() {
                       <img src={selectedRelation.imageUrl} alt="" className={styles.fateDetailImg}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : null}
-                    <span className={styles.fateDetailChar}>{selectedRelation.npcName.charAt(0)}</span>
+                    <span className={styles.fateDetailChar}>{(selectedRelation.npcName || '?').charAt(0)}</span>
                   </div>
                   <div className={styles.fateDetailInfo}>
-                    <div className={styles.fateDetailName}>{selectedRelation.npcName}</div>
+                    <div className={styles.fateDetailName}>{selectedRelation.npcName || '未知'}</div>
                     <div className={styles.fateDetailSub}>
                       {selectedRelation.bookTitle && <span>{selectedRelation.bookTitle}</span>}
                       {selectedRelation.role && <span> · {selectedRelation.role}</span>}
@@ -250,12 +257,12 @@ export default function AchievementPage() {
                   <button className={styles.fateDetailClose} onClick={() => setSelectedRelation(null)}>收起</button>
                 </div>
 
-                <FateBar fateScore={selectedRelation.fateScore} trustScore={selectedRelation.trustScore} npcName={selectedRelation.npcName} />
+                <FateBar fateScore={selectedRelation.fateScore ?? 0} trustScore={selectedRelation.trustScore ?? 0} npcName={selectedRelation.npcName || '未知'} />
 
                 {/* 里程碑 */}
                 <div className={styles.milestoneRow}>
                   {[60, 80, 95].map(ms => {
-                    const reached = selectedRelation.fateScore >= ms;
+                    const reached = (selectedRelation.fateScore ?? 0) >= ms;
                     return (
                       <div key={ms} className={`${styles.milestoneItem} ${reached ? styles.milestoneReached : ''}`}>
                         <span className={styles.milestoneNum}>{ms}</span>
@@ -328,7 +335,8 @@ export default function AchievementPage() {
               sortedRelations.length > 0 ? (
                 <div className={styles.fateList}>
                   {sortedRelations.map((r, i) => {
-                    const level = getFateLevel(r.fateScore);
+                    const name = r.npcName || '未知';
+                    const level = getFateLevel(r.fateScore ?? 0);
                     return (
                       <button
                         key={r.relationId || i}
@@ -341,14 +349,14 @@ export default function AchievementPage() {
                             <img src={r.imageUrl} alt="" className={styles.fateAvatarImg}
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : null}
-                          <span>{r.npcName.charAt(0)}</span>
+                          <span>{name.charAt(0)}</span>
                         </div>
                         <div className={styles.fateInfo}>
                           <div className={styles.fateNameRow}>
-                            <span className={styles.fateName}>{r.npcName}</span>
+                            <span className={styles.fateName}>{name}</span>
                             <span className={styles.fateLevel} style={{ color: level.color }}>{level.label}</span>
                           </div>
-                          <FateBar fateScore={r.fateScore} trustScore={r.trustScore} npcName={r.npcName} compact />
+                          <FateBar fateScore={r.fateScore ?? 0} trustScore={r.trustScore ?? 0} npcName={name} compact />
                           {r.milestone > 0 && (
                             <span className={styles.fateMilestone}>
                               {MILESTONE_LABELS[r.milestone] || `里程碑${r.milestone}`}

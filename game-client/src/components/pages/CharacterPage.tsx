@@ -165,6 +165,7 @@ export default function CharacterPage() {
             <button className={styles.quickLink} onClick={() => navigateTo('enchant')}>附魔</button>
             <button className={styles.quickLink} onClick={() => navigateTo('rebirth')}>轮回</button>
             <button className={styles.quickLink} onClick={() => navigateTo('memory')}>记忆</button>
+            <button className={styles.quickLink} onClick={() => navigateTo('achievement', { tab: 'fate' })}>因缘谱</button>
             <button className={styles.quickLink} onClick={() => navigateTo('book-world')}>书库</button>
             <button className={styles.quickLink} onClick={() => navigateTo('codex')}>图鉴</button>
             <button className={styles.quickLink} onClick={() => navigateTo('dungeon')}>副本</button>

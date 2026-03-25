@@ -28,6 +28,40 @@ import ShopPage from './components/pages/ShopPage';
 import CompanionPage from './components/pages/CompanionPage';
 import type { PageId } from './types';
 
+/** 错误边界：防止子组件崩溃导致整个页面黑屏 */
+class PageErrorBoundary extends React.Component<
+  { children: React.ReactNode; onReset?: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: unknown) { console.error('[PageError]', error); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          height: '100%', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 12,
+          background: 'var(--paper)', color: 'var(--ink)', fontFamily: 'var(--font-ui)',
+        }}>
+          <span style={{ fontSize: 36 }}>!</span>
+          <p>页面加载异常</p>
+          <button
+            style={{
+              padding: '8px 20px', background: 'var(--gold)', color: 'var(--ink)',
+              border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer',
+            }}
+            onClick={() => this.setState({ hasError: false })}
+          >
+            重试
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /**
  * 页面缓存组件：主导航页面保持挂载（display:none 隐藏），
  * 切回时瞬间显示无需重新加载。子页面正常卸载/挂载。
@@ -50,14 +84,14 @@ function PageCache({ currentPage }: { currentPage: PageId }) {
         const Page = PAGE_MAP[id];
         return (
           <div key={id} style={{ display: currentPage === id ? 'contents' : 'none', height: '100%' }}>
-            <Page />
+            <PageErrorBoundary><Page /></PageErrorBoundary>
           </div>
         );
       })}
       {/* 子页面：正常挂载/卸载 */}
       {!isKeepAlive && (() => {
         const Page = PAGE_MAP[currentPage] || HomePage;
-        return <Page />;
+        return <PageErrorBoundary><Page /></PageErrorBoundary>;
       })()}
     </>
   );

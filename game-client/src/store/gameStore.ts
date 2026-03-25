@@ -33,7 +33,11 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   navigateTo: (page, params) => {
     const current = get().currentPage;
-    if (current === page) return;
+    if (current === page) {
+      // 同页面时仅更新参数（支持 tab 切换等场景）
+      if (params) set({ pageParams: params });
+      return;
+    }
     set({ currentPage: page, previousPage: current, pageParams: params || {} });
   },
 
