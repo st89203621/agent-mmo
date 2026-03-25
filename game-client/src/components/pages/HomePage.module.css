@@ -480,6 +480,21 @@
   opacity: 0.9;
 }
 
+.confirmPanel {
+  max-width: 260px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.confirmBtn {
+  flex: 1;
+  margin-top: 0;
+}
+
 /* ════════════════════════════════════
    关键帧
    ════════════════════════════════════ */

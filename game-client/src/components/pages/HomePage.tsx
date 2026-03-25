@@ -7,6 +7,7 @@ import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
   fetchRebirthStatus, fetchCheckinStatus, doCheckin, generatePortrait, generateBackground,
+  logout,
   type PersonData, type PetData, type CompanionData,
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
@@ -64,7 +65,7 @@ interface HomeData {
 
 export default function HomePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
-  const { playerName, gold, diamond } = usePlayerStore();
+  const { playerName, gold, diamond, clearPlayer } = usePlayerStore();
   const phaserRef = useRef<HTMLDivElement>(null);
   usePhaserGame(phaserRef, [HomeScene]);
 
@@ -79,6 +80,29 @@ export default function HomePage() {
   const [pickerMode, setPickerMode] = useState<PickerMode>(null);
   const [selectedStyle, setSelectedStyle] = useState(ART_STYLES[0].key);
   const [selectedTheme, setSelectedTheme] = useState(BG_THEMES[0].key);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleNamePointerDown = useCallback(() => {
+    longPressTimer.current = setTimeout(() => setShowLogoutConfirm(true), 800);
+  }, []);
+
+  const handleNamePointerUp = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setShowLogoutConfirm(false);
+    clearPlayer();
+    logout().catch(() => {});
+  }, [clearPlayer]);
+
+  useEffect(() => () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -195,7 +219,13 @@ export default function HomePage() {
 
         {/* 第二行：角色名 + 伙伴 + 操作按钮 */}
         <div className={styles.row2}>
-          <h1 className={styles.charName} onClick={() => navigateTo('character')}>
+          <h1
+            className={styles.charName}
+            onClick={() => navigateTo('character')}
+            onPointerDown={handleNamePointerDown}
+            onPointerUp={handleNamePointerUp}
+            onPointerLeave={handleNamePointerUp}
+          >
             {person?.name || playerName || '无名侠客'}
           </h1>
           <div className={styles.companionGroup}>
@@ -277,6 +307,24 @@ export default function HomePage() {
           </div>
         </section>
       </div>
+
+      {/* 退出登录确认 */}
+      {showLogoutConfirm && (
+        <div className={styles.pickerOverlay} onClick={() => setShowLogoutConfirm(false)}>
+          <div className={`${styles.pickerPanel} ${styles.confirmPanel}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.pickerTitle}>退出登录</h3>
+            <p className={styles.pickerHint}>确定要退出当前账号吗？</p>
+            <div className={styles.confirmActions}>
+              <button className={`${styles.pickerItem} ${styles.confirmBtn}`} onClick={() => setShowLogoutConfirm(false)}>
+                取消
+              </button>
+              <button className={`${styles.pickerConfirm} ${styles.confirmBtn}`} onClick={handleLogout}>
+                退出
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 风格选择面板 */}
       {pickerMode && (

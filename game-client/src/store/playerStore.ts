@@ -21,6 +21,7 @@ interface PlayerState {
   updateRelation: (npcId: string, fateDelta: number, trustDelta: number) => void;
   setPersonCreated: (created: boolean) => void;
   setCurrency: (gold: number, diamond: number) => void;
+  clearPlayer: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
@@ -42,6 +43,11 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setRelations: (relations) => set({ relations }),
   setPersonCreated: (created) => set({ personCreated: created }),
   setCurrency: (gold, diamond) => set({ gold, diamond }),
+  clearPlayer: () => set({
+    playerId: '', playerName: '', token: '', currentWorldIndex: 0,
+    playerWorld: null, relations: [], equipment: [], pets: [],
+    personCreated: false, gold: 0, diamond: 0,
+  }),
   updateRelation: (npcId, fateDelta, trustDelta) =>
     set((state) => ({
       relations: state.relations.map((r) =>
