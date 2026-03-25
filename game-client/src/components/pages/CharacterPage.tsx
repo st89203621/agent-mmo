@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
-import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, type EquipData, type PersonData } from '../../services/api';
+import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, logout, type EquipData, type PersonData } from '../../services/api';
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import { POSITION_LABELS } from '../../constants/equipment';
 import page from '../../styles/page.module.css';
@@ -157,11 +157,14 @@ export default function CharacterPage() {
               ['achievement', '因缘谱', { tab: 'fate' }],
               ['book-world', '书库'], ['codex', '图鉴'], ['dungeon', '副本'],
               ['quest', '任务'], ['shop', '商城'], ['companion', '灵侣'],
-              ['achievement', '排行', { tab: 'rank' }],
+              ['battle', '战斗'], ['achievement', '排行', { tab: 'rank' }],
             ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
               <button key={label} className={styles.quickLink}
                 onClick={() => navigateTo(page as any, params)}>{label}</button>
             ))}
+            <button className={styles.quickLink} style={{ color: '#c44e52', borderColor: 'rgba(196,78,82,0.3)' }}
+              onClick={() => { if (confirm('确认退出登录？')) { logout().catch(() => {}); location.reload(); } }}
+            >退出账号</button>
           </div>
         </section>
       </div>
