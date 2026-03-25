@@ -38,7 +38,7 @@ public class SkillService {
 
         List<SkillTemplate> seeds = new ArrayList<>();
 
-        // ── 战斗系 COMBAT ──
+        // ── 战斗系 COMBAT · 基础 ──
         seeds.add(buildTemplate("combat_slash", "烈火斩", "🔥", "COMBAT", "ACTIVE",
                 "释放烈焰一斩，造成1.5倍物攻伤害", 5, 1, 100, null,
                 "{\"mpCost\":15,\"multiplier\":1.5,\"effectType\":\"physical_damage\"}", 10));
@@ -63,6 +63,31 @@ public class SkillService {
                 "增加20%魔法防御", 3, 5, 200, null,
                 "{\"magicDefenseBonus\":0.2}", 60));
 
+        // ── 战斗系 COMBAT · 进阶 ──
+        seeds.add(buildTemplate("combat_shadow_strike", "影袭", "🌑", "COMBAT", "ACTIVE",
+                "从暗影中突袭，造成2.0倍物攻伤害并降低敌人防御", 5, 8, 300, List.of("combat_slash"),
+                "{\"mpCost\":25,\"multiplier\":2.0,\"effectType\":\"physical_damage\",\"debuff\":\"def_down\"}", 41));
+
+        seeds.add(buildTemplate("combat_arcane_storm", "奥术风暴", "🌀", "COMBAT", "ACTIVE",
+                "释放奥术能量风暴，造成2.2倍魔攻伤害", 5, 12, 400, List.of("combat_frost"),
+                "{\"mpCost\":30,\"multiplier\":2.2,\"effectType\":\"magic_damage\"}", 42));
+
+        seeds.add(buildTemplate("combat_life_drain", "生命汲取", "🩸", "COMBAT", "ACTIVE",
+                "吸取敌人生命力，造成1.6倍魔攻伤害并恢复等量生命", 3, 10, 350, List.of("combat_heal"),
+                "{\"mpCost\":30,\"multiplier\":1.6,\"effectType\":\"magic_damage\",\"lifesteal\":true}", 43));
+
+        seeds.add(buildTemplate("combat_berserker", "狂战", "💢", "COMBAT", "PASSIVE",
+                "HP低于30%时攻击力提升40%", 3, 15, 500, List.of("combat_iron_wall"),
+                "{\"hpThreshold\":0.3,\"atkBonus\":0.4}", 61));
+
+        seeds.add(buildTemplate("combat_heaven_strike", "天罚", "☄️", "COMBAT", "ACTIVE",
+                "召唤天雷，造成3.5倍物攻伤害（终极技）", 3, 20, 1000, List.of("combat_thunder", "combat_shadow_strike"),
+                "{\"mpCost\":50,\"multiplier\":3.5,\"effectType\":\"physical_damage\"}", 70));
+
+        seeds.add(buildTemplate("combat_absolute_zero", "绝对零度", "🧊", "COMBAT", "ACTIVE",
+                "将区域冻结，造成3.0倍魔攻伤害并冰封敌人", 3, 20, 1000, List.of("combat_arcane_storm"),
+                "{\"mpCost\":45,\"multiplier\":3.0,\"effectType\":\"magic_damage\",\"freeze\":true}", 71));
+
         // ── 情感系 EMOTION ──
         seeds.add(buildTemplate("emotion_empathy", "共情", "💗", "EMOTION", "PASSIVE",
                 "对话缘分提升10%", 3, 1, 80, null,
@@ -75,6 +100,39 @@ public class SkillService {
         seeds.add(buildTemplate("emotion_resonance", "灵犀", "✨", "EMOTION", "ACTIVE",
                 "对话中获得额外选项", 3, 5, 300, List.of("emotion_empathy"),
                 "{\"dialogueExtra\":true}", 30));
+
+        seeds.add(buildTemplate("emotion_memory_echo", "记忆回响", "🔔", "EMOTION", "PASSIVE",
+                "转世后保留15%缘分值", 3, 8, 250, List.of("emotion_empathy"),
+                "{\"rebirthFateRetain\":0.15}", 40));
+
+        seeds.add(buildTemplate("emotion_soul_bond", "灵魂羁绊", "🔗", "EMOTION", "PASSIVE",
+                "灵侣/宠物战斗加成提升20%", 3, 10, 400, List.of("emotion_resonance"),
+                "{\"companionBonus\":0.2}", 50));
+
+        seeds.add(buildTemplate("emotion_destiny_sight", "命运之眼", "🔮", "EMOTION", "ACTIVE",
+                "预知对话走向，显示选项结果", 3, 15, 600, List.of("emotion_insight", "emotion_resonance"),
+                "{\"revealOutcome\":true}", 60));
+
+        // ── 轮回系 REBIRTH（新分支） ──
+        seeds.add(buildTemplate("rebirth_wisdom", "轮回悟性", "☯️", "REBIRTH", "PASSIVE",
+                "每次转世获得额外经验加成5%（可叠加）", 7, 1, 200, null,
+                "{\"rebirthExpBonus\":0.05}", 10));
+
+        seeds.add(buildTemplate("rebirth_karma", "因果循环", "🌀", "REBIRTH", "PASSIVE",
+                "转世后保留10%金币", 5, 5, 300, List.of("rebirth_wisdom"),
+                "{\"rebirthGoldRetain\":0.1}", 20));
+
+        seeds.add(buildTemplate("rebirth_deja_vu", "似曾相识", "💭", "REBIRTH", "PASSIVE",
+                "在新世界中可能触发前世记忆事件", 3, 8, 400, List.of("rebirth_wisdom"),
+                "{\"dejaVuChance\":0.15}", 30));
+
+        seeds.add(buildTemplate("rebirth_talent", "天赋觉醒", "⭐", "REBIRTH", "PASSIVE",
+                "每次转世随机继承一个前世被动技能", 3, 12, 600, List.of("rebirth_karma", "rebirth_deja_vu"),
+                "{\"inheritPassive\":true}", 40));
+
+        seeds.add(buildTemplate("rebirth_transcend", "超越轮回", "🌟", "REBIRTH", "PASSIVE",
+                "所有属性获得转世次数x2%的永久加成", 5, 15, 800, List.of("rebirth_talent"),
+                "{\"statBonusPerRebirth\":0.02}", 50));
 
         skillTemplateRepository.saveAll(seeds);
         log.info("初始化技能种子数据 {} 个", seeds.size());

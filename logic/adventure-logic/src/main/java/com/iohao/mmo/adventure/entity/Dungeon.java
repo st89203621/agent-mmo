@@ -18,6 +18,7 @@ public class Dungeon {
     long userId;
     String dungeonId;
     String dungeonName;
+    String description;
     DungeonType type;
     int currentStage;
     int maxStage;
@@ -25,28 +26,56 @@ public class Dungeon {
     long startTime;
     long completeTime;
     int difficulty;
+    int recommendedLevel;
+    int dailyLimit;
+    int todayAttempts;
+    String lastAttemptDate;
+    List<StageInfo> stages = new ArrayList<>();
     List<StageProgress> stageProgress = new ArrayList<>();
     DungeonReward reward;
+    DungeonReward firstClearReward;
     boolean firstClear;
     int clearCount;
     long bestTime;
-    
+    String bookTitle;
+
     public enum DungeonType {
         STORY,      // 剧情副本
         CHALLENGE,  // 挑战副本
-        RAID,       // 团队副本
-        ENDLESS,    // 无尽模式
         BOSS,       // BOSS副本
+        ENDLESS,    // 无尽模式
+        RAID,       // 团队副本
         PUZZLE      // 解谜副本
     }
-    
+
     public enum DungeonStatus {
         NOT_STARTED,
         IN_PROGRESS,
         COMPLETED,
         FAILED
     }
-    
+
+    /** 关卡定义信息 */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class StageInfo {
+        int stageId;
+        String stageName;
+        String enemyName;
+        int enemyLevel;
+        boolean isBoss;
+        StageReward reward;
+    }
+
+    /** 每关奖励 */
+    @Data
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class StageReward {
+        int exp;
+        int gold;
+        List<ItemDrop> items = new ArrayList<>();
+    }
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class StageProgress {
@@ -58,7 +87,7 @@ public class Dungeon {
         int enemiesKilled;
         int deaths;
     }
-    
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class DungeonReward {
@@ -68,7 +97,7 @@ public class Dungeon {
         String title;
         String achievement;
     }
-    
+
     @Data
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class ItemDrop {
@@ -76,6 +105,20 @@ public class Dungeon {
         String itemName;
         String rarity;
         int quantity;
+    }
+
+    /** 重置每日次数（日期变更时调用） */
+    public void resetDailyIfNeeded() {
+        String today = java.time.LocalDate.now().toString();
+        if (!today.equals(lastAttemptDate)) {
+            todayAttempts = 0;
+            lastAttemptDate = today;
+        }
+    }
+
+    public boolean canAttemptToday() {
+        resetDailyIfNeeded();
+        return dailyLimit <= 0 || todayAttempts < dailyLimit;
     }
 }
 

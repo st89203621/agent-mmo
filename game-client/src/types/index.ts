@@ -155,7 +155,7 @@ export interface ExploreStatus {
 }
 
 /** 探索事件 */
-export type ExploreEventType = 'encounter' | 'discovery' | 'lore' | 'dilemma' | 'vista' | 'combat';
+export type ExploreEventType = 'encounter' | 'discovery' | 'lore' | 'dilemma' | 'vista' | 'combat' | 'deja_vu';
 
 export interface ExploreEventChoice {
   id: number;

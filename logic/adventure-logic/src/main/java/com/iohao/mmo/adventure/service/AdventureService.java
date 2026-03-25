@@ -30,58 +30,185 @@ public class AdventureService {
     SecretRealmRepository secretRealmRepository;
     
     // ========== 副本系统 ==========
-    
+
+    /** 副本模板定义 */
+    private static final List<DungeonTemplate> DUNGEON_TEMPLATES = List.of(
+        new DungeonTemplate("shadow_forest", "暗影森林", "被黑暗侵蚀的古老森林，幽灵出没",
+            Dungeon.DungeonType.STORY, 1, 5, 3,
+            new String[]{"幽影狼", "毒蛛", "树妖", "暗影鹿", "森林巨蛇"},
+            new boolean[]{false, false, false, false, true}),
+        new DungeonTemplate("flame_forge", "烈焰熔炉", "炽热的地底锻造厂，火焰精灵的领地",
+            Dungeon.DungeonType.CHALLENGE, 5, 6, 3,
+            new String[]{"熔岩蝾螈", "火焰精灵", "炽热傀儡", "烈焰蛇", "灼热石魔", "炎魔·焚天"},
+            new boolean[]{false, false, false, false, false, true}),
+        new DungeonTemplate("frozen_temple", "冰封神殿", "永恒冰霜封印的远古神殿",
+            Dungeon.DungeonType.CHALLENGE, 10, 7, 2,
+            new String[]{"冰霜史莱姆", "寒冰射手", "雪原狼王", "冻骨亡灵", "冰晶魔像", "霜龙之影", "冰封祭司·霜华"},
+            new boolean[]{false, false, false, false, false, false, true}),
+        new DungeonTemplate("dragon_lair", "龙之巢穴", "远古巨龙栖息的洞穴深处",
+            Dungeon.DungeonType.BOSS, 15, 5, 2,
+            new String[]{"龙裔卫兵", "龙息蜥蜴", "翼龙幼崽", "龙骨亡灵", "黑龙·虚无"},
+            new boolean[]{false, false, false, false, true}),
+        new DungeonTemplate("spirit_tower", "通天塔", "直插云霄的试炼之塔，每层更强",
+            Dungeon.DungeonType.ENDLESS, 3, 10, 5,
+            new String[]{"塔灵·壹", "塔灵·贰", "塔灵·叁", "塔灵·肆", "塔灵·伍", "塔灵·陆", "塔灵·柒", "塔灵·捌", "塔灵·玖", "塔之主·极"},
+            new boolean[]{false, false, false, false, true, false, false, false, false, true}),
+        new DungeonTemplate("demon_abyss", "深渊魔窟", "通向地底深渊的裂缝，恶魔横行",
+            Dungeon.DungeonType.CHALLENGE, 20, 8, 2,
+            new String[]{"低阶魔兵", "堕落天使", "深渊蠕虫", "魔能傀儡", "暗影刺客", "深渊领主", "堕天使·裁决", "魔王·深渊之主"},
+            new boolean[]{false, false, false, false, false, true, false, true})
+    );
+
+    /** 副本模板数据 */
+    private record DungeonTemplate(String dungeonId, String name, String description,
+                                    Dungeon.DungeonType type, int recommendedLevel,
+                                    int stageCount, int dailyLimit,
+                                    String[] enemyNames, boolean[] bossFlags) {}
+
     public List<Dungeon> listDungeons(long userId) {
-        return dungeonRepository.findByUserId(userId);
+        List<Dungeon> existing = dungeonRepository.findByUserId(userId);
+        Map<String, Dungeon> existingMap = new HashMap<>();
+        existing.forEach(d -> existingMap.put(d.getDungeonId(), d));
+
+        List<Dungeon> result = new ArrayList<>();
+        for (DungeonTemplate tpl : DUNGEON_TEMPLATES) {
+            Dungeon d = existingMap.get(tpl.dungeonId());
+            if (d == null) {
+                d = buildDungeonFromTemplate(userId, tpl);
+            }
+            d.resetDailyIfNeeded();
+            result.add(d);
+        }
+        return result;
     }
-    
+
+    private Dungeon buildDungeonFromTemplate(long userId, DungeonTemplate tpl) {
+        Dungeon d = new Dungeon();
+        d.setUserId(userId);
+        d.setDungeonId(tpl.dungeonId());
+        d.setDungeonName(tpl.name());
+        d.setDescription(tpl.description());
+        d.setType(tpl.type());
+        d.setMaxStage(tpl.stageCount());
+        d.setCurrentStage(0);
+        d.setStatus(Dungeon.DungeonStatus.NOT_STARTED);
+        d.setDifficulty(1);
+        d.setRecommendedLevel(tpl.recommendedLevel());
+        d.setDailyLimit(tpl.dailyLimit());
+        d.setFirstClear(false);
+        d.setClearCount(0);
+
+        // 生成关卡信息
+        List<Dungeon.StageInfo> stages = new ArrayList<>();
+        for (int i = 0; i < tpl.stageCount(); i++) {
+            Dungeon.StageInfo info = new Dungeon.StageInfo();
+            info.setStageId(i + 1);
+            info.setEnemyName(tpl.enemyNames()[i]);
+            info.setEnemyLevel(tpl.recommendedLevel() + i * 2);
+            info.setBoss(tpl.bossFlags()[i]);
+            info.setStageName(tpl.bossFlags()[i] ? "BOSS: " + tpl.enemyNames()[i] : "第" + (i + 1) + "关");
+
+            Dungeon.StageReward sr = new Dungeon.StageReward();
+            int baseGold = (tpl.recommendedLevel() + i * 2) * 20;
+            int baseExp = (tpl.recommendedLevel() + i * 2) * 30;
+            sr.setGold(tpl.bossFlags()[i] ? baseGold * 3 : baseGold);
+            sr.setExp(tpl.bossFlags()[i] ? baseExp * 3 : baseExp);
+            info.setReward(sr);
+            stages.add(info);
+        }
+        d.setStages(stages);
+
+        // 首通奖励
+        Dungeon.DungeonReward firstReward = new Dungeon.DungeonReward();
+        firstReward.setGold(tpl.recommendedLevel() * 500);
+        firstReward.setExp(tpl.recommendedLevel() * 800);
+        firstReward.setTitle(tpl.name() + "征服者");
+        d.setFirstClearReward(firstReward);
+
+        return dungeonRepository.save(d);
+    }
+
     public Dungeon enterDungeon(long userId, String dungeonId, int difficulty) {
-        Dungeon dungeon = new Dungeon();
-        dungeon.setUserId(userId);
-        dungeon.setDungeonId(dungeonId);
-        dungeon.setDungeonName(getDungeonName(dungeonId));
-        dungeon.setType(getDungeonType(dungeonId));
+        Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
+        if (dungeon == null) {
+            DungeonTemplate tpl = DUNGEON_TEMPLATES.stream()
+                .filter(t -> t.dungeonId().equals(dungeonId)).findFirst().orElse(null);
+            if (tpl == null) throw new IllegalArgumentException("副本不存在");
+            dungeon = buildDungeonFromTemplate(userId, tpl);
+        }
+
+        dungeon.resetDailyIfNeeded();
+        if (!dungeon.canAttemptToday()) {
+            throw new IllegalStateException("今日挑战次数已用完");
+        }
+
         dungeon.setCurrentStage(1);
-        dungeon.setMaxStage(getMaxStages(dungeonId));
         dungeon.setStatus(Dungeon.DungeonStatus.IN_PROGRESS);
         dungeon.setStartTime(System.currentTimeMillis());
-        dungeon.setDifficulty(difficulty);
-        dungeon.setFirstClear(true);
-        dungeon.setClearCount(0);
+        dungeon.setDifficulty(Math.max(1, Math.min(difficulty, 5)));
+        dungeon.setStageProgress(new ArrayList<>());
+        dungeon.setReward(null);
+        dungeon.setTodayAttempts(dungeon.getTodayAttempts() + 1);
+        dungeon.setLastAttemptDate(java.time.LocalDate.now().toString());
         return dungeonRepository.save(dungeon);
     }
-    
+
     public Dungeon exitDungeon(long userId, String dungeonId) {
         Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
-        if (dungeon != null) {
+        if (dungeon != null && dungeon.getStatus() == Dungeon.DungeonStatus.IN_PROGRESS) {
             dungeon.setStatus(Dungeon.DungeonStatus.FAILED);
             return dungeonRepository.save(dungeon);
         }
-        return null;
+        return dungeon;
     }
-    
+
+    /** 获取当前关卡的敌人信息（用于发起战斗） */
+    public Dungeon.StageInfo getCurrentStageInfo(long userId, String dungeonId) {
+        Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
+        if (dungeon == null || dungeon.getStatus() != Dungeon.DungeonStatus.IN_PROGRESS) return null;
+        return dungeon.getStages().stream()
+            .filter(s -> s.getStageId() == dungeon.getCurrentStage())
+            .findFirst().orElse(null);
+    }
+
     public Dungeon completeStage(long userId, String dungeonId, int stageId, int stars) {
         Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
-        if (dungeon != null) {
-            Dungeon.StageProgress progress = new Dungeon.StageProgress();
-            progress.setStageId(stageId);
-            progress.setStageName("关卡 " + stageId);
-            progress.setCompleted(true);
-            progress.setStars(stars);
-            progress.setClearTime(System.currentTimeMillis() - dungeon.getStartTime());
-            dungeon.getStageProgress().add(progress);
-            
-            if (stageId >= dungeon.getMaxStage()) {
-                dungeon.setStatus(Dungeon.DungeonStatus.COMPLETED);
-                dungeon.setCompleteTime(System.currentTimeMillis());
-                dungeon.setClearCount(dungeon.getClearCount() + 1);
-                generateDungeonReward(dungeon);
-            } else {
-                dungeon.setCurrentStage(stageId + 1);
+        if (dungeon == null || dungeon.getStatus() != Dungeon.DungeonStatus.IN_PROGRESS) return dungeon;
+
+        Dungeon.StageProgress progress = new Dungeon.StageProgress();
+        progress.setStageId(stageId);
+        progress.setStageName("关卡 " + stageId);
+        progress.setCompleted(true);
+        progress.setStars(stars);
+        progress.setClearTime(System.currentTimeMillis() - dungeon.getStartTime());
+        dungeon.getStageProgress().add(progress);
+
+        if (stageId >= dungeon.getMaxStage()) {
+            dungeon.setStatus(Dungeon.DungeonStatus.COMPLETED);
+            dungeon.setCompleteTime(System.currentTimeMillis());
+            dungeon.setClearCount(dungeon.getClearCount() + 1);
+            long elapsed = dungeon.getCompleteTime() - dungeon.getStartTime();
+            if (dungeon.getBestTime() <= 0 || elapsed < dungeon.getBestTime()) {
+                dungeon.setBestTime(elapsed);
             }
+            generateDungeonReward(dungeon);
+            if (!dungeon.isFirstClear()) {
+                dungeon.setFirstClear(true);
+            }
+        } else {
+            dungeon.setCurrentStage(stageId + 1);
+        }
+        return dungeonRepository.save(dungeon);
+    }
+
+    /** 副本失败（战斗失败时调用） */
+    public Dungeon failDungeon(long userId, String dungeonId) {
+        Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
+        if (dungeon != null && dungeon.getStatus() == Dungeon.DungeonStatus.IN_PROGRESS) {
+            dungeon.setStatus(Dungeon.DungeonStatus.FAILED);
             return dungeonRepository.save(dungeon);
         }
-        return null;
+        return dungeon;
     }
     
     // ========== 探险系统 ==========
@@ -316,34 +443,23 @@ public class AdventureService {
     }
     
     // ========== 辅助方法 ==========
-    
-    private String getDungeonName(String dungeonId) {
-        if (dungeonId == null) {
-            return "未知副本";
-        }
-        Map<String, String> names = Map.of(
-            "shadow_forest", "暗影森林",
-            "flame_forge", "烈焰熔炉",
-            "frozen_temple", "冰封神殿",
-            "dragon_lair", "龙之巢穴"
-        );
-        return names.getOrDefault(dungeonId, "未知副本");
-    }
-    
-    private Dungeon.DungeonType getDungeonType(String dungeonId) {
-        return Dungeon.DungeonType.STORY;
-    }
-    
-    private int getMaxStages(String dungeonId) {
-        return 5;
-    }
-    
+
     private void generateDungeonReward(Dungeon dungeon) {
         Dungeon.DungeonReward reward = new Dungeon.DungeonReward();
-        reward.setExp(dungeon.getDifficulty() * 1000);
-        reward.setGold(dungeon.getDifficulty() * 500);
-        reward.setTitle("副本征服者");
-        reward.setAchievement("dungeon_master");
+        int baseMult = dungeon.getDifficulty() * dungeon.getRecommendedLevel();
+        reward.setExp(baseMult * 100);
+        reward.setGold(baseMult * 50);
+
+        // 难度越高掉落越好
+        if (dungeon.getDifficulty() >= 3) {
+            Dungeon.ItemDrop drop = new Dungeon.ItemDrop();
+            drop.setItemId("enchant_stone_" + dungeon.getDifficulty());
+            drop.setItemName(dungeon.getDifficulty() >= 4 ? "精炼附魔石" : "附魔石");
+            drop.setRarity(dungeon.getDifficulty() >= 4 ? "EPIC" : "RARE");
+            drop.setQuantity(1);
+            reward.getItems().add(drop);
+        }
+
         dungeon.setReward(reward);
     }
     

@@ -137,6 +137,8 @@ export default function BattlePage() {
   useEffect(() => { battleRef.current = battle; }, [battle]);
 
   const exploreEventId = pageParams?.exploreEventId as string | undefined;
+  const dungeonId = pageParams?.dungeonId as string | undefined;
+  const isDungeonBattle = pageParams?.dungeonBattle as boolean | undefined;
 
   /* ── 加载已有战斗 ── */
   const load = useCallback(async () => {
@@ -287,12 +289,14 @@ export default function BattlePage() {
 
   /* ── 返回 ── */
   const handleBack = useCallback(() => {
-    if (exploreEventId) {
+    if (isDungeonBattle && dungeonId) {
+      navigateTo('dungeon', finished ? { battleResult: battle?.status, dungeonId } : {});
+    } else if (exploreEventId) {
       navigateTo('explore', finished ? { resolvedBattleEventId: exploreEventId } : {});
     } else {
       navigateTo(previousPage || 'home');
     }
-  }, [navigateTo, previousPage, exploreEventId, finished]);
+  }, [navigateTo, previousPage, exploreEventId, isDungeonBattle, dungeonId, finished, battle?.status]);
 
   const player = battle?.playerUnits[0];
 

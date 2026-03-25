@@ -231,7 +231,26 @@ public class ExploreService {
         return reward;
     }
 
+    /** 检查是否应触发前世记忆回响事件（基于REBIRTH技能） */
+    private boolean shouldTriggerDejaVu(long userId) {
+        // 通过dejaVuChance字段判断（由GameApiController注入）
+        // 默认15%概率（如果有似曾相识技能）
+        return dejaVuChanceMap.getOrDefault(userId, 0.0) > ThreadLocalRandom.current().nextDouble();
+    }
+
+    /** 由外部注入的前世回响概率（技能系统） */
+    private final Map<Long, Double> dejaVuChanceMap = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void setDejaVuChance(long userId, double chance) {
+        dejaVuChanceMap.put(userId, chance);
+    }
+
     private ExploreEvent generateEvent(long userId, String bookTitle) {
+        // 前世记忆回响（约15%触发率，需要轮回技能）
+        if (shouldTriggerDejaVu(userId)) {
+            return buildDejaVuEvent(userId, bookTitle);
+        }
+
         // combat 出现概率约 30%（6种类型中占2权重）
         String[] types = {"encounter", "discovery", "lore", "dilemma", "vista", "combat", "combat"};
         String randomType = types[ThreadLocalRandom.current().nextInt(types.length)];
@@ -390,6 +409,37 @@ public class ExploreService {
         return event;
     }
 
+    /** 构建前世记忆回响事件 */
+    private ExploreEvent buildDejaVuEvent(long userId, String bookTitle) {
+        ExploreEvent event = new ExploreEvent();
+        event.setEventId(UUID.randomUUID().toString());
+        event.setUserId(userId);
+        event.setType("deja_vu");
+        event.setResolved(false);
+
+        String[][] scenes = {
+            {"似曾相识的小径", "你走过一条蜿蜒的小路，脚下的每块石头都令你感到异常熟悉。恍惚间，你似乎记起前世也曾在此驻足，那时身旁还有一个模糊的身影…"},
+            {"前世的回音", "一阵悠远的琴声穿越时空而来，旋律虽陌生却让你热泪盈眶。记忆的碎片如落花般飘散，你隐约看见了另一个自己。"},
+            {"轮回之印", "手臂上的印记突然发烫，空气中浮现出半透明的符文。这是你前世留下的记号——'此处有秘密'。"},
+            {"旧日的承诺", "一阵风吹来一张泛黄的纸片，上面是你的字迹，但你完全不记得何时写下。内容是一个尚未完成的约定…"},
+            {"命运的交汇", "时空在此刻出现裂隙，你看到了另一个世界的自己正经历着相似的际遇。两个世界的命运线在此交织。"},
+        };
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        String[] scene = scenes[rand.nextInt(scenes.length)];
+        event.setTitle(scene[0]);
+        event.setDescription(scene[1]);
+
+        List<ExploreEvent.Choice> choices = new ArrayList<>();
+        ExploreEvent.Choice c0 = new ExploreEvent.Choice();
+        c0.setId(0); c0.setText("追寻前世记忆"); c0.setRisk("medium");
+        ExploreEvent.Choice c1 = new ExploreEvent.Choice();
+        c1.setId(1); c1.setText("静心感悟"); c1.setRisk("low");
+        choices.add(c0);
+        choices.add(c1);
+        event.setChoices(choices);
+        return event;
+    }
+
     private Map<String, Object> calculateReward(ExploreEvent event, ExploreEvent.Choice chosen) {
         ThreadLocalRandom rand = ThreadLocalRandom.current();
         int riskMultiplier = switch (chosen.getRisk()) {
@@ -404,6 +454,7 @@ public class ExploreService {
         String memoryTitle = null;
         String message;
         String imageUrl = null;
+        Map<String, Object> reward = new LinkedHashMap<>();
 
         switch (event.getType()) {
             case "encounter" -> {
@@ -432,9 +483,16 @@ public class ExploreService {
                 message = "记录下了这壮丽景象，缘分 +" + fateDelta;
             }
             case "combat" -> {
-                // 选择逃跑时走这里（迎战走 resolveCombat）
                 fateDelta = -1;
                 message = "你选择了逃离战场，缘分 -1";
+            }
+            case "deja_vu" -> {
+                fateDelta = rand.nextInt(3, 8) * riskMultiplier;
+                trustDelta = rand.nextInt(2, 5) * riskMultiplier;
+                memoryTitle = "前世回响·" + event.getTitle();
+                int gold = rand.nextInt(50, 151) * riskMultiplier;
+                message = "前世记忆涌入！缘分 +" + fateDelta + "，信任 +" + trustDelta + "，金币 +" + gold;
+                reward.put("gold", gold);
             }
             default -> {
                 fateDelta = 1;
@@ -442,7 +500,6 @@ public class ExploreService {
             }
         }
 
-        Map<String, Object> reward = new LinkedHashMap<>();
         reward.put("message", message);
         reward.put("fateDelta", fateDelta);
         reward.put("trustDelta", trustDelta);

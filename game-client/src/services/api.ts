@@ -728,17 +728,47 @@ export function applyEnchant(equipId: string, runeLevel: number): Promise<Enchan
 
 // ── 副本 ──────────────────────────────────────
 
+export interface StageInfoData {
+  stageId: number;
+  stageName: string;
+  enemyName: string;
+  enemyLevel: number;
+  isBoss: boolean;
+  reward?: { gold: number; exp: number };
+}
+
+export interface StageProgressData {
+  stageId: number;
+  completed: boolean;
+  stars: number;
+}
+
 export interface DungeonData {
   id: string;
   dungeonId: string;
   dungeonName: string;
+  description: string;
   type: string;
   currentStage: number;
   maxStage: number;
   status: string;
   difficulty: number;
+  recommendedLevel: number;
+  dailyLimit: number;
+  dailyRemaining: number;
   firstClear: boolean;
   clearCount: number;
+  bestTime: number;
+  stages: StageInfoData[];
+  stageProgress: StageProgressData[];
+  firstClearReward?: { gold: number; exp: number; title: string };
+}
+
+export interface DungeonRewardResult {
+  gold: number;
+  exp: number;
+  items: { itemName: string; quantity: number; rarity: string }[];
+  title?: string;
 }
 
 export function fetchDungeons(): Promise<{ dungeons: DungeonData[] }> {
@@ -752,10 +782,29 @@ export function enterDungeon(dungeonId: string, difficulty = 1): Promise<{ dunge
   });
 }
 
-export function completeDungeonStage(dungeonId: string, stageId: number, stars = 3): Promise<{ dungeon: DungeonData }> {
-  return request('/dungeon/complete-stage', {
+export function challengeDungeonStage(dungeonId: string): Promise<{ battle: BattleData; stageInfo: StageInfoData; dungeonId: string }> {
+  return request('/dungeon/challenge', {
     method: 'POST',
-    body: JSON.stringify({ dungeonId, stageId, stars }),
+    body: JSON.stringify({ dungeonId }),
+  });
+}
+
+export function settleDungeonStage(dungeonId: string, stars = 3): Promise<{
+  dungeon: DungeonData;
+  stageReward: DungeonRewardResult;
+  clearReward?: DungeonRewardResult;
+  firstClearReward?: DungeonRewardResult;
+}> {
+  return request('/dungeon/settle', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId, stars }),
+  });
+}
+
+export function failDungeonStage(dungeonId: string): Promise<{ dungeon: DungeonData }> {
+  return request('/dungeon/fail', {
+    method: 'POST',
+    body: JSON.stringify({ dungeonId }),
   });
 }
 

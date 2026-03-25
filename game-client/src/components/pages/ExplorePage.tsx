@@ -16,6 +16,7 @@ const EVENT_ICONS: Record<string, string> = {
   dilemma:   '\u{1F500}',
   vista:     '\u{26F0}\uFE0F',
   combat:    '\u{2694}\uFE0F',
+  deja_vu:   '\u{1F300}',
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -25,6 +26,7 @@ const EVENT_LABELS: Record<string, string> = {
   dilemma:   '抉择',
   vista:     '奇景',
   combat:    '遭遇战',
+  deja_vu:   '前世回响',
 };
 
 const RISK_LABELS: Record<string, string> = {

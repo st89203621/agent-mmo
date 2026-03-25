@@ -520,3 +520,8 @@
 .eventIcon[data-type="combat"] { background: rgba(192, 78, 82, 0.25); }
 .eventType[data-type="combat"] { background: rgba(192, 78, 82, 0.7); }
 .historyCard[data-type="combat"] { border-left-color: rgba(192, 78, 82, 0.6); }
+
+/* 前世回响事件样式 */
+.eventIcon[data-type="deja_vu"] { background: rgba(201, 168, 76, 0.3); }
+.eventType[data-type="deja_vu"] { background: linear-gradient(135deg, rgba(201, 168, 76, 0.7), rgba(139, 107, 197, 0.7)); }
+.historyCard[data-type="deja_vu"] { border-left-color: var(--gold); }

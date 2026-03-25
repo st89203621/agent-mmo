@@ -41,6 +41,77 @@ public class BattleService {
     }
 
     /**
+     * 发起副本关卡战斗（敌人属性按副本难度和关卡等级缩放）
+     */
+    public BattleState startDungeonBattle(long userId, String enemyName, int enemyLevel,
+                                           boolean isBoss, int dungeonDifficulty,
+                                           int playerHp, int playerMp,
+                                           int pAtk, int pDef, int mAtk, int mDef, int speed,
+                                           List<BattleSkill> skills) {
+        // 清理旧战斗
+        mongoTemplate.remove(
+                Query.query(Criteria.where("userId").is(userId).and("status").is("ONGOING")),
+                BattleState.class);
+
+        BattleUnit player = new BattleUnit();
+        player.setUnitId("player");
+        player.setName("玩家");
+        player.setUnitType("PLAYER");
+        player.setMaxHp(Math.max(playerHp, 100));
+        player.setHp(player.getMaxHp());
+        player.setMaxMp(Math.max(playerMp, 50));
+        player.setMp(player.getMaxMp());
+        player.setPhysicsAttack(Math.max(pAtk, 10));
+        player.setPhysicsDefense(Math.max(pDef, 5));
+        player.setMagicAttack(Math.max(mAtk, 8));
+        player.setMagicDefense(Math.max(mDef, 5));
+        player.setSpeed(Math.max(speed, 10));
+
+        BattleUnit enemy = generateDungeonEnemy(player, enemyName, enemyLevel, isBoss, dungeonDifficulty);
+
+        BattleState state = new BattleState();
+        state.setUserId(userId);
+        state.setRound(1);
+        state.setStatus("ONGOING");
+        state.setPlayerUnits(new ArrayList<>(List.of(player)));
+        state.setEnemyUnits(new ArrayList<>(List.of(enemy)));
+        state.setStartTime(System.currentTimeMillis());
+
+        List<BattleSkill> available = new ArrayList<>();
+        available.add(buildDefaultSkill("attack", "普通攻击", "⚔️", 0, 1.0, "physical_damage"));
+        available.add(buildDefaultSkill("defend", "防御", "🛡️", 0, 0, "buff_defense"));
+        if (skills != null) available.addAll(skills);
+        state.setAvailableSkills(available);
+
+        return mongoTemplate.save(state);
+    }
+
+    /** 生成副本敌人（按关卡等级和难度缩放） */
+    private BattleUnit generateDungeonEnemy(BattleUnit player, String name, int level,
+                                             boolean isBoss, int difficulty) {
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        double levelScale = 1.0 + (level - 1) * 0.08;
+        double diffScale = 1.0 + (difficulty - 1) * 0.15;
+        double bossScale = isBoss ? 1.8 : 1.0;
+        double total = levelScale * diffScale * bossScale;
+
+        BattleUnit enemy = new BattleUnit();
+        enemy.setUnitId("enemy_1");
+        enemy.setName(name);
+        enemy.setUnitType("MONSTER");
+        enemy.setMaxHp((int) (player.getMaxHp() * total * rng.nextInt(90, 111) / 100));
+        enemy.setHp(enemy.getMaxHp());
+        enemy.setMaxMp((int) (player.getMaxMp() * total * rng.nextInt(70, 101) / 100));
+        enemy.setMp(enemy.getMaxMp());
+        enemy.setPhysicsAttack((int) (player.getPhysicsAttack() * total * rng.nextInt(85, 106) / 100));
+        enemy.setPhysicsDefense((int) (player.getPhysicsDefense() * total * rng.nextInt(80, 106) / 100));
+        enemy.setMagicAttack((int) (player.getMagicAttack() * total * rng.nextInt(75, 106) / 100));
+        enemy.setMagicDefense((int) (player.getMagicDefense() * total * rng.nextInt(75, 106) / 100));
+        enemy.setSpeed((int) (player.getSpeed() * total * rng.nextInt(85, 116) / 100));
+        return enemy;
+    }
+
+    /**
      * 发起战斗（PvE），支持传入可用技能
      */
     public BattleState startBattle(long userId, int playerHp, int playerMp,

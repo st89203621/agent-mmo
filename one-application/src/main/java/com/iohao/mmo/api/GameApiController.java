@@ -8,6 +8,7 @@ import com.iohao.mmo.bookworld.service.BookWorldService;
 import com.iohao.mmo.fate.entity.NpcTemplate;
 import com.iohao.mmo.fate.entity.Relation;
 import com.iohao.mmo.fate.repository.NpcTemplateRepository;
+import com.iohao.mmo.fate.repository.RelationRepository;
 import com.iohao.mmo.fate.service.FateService;
 import com.iohao.mmo.login.entity.User;
 import com.iohao.mmo.login.service.UserService;
@@ -151,6 +152,9 @@ public class GameApiController {
 
     @Resource
     ExploreService exploreService;
+
+    @Resource
+    RelationRepository relationRepository;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -602,6 +606,73 @@ public class GameApiController {
         return ok(Map.of("msg", "衰减已应用"));
     }
 
+    /** 查询NPC的缘分事件链（待触发的里程碑事件） */
+    @GetMapping("/fate/milestones/{npcId}")
+    public ResponseEntity<Map<String, Object>> getFateMilestones(@PathVariable String npcId,
+                                                                   @RequestParam(defaultValue = "0") int worldIndex,
+                                                                   HttpSession session) {
+        long userId = requireLogin(session);
+        Relation rel = fateService.getOrCreate(userId, npcId, worldIndex);
+
+        List<Map<String, Object>> milestones = new ArrayList<>();
+        for (int i = 0; i < Relation.MILESTONES.length; i++) {
+            int threshold = Relation.MILESTONES[i];
+            Map<String, Object> ms = new LinkedHashMap<>();
+            ms.put("threshold", threshold);
+            ms.put("title", Relation.MILESTONE_EVENTS[i][0]);
+            ms.put("description", Relation.MILESTONE_EVENTS[i][1]);
+            ms.put("reached", rel.getFateScore() >= threshold);
+            ms.put("triggered", rel.getTriggeredMilestones() != null && rel.getTriggeredMilestones().contains(threshold));
+            milestones.add(ms);
+        }
+
+        int nextMilestone = rel.getNextMilestone();
+        return ok(Map.of(
+            "npcId", npcId,
+            "fateScore", rel.getFateScore(),
+            "fateLevel", rel.getFateLevel(),
+            "milestones", milestones,
+            "nextMilestone", nextMilestone
+        ));
+    }
+
+    /** 触发缘分里程碑事件（领取奖励） */
+    @PostMapping("/fate/trigger-milestone")
+    public ResponseEntity<Map<String, Object>> triggerFateMilestone(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String npcId = (String) body.get("npcId");
+        int worldIndex = body.get("worldIndex") != null ? ((Number) body.get("worldIndex")).intValue() : 0;
+
+        Relation rel = fateService.getOrCreate(userId, npcId, worldIndex);
+        int nextMs = rel.getNextMilestone();
+        if (nextMs <= 0) return err("暂无可触发的缘分事件");
+
+        rel.markMilestoneTriggered(nextMs);
+        relationRepository.save(rel);
+
+        // 里程碑奖励
+        int idx = java.util.Arrays.binarySearch(Relation.MILESTONES, nextMs);
+        String eventTitle = idx >= 0 ? Relation.MILESTONE_EVENTS[idx][0] : "缘分事件";
+        String eventDesc = idx >= 0 ? Relation.MILESTONE_EVENTS[idx][1] : "";
+
+        int goldReward = nextMs * 10;
+        int fateBonus = 5;
+        PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+        currency.addGold(goldReward);
+        shopService.saveCurrency(currency);
+        rel.addFateScore(fateBonus);
+        relationRepository.save(rel);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("milestone", nextMs);
+        result.put("title", eventTitle);
+        result.put("description", eventDesc);
+        result.put("reward", Map.of("gold", goldReward, "fateBonus", fateBonus));
+        result.put("newFateScore", rel.getFateScore());
+        result.put("fateLevel", rel.getFateLevel());
+        return ok(result);
+    }
+
     private Map<String, Object> relationToMap(Relation r) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("relationId", r.getId());
@@ -615,6 +686,9 @@ public class GameApiController {
         m.put("keyFacts", r.getKeyFacts());
         m.put("lastInteractTime", r.getUpdatedAt());
         m.put("milestone", r.isAtMilestone());
+        m.put("fateLevel", r.getFateLevel());
+        m.put("nextMilestone", r.getNextMilestone());
+        m.put("triggeredMilestones", r.getTriggeredMilestones());
         return m;
     }
 
@@ -961,12 +1035,14 @@ public class GameApiController {
 
     private String buildBgPrompt(String theme) {
         StringBuilder sb = new StringBuilder();
-        sb.append("清新唯美风格，游戏主页竖版背景壁纸，");
+        sb.append("暗黑仙侠风格，游戏主页竖版背景壁纸，");
         sb.append("主题：").append(theme).append("，");
-        sb.append("色调清新柔和，光线通透温暖，略带虚焦/景深效果，");
-        sb.append("画面干净简洁，意境悠远，");
+        sb.append("整体色调以纯黑和深色为主基调，背景大面积纯黑(#000000)，");
+        sb.append("仅有少量微弱的光效点缀（如远处隐约的星光、淡淡的灵气光丝），");
+        sb.append("画面暗沉幽邃，意境深远神秘，");
         sb.append("【严格要求】画面中绝对不能出现任何人物、角色、生物、剪影、身影，");
-        sb.append("不能有任何主体对象，只有纯粹的自然风景场景，");
+        sb.append("不能有任何主体对象，只有纯粹的暗色调场景，");
+        sb.append("画面边缘和大部分区域必须是纯黑色，便于与黑色UI融合，");
         sb.append("高清，9:16竖版构图");
         return sb.toString();
     }
@@ -1791,19 +1867,118 @@ public class GameApiController {
         return ok(Map.of("dungeon", dungeonToMap(d)));
     }
 
-    @PostMapping("/dungeon/complete-stage")
-    public ResponseEntity<Map<String, Object>> completeStage(@RequestBody Map<String, Object> body, HttpSession session) {
+    /** 挑战副本当前关卡（发起战斗） */
+    @PostMapping("/dungeon/challenge")
+    public ResponseEntity<Map<String, Object>> challengeDungeonStage(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String dungeonId = (String) body.get("dungeonId");
-        int stageId = ((Number) body.getOrDefault("stageId", 1)).intValue();
-        int stars = ((Number) body.getOrDefault("stars", 3)).intValue();
-        Dungeon d2 = adventureService.completeStage(userId, dungeonId, stageId, stars);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("dungeon", dungeonToMap(d2));
-        if (d2.getStatus() == Dungeon.DungeonStatus.COMPLETED && d2.getReward() != null) {
-            result.put("rewardDetail", distributeDungeonRewards(userId, d2.getReward()));
+
+        Dungeon.StageInfo stageInfo = adventureService.getCurrentStageInfo(userId, dungeonId);
+        if (stageInfo == null) return err("当前无可挑战的关卡");
+
+        // 获取玩家属性
+        Person person = personService.getPersonById(userId);
+        int hp = 100, mp = 50, pAtk = 15, pDef = 8, mAtk = 12, mDef = 8, spd = 10;
+        if (person != null && person.getBasicProperty() != null) {
+            var bp = person.getBasicProperty();
+            hp = bp.getHp(); mp = bp.getMp();
+            pAtk = bp.getPhysicsAttack(); pDef = bp.getPhysicsDefense();
+            mAtk = bp.getMagicAttack(); mDef = bp.getMagicDefense();
+            spd = bp.getSpeed();
         }
+
+        // 获取副本难度
+        Dungeon dungeon = adventureService.listDungeons(userId).stream()
+            .filter(d -> dungeonId.equals(d.getDungeonId())).findFirst().orElse(null);
+        int difficulty = dungeon != null ? dungeon.getDifficulty() : 1;
+
+        List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
+        BattleState state = battleService.startDungeonBattle(userId,
+            stageInfo.getEnemyName(), stageInfo.getEnemyLevel(),
+            stageInfo.isBoss(), difficulty,
+            hp, mp, pAtk, pDef, mAtk, mDef, spd, battleSkills);
+        attachBattlePortraits(userId, state);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("battle", battleToMap(state));
+        result.put("stageInfo", stageInfoToMap(stageInfo));
+        result.put("dungeonId", dungeonId);
         return ok(result);
+    }
+
+    /** 副本关卡战斗胜利后结算 */
+    @PostMapping("/dungeon/settle")
+    public ResponseEntity<Map<String, Object>> settleDungeonStage(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String dungeonId = (String) body.get("dungeonId");
+        int stars = ((Number) body.getOrDefault("stars", 3)).intValue();
+
+        Dungeon dungeon = adventureService.listDungeons(userId).stream()
+            .filter(d -> dungeonId.equals(d.getDungeonId())).findFirst().orElse(null);
+        if (dungeon == null || dungeon.getStatus() != Dungeon.DungeonStatus.IN_PROGRESS) {
+            return err("副本状态异常");
+        }
+
+        int currentStage = dungeon.getCurrentStage();
+        Dungeon.StageInfo stageInfo = dungeon.getStages().stream()
+            .filter(s -> s.getStageId() == currentStage).findFirst().orElse(null);
+
+        // 发放关卡奖励
+        Map<String, Object> stageReward = new LinkedHashMap<>();
+        if (stageInfo != null && stageInfo.getReward() != null) {
+            stageReward = distributeStageReward(userId, stageInfo.getReward());
+        }
+
+        // 推进副本进度
+        Dungeon updated = adventureService.completeStage(userId, dungeonId, currentStage, stars);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("dungeon", dungeonToMap(updated));
+        result.put("stageReward", stageReward);
+
+        // 通关奖励
+        if (updated.getStatus() == Dungeon.DungeonStatus.COMPLETED && updated.getReward() != null) {
+            result.put("clearReward", distributeDungeonRewards(userId, updated.getReward()));
+            // 首通额外奖励
+            if (updated.getClearCount() == 1 && updated.getFirstClearReward() != null) {
+                result.put("firstClearReward", distributeDungeonRewards(userId, updated.getFirstClearReward()));
+            }
+        }
+
+        return ok(result);
+    }
+
+    /** 副本关卡战斗失败 */
+    @PostMapping("/dungeon/fail")
+    public ResponseEntity<Map<String, Object>> failDungeonStage(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String dungeonId = (String) body.get("dungeonId");
+        Dungeon d = adventureService.failDungeon(userId, dungeonId);
+        return ok(Map.of("dungeon", dungeonToMap(d)));
+    }
+
+    private Map<String, Object> distributeStageReward(long userId, Dungeon.StageReward reward) {
+        PlayerCurrency currency = shopService.getPlayerCurrency(userId);
+        if (reward.getGold() > 0) currency.addGold(reward.getGold());
+        shopService.saveCurrency(currency);
+
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("gold", reward.getGold());
+        detail.put("exp", reward.getExp());
+
+        List<Map<String, Object>> droppedItems = new ArrayList<>();
+        if (reward.getItems() != null) {
+            for (Dungeon.ItemDrop drop : reward.getItems()) {
+                BagItem bagItem = new BagItem();
+                bagItem.setId(drop.getItemId());
+                bagItem.setItemTypeId(drop.getItemId());
+                bagItem.setQuantity(drop.getQuantity());
+                bagService.incrementItem(bagItem, userId);
+                droppedItems.add(Map.of("itemName", drop.getItemName(), "quantity", drop.getQuantity(), "rarity", drop.getRarity()));
+            }
+        }
+        detail.put("items", droppedItems);
+        return detail;
     }
 
     /** 发放副本通关奖励 */
@@ -1818,7 +1993,6 @@ public class GameApiController {
         detail.put("gold", reward.getGold());
         detail.put("exp", reward.getExp());
 
-        // 发放掉落物品到背包
         List<Map<String, Object>> droppedItems = new ArrayList<>();
         if (reward.getItems() != null) {
             for (Dungeon.ItemDrop drop : reward.getItems()) {
@@ -1827,11 +2001,7 @@ public class GameApiController {
                 bagItem.setItemTypeId(drop.getItemId());
                 bagItem.setQuantity(drop.getQuantity());
                 bagService.incrementItem(bagItem, userId);
-                droppedItems.add(Map.of(
-                        "itemName", drop.getItemName(),
-                        "quantity", drop.getQuantity(),
-                        "rarity", drop.getRarity()
-                ));
+                droppedItems.add(Map.of("itemName", drop.getItemName(), "quantity", drop.getQuantity(), "rarity", drop.getRarity()));
             }
         }
         detail.put("items", droppedItems);
@@ -1952,8 +2122,31 @@ public class GameApiController {
         long userId = requireLogin(session);
         int worldIndex = body.get("worldIndex") != null ? ((Number) body.get("worldIndex")).intValue() : 0;
         String bookTitle = (String) body.getOrDefault("bookTitle", "未知世界");
+
+        // 注入轮回技能的前世回响概率
+        double dejaVuChance = calcDejaVuChance(userId);
+        exploreService.setDejaVuChance(userId, dejaVuChance);
+
         ExploreEvent event = exploreService.explore(userId, worldIndex, bookTitle);
         return ok(Map.of("event", exploreEventToMap(event)));
+    }
+
+    /** 计算前世回响概率（基于REBIRTH技能） */
+    private double calcDejaVuChance(long userId) {
+        List<PlayerSkill> skills = skillService.listPlayerSkills(userId);
+        for (PlayerSkill ps : skills) {
+            if (ps.isUnlocked() && "rebirth_deja_vu".equals(ps.getSkillTemplateId())) {
+                SkillTemplate tpl = skillService.getTemplate(ps.getSkillTemplateId());
+                if (tpl != null && tpl.getEffectJson() != null) {
+                    try {
+                        var eff = JSON.parseObject(tpl.getEffectJson());
+                        double base = eff.getDoubleValue("dejaVuChance");
+                        return base * ps.getLevel(); // 等级越高概率越大
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        return 0;
     }
 
     @PostMapping("/explore/resolve")
@@ -2272,14 +2465,66 @@ public class GameApiController {
         m.put("id", d.getId());
         m.put("dungeonId", d.getDungeonId());
         m.put("dungeonName", d.getDungeonName());
+        m.put("description", d.getDescription());
         m.put("type", d.getType() != null ? d.getType().name() : "STORY");
         m.put("currentStage", d.getCurrentStage());
         m.put("maxStage", d.getMaxStage());
         m.put("status", d.getStatus() != null ? d.getStatus().name() : "NOT_STARTED");
         m.put("difficulty", d.getDifficulty());
+        m.put("recommendedLevel", d.getRecommendedLevel());
+        m.put("dailyLimit", d.getDailyLimit());
+        m.put("dailyRemaining", d.getDailyLimit() > 0 ? Math.max(0, d.getDailyLimit() - d.getTodayAttempts()) : -1);
         m.put("firstClear", d.isFirstClear());
         m.put("clearCount", d.getClearCount());
+        m.put("bestTime", d.getBestTime());
+
+        // 关卡信息
+        List<Map<String, Object>> stages = new ArrayList<>();
+        if (d.getStages() != null) {
+            for (Dungeon.StageInfo s : d.getStages()) {
+                stages.add(stageInfoToMap(s));
+            }
+        }
+        m.put("stages", stages);
+
+        // 已完成关卡进度
+        List<Map<String, Object>> progress = new ArrayList<>();
+        if (d.getStageProgress() != null) {
+            for (Dungeon.StageProgress sp : d.getStageProgress()) {
+                Map<String, Object> pm = new LinkedHashMap<>();
+                pm.put("stageId", sp.getStageId());
+                pm.put("completed", sp.isCompleted());
+                pm.put("stars", sp.getStars());
+                progress.add(pm);
+            }
+        }
+        m.put("stageProgress", progress);
+
+        // 首通奖励预览
+        if (d.getFirstClearReward() != null && !d.isFirstClear()) {
+            Map<String, Object> fcr = new LinkedHashMap<>();
+            fcr.put("gold", d.getFirstClearReward().getGold());
+            fcr.put("exp", d.getFirstClearReward().getExp());
+            fcr.put("title", d.getFirstClearReward().getTitle());
+            m.put("firstClearReward", fcr);
+        }
         return m;
+    }
+
+    private Map<String, Object> stageInfoToMap(Dungeon.StageInfo s) {
+        Map<String, Object> sm = new LinkedHashMap<>();
+        sm.put("stageId", s.getStageId());
+        sm.put("stageName", s.getStageName());
+        sm.put("enemyName", s.getEnemyName());
+        sm.put("enemyLevel", s.getEnemyLevel());
+        sm.put("isBoss", s.isBoss());
+        if (s.getReward() != null) {
+            Map<String, Object> sr = new LinkedHashMap<>();
+            sr.put("gold", s.getReward().getGold());
+            sr.put("exp", s.getReward().getExp());
+            sm.put("reward", sr);
+        }
+        return sm;
     }
 
     private Map<String, Object> enchantToMap(EquipEnchant e) {
