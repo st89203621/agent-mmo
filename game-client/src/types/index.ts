@@ -11,16 +11,6 @@ export interface DialogueChoice {
   weight: { fate: number; trust: number };
 }
 
-/** AI对话响应 */
-export interface DialogueResponse {
-  speaker: string;
-  emotion: Emotion;
-  text: string;
-  choices: DialogueChoice[];
-  allowFreeInput: boolean;
-  bookRefs: string[];
-}
-
 /** 对话消息（前端渲染用） */
 export interface DialogueMessage {
   sessionId: string;

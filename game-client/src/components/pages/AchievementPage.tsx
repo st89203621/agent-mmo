@@ -8,7 +8,10 @@ import {
 } from '../../services/api';
 import type { RelationDetail } from '../../types';
 import FateBar from '../common/FateBar';
-import styles from './AchievementPage.module.css';
+import page from '../../styles/page.module.css';
+import own from './AchievementPage.module.css';
+
+const styles = { ...page, ...own };
 
 type Tab = 'achievement' | 'fate' | 'rank';
 

@@ -1,21 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { fetchEquipDetail, identifyEquip, allotEquipAttrs, deleteEquips, type EquipData } from '../../services/api';
+import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
+import { POSITION_LABELS } from '../../constants/equipment';
 import styles from './EquipDetailPage.module.css';
-
-const POSITION_LABELS: Record<number, { label: string; icon: string }> = {
-  1: { label: '武器', icon: '🗡️' },
-  2: { label: '护甲', icon: '🛡️' },
-  3: { label: '饰品', icon: '💍' },
-  4: { label: '坐骑', icon: '🐴' },
-  5: { label: '宠物蛋', icon: '🥚' },
-};
-
-const QUALITY_NAMES = ['普通', '精良', '稀有', '史诗', '传说', '神话'];
-const QUALITY_COLORS = [
-  'var(--quality-common)', 'var(--quality-uncommon)', 'var(--quality-rare)',
-  'var(--quality-epic)', 'var(--quality-legendary)', 'var(--quality-mythic)',
-];
 
 const ELSE_PROP_LABELS: { key: string; label: string }[] = [
   { key: 'constitution', label: '体质' },

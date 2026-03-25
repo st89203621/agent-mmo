@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchBagItems, useBagItem, type BagItemData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { QUALITY_COLOR_MAP } from '../../constants/quality';
 import styles from './PageSkeleton.module.css';
 
 const GRID_SIZE = 30;
-
-const QUALITY_COLORS: Record<string, string> = {
-  common: '#aaa', uncommon: '#4caf50', rare: '#2196f3',
-  epic: '#9c27b0', legendary: '#ff9800', mythic: '#e91e63',
-};
 
 export default function InventoryPage() {
   const [items, setItems] = useState<BagItemData[]>([]);
@@ -60,7 +56,7 @@ export default function InventoryPage() {
                   style={item ? {
                     border: selected?.id === item.id
                       ? '2px solid var(--gold)'
-                      : `1px solid ${QUALITY_COLORS[item.quality ?? ''] || 'var(--paper-darker)'}`,
+                      : `1px solid ${QUALITY_COLOR_MAP[item.quality ?? ''] || 'var(--paper-darker)'}`,
                     position: 'relative',
                     cursor: 'pointer',
                   } : undefined}
@@ -99,14 +95,14 @@ export default function InventoryPage() {
                   <div>
                     <p style={{
                       fontSize: '14px', fontWeight: 600,
-                      color: QUALITY_COLORS[selected.quality ?? ''] || 'var(--ink)',
+                      color: QUALITY_COLOR_MAP[selected.quality ?? ''] || 'var(--ink)',
                     }}>
                       {selected.name || selected.itemTypeId}
                     </p>
                     {selected.quality && (
                       <span style={{
                         fontSize: '10px',
-                        color: QUALITY_COLORS[selected.quality] || '#888',
+                        color: QUALITY_COLOR_MAP[selected.quality] || '#888',
                       }}>
                         {selected.quality}
                       </span>

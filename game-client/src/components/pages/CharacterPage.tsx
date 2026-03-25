@@ -2,21 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, type EquipData, type PersonData } from '../../services/api';
-import styles from './CharacterPage.module.css';
+import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
+import { POSITION_LABELS } from '../../constants/equipment';
+import page from '../../styles/page.module.css';
+import own from './CharacterPage.module.css';
 
-const POSITION_LABELS: Record<number, { label: string; icon: string }> = {
-  1: { label: '武器', icon: '🗡️' },
-  2: { label: '护甲', icon: '🛡️' },
-  3: { label: '饰品', icon: '💍' },
-  4: { label: '坐骑', icon: '🐴' },
-  5: { label: '宠物蛋', icon: '🥚' },
-};
-
-const QUALITY_NAMES = ['普通', '精良', '稀有', '史诗', '传说', '神话'];
-const QUALITY_COLORS = [
-  'var(--quality-common)', 'var(--quality-uncommon)', 'var(--quality-rare)',
-  'var(--quality-epic)', 'var(--quality-legendary)', 'var(--quality-mythic)',
-];
+const styles = { ...page, ...own };
 
 export default function CharacterPage() {
   const { playerWorld } = usePlayerStore();
@@ -160,19 +151,17 @@ export default function CharacterPage() {
         {/* 快捷入口 */}
         <section className={styles.section}>
           <div className={styles.quickLinks}>
-            <button className={styles.quickLink} onClick={() => navigateTo('skill-tree')}>技能树</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('pet')}>宠物</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('enchant')}>附魔</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('rebirth')}>轮回</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('memory')}>记忆</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('achievement', { tab: 'fate' })}>因缘谱</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('book-world')}>书库</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('codex')}>图鉴</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('dungeon')}>副本</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('quest')}>任务</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('shop')}>商城</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('companion')}>灵侣</button>
-            <button className={styles.quickLink} onClick={() => navigateTo('achievement', { tab: 'rank' })}>排行</button>
+            {([
+              ['skill-tree', '技能树'], ['pet', '宠物'], ['enchant', '附魔'],
+              ['rebirth', '轮回'], ['memory', '记忆'],
+              ['achievement', '因缘谱', { tab: 'fate' }],
+              ['book-world', '书库'], ['codex', '图鉴'], ['dungeon', '副本'],
+              ['quest', '任务'], ['shop', '商城'], ['companion', '灵侣'],
+              ['achievement', '排行', { tab: 'rank' }],
+            ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
+              <button key={label} className={styles.quickLink}
+                onClick={() => navigateTo(page as any, params)}>{label}</button>
+            ))}
           </div>
         </section>
       </div>

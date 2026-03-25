@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Emotion } from '../../types';
+import { EMOTION_LABELS } from '../../constants/emotion';
 import styles from './NpcPortrait.module.css';
 
 interface Props {
@@ -7,13 +8,6 @@ interface Props {
   emotion: Emotion;
   portraitBase?: string;
 }
-
-const EMOTION_LABELS: Record<string, string> = {
-  calm: '平静', happy: '欢喜', sad: '悲伤', angry: '愤怒',
-  shy: '娇羞', surprised: '惊讶', tender: '温柔', cold: '冷漠',
-  fearful: '恐惧', determined: '坚定', melancholy: '惆怅', playful: '俏皮',
-  gentle: '温柔', worried: '忧虑', serious: '肃穆', nervous: '紧张',
-};
 
 export default function NpcPortrait({ npcName, emotion, portraitBase }: Props) {
   const emotionColor = `var(--emotion-${emotion})`;

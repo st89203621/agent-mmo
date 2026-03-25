@@ -3,19 +3,11 @@ import { fetchMemories, fetchMemoryHall, unlockMemory } from '../../services/api
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import type { MemoryFragment, MemoryHall } from '../../types';
-import styles from './MemoryPage.module.css';
+import { EMOTION_LABELS, EMOTION_COLORS } from '../../constants/emotion';
+import page from '../../styles/page.module.css';
+import own from './MemoryPage.module.css';
 
-const EMOTION_COLORS: Record<string, string> = {
-  calm: '#8b9dc3', happy: '#f0c040', sad: '#7a8fb5', angry: '#c44e52',
-  shy: '#e8b4c8', surprised: '#e8a040', tender: '#c8a0d0', cold: '#88a8c8',
-  fearful: '#8888a8', determined: '#d48040', melancholy: '#9090b0', playful: '#e8c070',
-};
-
-const EMOTION_LABELS: Record<string, string> = {
-  calm: '平静', happy: '欢喜', sad: '悲伤', angry: '愤怒',
-  shy: '娇羞', surprised: '惊讶', tender: '温柔', cold: '冷漠',
-  fearful: '恐惧', determined: '坚定', melancholy: '惆怅', playful: '俏皮',
-};
+const styles = { ...page, ...own };
 
 function formatTime(ts: number): string {
   if (!ts) return '';

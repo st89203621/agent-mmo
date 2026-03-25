@@ -1,92 +1,4 @@
-.page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  overflow: hidden;
-}
-
-.header {
-  padding: 16px;
-  text-align: center;
-  border-bottom: 1px solid var(--paper-darker);
-  flex-shrink: 0;
-}
-
-.title {
-  font-family: var(--font-main);
-  font-size: 18px;
-  color: var(--ink);
-}
-
-.subtitle {
-  font-size: 12px;
-  color: var(--gold-dim);
-  margin-top: 2px;
-}
-
-.tabRow {
-  display: flex;
-  border-bottom: 1px solid var(--paper-darker);
-  padding: 0 16px;
-  flex-shrink: 0;
-}
-
-.tab {
-  flex: 1;
-  padding: 10px 0;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 14px;
-  color: var(--ink);
-  opacity: 0.5;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  transition: all var(--transition-fast);
-}
-
-.tabActive {
-  opacity: 1;
-  border-bottom-color: var(--gold);
-  color: var(--gold-dim);
-  font-weight: 600;
-}
-
-.scrollArea {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 12px 16px;
-}
-
-/* ── 分类筛选 ── */
-.categoryRow {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.categoryBtn {
-  padding: 5px 12px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.6;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  transition: all var(--transition-fast);
-}
-
-.categoryActive {
-  opacity: 1;
-  border-color: var(--gold);
-  background: rgba(201, 168, 76, 0.12);
-  color: var(--gold-dim);
-}
+/* 通用布局由 page.module.css 提供，此处仅定义成就页专属样式 */
 
 /* ── 成就列表 ── */
 .achieveList {
@@ -119,10 +31,7 @@
   line-height: 36px;
 }
 
-.achieveInfo {
-  flex: 1;
-  min-width: 0;
-}
+.achieveInfo { flex: 1; min-width: 0; }
 
 .achieveName {
   font-family: var(--font-main);
@@ -286,7 +195,7 @@
   white-space: nowrap;
 }
 
-/* ── 缘分详情弹窗 ── */
+/* ── 缘分详情 ── */
 .fateDetail {
   margin-bottom: 14px;
   padding: 14px 16px;
@@ -334,11 +243,7 @@
   border-radius: 50%;
 }
 
-.fateDetailChar {
-  position: relative;
-  z-index: 1;
-}
-
+.fateDetailChar { position: relative; z-index: 1; }
 .fateDetailInfo { flex: 1; min-width: 0; }
 
 .fateDetailName {
@@ -348,11 +253,7 @@
   margin-bottom: 2px;
 }
 
-.fateDetailSub {
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.5;
-}
+.fateDetailSub { font-size: 12px; color: var(--ink); opacity: 0.5; }
 
 .fateDetailPersonality {
   font-size: 12px;
@@ -376,7 +277,6 @@
 
 .fateDetailClose:hover { opacity: 0.7; }
 
-/* 里程碑 */
 .milestoneRow {
   display: flex;
   justify-content: center;
@@ -394,9 +294,7 @@
   transition: opacity var(--transition-fast);
 }
 
-.milestoneReached {
-  opacity: 1;
-}
+.milestoneReached { opacity: 1; }
 
 .milestoneNum {
   font-family: var(--font-main);
@@ -405,22 +303,10 @@
   color: var(--gold-dim);
 }
 
-.milestoneReached .milestoneNum {
-  color: var(--gold);
-}
+.milestoneReached .milestoneNum { color: var(--gold); }
+.milestoneLabel { font-size: 11px; color: var(--ink); }
 
-.milestoneLabel {
-  font-size: 11px;
-  color: var(--ink);
-}
-
-/* NPC特征 */
-.npcTraits {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
+.npcTraits { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
 
 .traitTag {
   font-size: 11px;
@@ -431,10 +317,7 @@
   opacity: 0.6;
 }
 
-/* 关键事件 */
-.keyFactsSection {
-  margin-top: 10px;
-}
+.keyFactsSection { margin-top: 10px; }
 
 .keyFactsTitle {
   font-size: 12px;
@@ -444,11 +327,7 @@
   font-family: var(--font-main);
 }
 
-.keyFactsList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+.keyFactsList { display: flex; flex-direction: column; gap: 4px; }
 
 .keyFactItem {
   font-size: 12px;
@@ -460,11 +339,7 @@
 }
 
 .keyFactItem:last-child { border-bottom: none; }
-
-.memoryFate {
-  color: #e8b4c8;
-  font-weight: 500;
-}
+.memoryFate { color: #e8b4c8; font-weight: 500; }
 
 .goStoryBtn {
   display: block;
@@ -496,11 +371,7 @@
   text-align: center;
 }
 
-.rankList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.rankList { display: flex; flex-direction: column; gap: 6px; }
 
 .rankItem {
   display: flex;
@@ -512,61 +383,9 @@
   border-radius: var(--radius-md);
 }
 
-.rankTop {
-  border-color: rgba(201, 168, 76, 0.2);
-}
-
-.rankPos {
-  font-size: 18px;
-  width: 28px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.rankInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.rankName {
-  font-family: var(--font-main);
-  font-size: 14px;
-  color: var(--ink);
-  display: block;
-}
-
-.rankLevel {
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.5;
-}
-
-.rankValue {
-  font-size: 16px;
-  color: var(--gold);
-  font-weight: 700;
-}
-
-/* ── 空态 ── */
-.empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px 0;
-  color: var(--ink);
-  opacity: 0.5;
-  text-align: center;
-}
-
-.placeholderIcon {
-  font-size: 48px;
-  margin-bottom: 8px;
-}
-
-.hint {
-  font-size: 12px;
-  opacity: 0.6;
-}
+.rankTop { border-color: rgba(201, 168, 76, 0.2); }
+.rankPos { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+.rankInfo { flex: 1; min-width: 0; }
+.rankName { font-family: var(--font-main); font-size: 14px; color: var(--ink); display: block; }
+.rankLevel { font-size: 12px; color: var(--ink); opacity: 0.5; }
+.rankValue { font-size: 16px; color: var(--gold); font-weight: 700; }

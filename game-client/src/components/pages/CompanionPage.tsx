@@ -4,19 +4,11 @@ import {
   fetchCompanions, feedCompanion, setCompanionActive, fetchCompanionSkills,
   type CompanionData,
 } from '../../services/api';
-import styles from './CompanionPage.module.css';
+import { QUALITY_COLOR_MAP, QUALITY_LABELS } from '../../constants/quality';
+import page from '../../styles/page.module.css';
+import own from './CompanionPage.module.css';
 
-const QUALITY_COLORS: Record<string, string> = {
-  common: 'var(--quality-common)',
-  uncommon: 'var(--quality-uncommon)',
-  rare: 'var(--quality-rare)',
-  epic: 'var(--quality-epic)',
-  legendary: 'var(--quality-legendary)',
-};
-
-const QUALITY_LABELS: Record<string, string> = {
-  common: '凡品', uncommon: '良品', rare: '珍品', epic: '极品', legendary: '仙品',
-};
+const styles = { ...page, ...own };
 
 interface SkillInfo {
   name: string;
@@ -109,12 +101,12 @@ export default function CompanionPage() {
                   className={`${styles.companionCard} ${selected?.id === c.id ? styles.cardSelected : ''}`}
                   onClick={() => handleSelect(c)}
                 >
-                  <div className={styles.companionAvatar} style={{ borderColor: QUALITY_COLORS[c.quality] || 'var(--paper-darker)' }}>
+                  <div className={styles.companionAvatar} style={{ borderColor: QUALITY_COLOR_MAP[c.quality] || 'var(--paper-darker)' }}>
                     <span className={styles.avatarText}>{c.name.charAt(0)}</span>
                     <span className={styles.levelBadge}>Lv.{c.level}</span>
                   </div>
                   <div className={styles.companionBrief}>
-                    <span className={styles.companionName} style={{ color: QUALITY_COLORS[c.quality] || 'var(--ink)' }}>
+                    <span className={styles.companionName} style={{ color: QUALITY_COLOR_MAP[c.quality] || 'var(--ink)' }}>
                       {c.name}
                     </span>
                     <span className={styles.companionMeta}>
@@ -140,7 +132,7 @@ export default function CompanionPage() {
         {selected && (
           <div className={styles.detailPanel}>
             <div className={styles.detailHeader}>
-              <h3 className={styles.detailName} style={{ color: QUALITY_COLORS[selected.quality] || 'var(--ink)' }}>
+              <h3 className={styles.detailName} style={{ color: QUALITY_COLOR_MAP[selected.quality] || 'var(--ink)' }}>
                 {selected.name}
               </h3>
               <span className={styles.detailType}>{selected.type} · {selected.realm}</span>

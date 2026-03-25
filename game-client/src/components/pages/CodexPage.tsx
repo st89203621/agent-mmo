@@ -4,15 +4,13 @@ import {
   fetchCodexNpc, fetchCodexEquip, fetchCodexPet,
   type CodexNpcData, type CodexEquipData, type CodexPetData,
 } from '../../services/api';
-import styles from './CodexPage.module.css';
+import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
+import page from '../../styles/page.module.css';
+import own from './CodexPage.module.css';
+
+const styles = { ...page, ...own };
 
 type Tab = 'npc' | 'equip' | 'pet';
-
-const QUALITY_NAMES = ['普通', '精良', '稀有', '史诗', '传说', '神话'];
-const QUALITY_COLORS = [
-  'var(--quality-common)', 'var(--quality-uncommon)', 'var(--quality-rare)',
-  'var(--quality-epic)', 'var(--quality-legendary)', 'var(--quality-mythic)',
-];
 
 type DetailItem =
   | { type: 'npc'; data: CodexNpcData }

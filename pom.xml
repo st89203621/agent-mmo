@@ -85,7 +85,6 @@
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>
         <module>one-client</module>
-        <module>one-temp-application</module>
 
     </modules>
 
