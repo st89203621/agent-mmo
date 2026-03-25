@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════
-   RPG 战斗界面 — 沉浸式全屏 + Phaser 特效
+   RPG 战斗界面 — 大立绘对战 + Phaser 特效
    ═══════════════════════════════════════════ */
 
 .page {
@@ -12,7 +12,7 @@
   user-select: none;
 }
 
-/* Phaser 画布覆盖层 */
+/* Phaser 特效叠加层 */
 .phaserLayer {
   position: absolute;
   inset: 0;
@@ -20,7 +20,7 @@
   pointer-events: none;
 }
 
-/* ── 战斗场景 ── */
+/* ── 战斗场景（两区对战） ── */
 .battleScene {
   flex: 1;
   display: flex;
@@ -35,10 +35,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .roundBadge {
@@ -49,84 +49,68 @@
 }
 
 .autoBadge {
-  font-size: 11px;
+  font-size: 10px;
   color: #7ec8e3;
-  padding: 2px 10px;
-  border: 1px solid rgba(126, 200, 227, 0.3);
+  padding: 2px 8px;
+  border: 1px solid rgba(126, 200, 227, 0.25);
   border-radius: 999px;
   animation: autoPulse 2s ease infinite;
 }
 
 @keyframes autoPulse {
-  0%, 100% { opacity: 0.7; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
 .backBtn {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 6px;
 }
-
-.backBtn:hover { color: rgba(255, 255, 255, 0.8); }
 
 /* ── 敌方区域（上半） ── */
 .enemyZone {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 0 16px;
-  position: relative;
-  background: linear-gradient(180deg, #0c0c1a 0%, #141428 60%, #1a1a30 100%);
+  justify-content: center;
+  background: linear-gradient(180deg, #0c0c18 0%, #161630 100%);
 }
 
 /* ── 我方区域（下半） ── */
 .playerZone {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  padding: 0 16px;
-  position: relative;
-  background: linear-gradient(180deg, #1a1a30 0%, #12121e 40%, #0a0a14 100%);
+  justify-content: center;
+  background: linear-gradient(180deg, #161630 0%, #0e0e1a 100%);
 }
 
-/* ── 角色行 ── */
 .unitsRow {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  width: 100%;
 }
 
-/* ── 角色槽 ── */
+/* ── 角色槽位 ── */
 .unitSlot {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
   position: relative;
   transition: transform 0.3s ease;
 }
 
-.unitSlot.dead { opacity: 0.25; filter: grayscale(0.8); }
-
-.unitSlot.defending {
-  filter: brightness(1.1);
-}
+.unitSlot.dead { opacity: 0.2; filter: grayscale(1); }
 
 .unitSlot.defending::after {
   content: '🛡';
   position: absolute;
-  top: -8px;
-  right: -8px;
-  font-size: 18px;
+  top: 0;
+  right: -4px;
+  font-size: 16px;
   filter: drop-shadow(0 0 6px rgba(68, 204, 255, 0.8));
   z-index: 8;
 }
@@ -137,114 +121,53 @@
 
 @keyframes battleShake {
   0%, 100% { transform: translateX(0); }
-  15% { transform: translateX(-6px) rotate(-2deg); }
-  30% { transform: translateX(6px) rotate(2deg); }
-  45% { transform: translateX(-4px); }
-  60% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
+  15% { transform: translateX(-8px) rotate(-2deg); }
+  30% { transform: translateX(8px) rotate(2deg); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(5px); }
 }
 
 @keyframes attackUp {
   0% { transform: translateY(0); }
-  30% { transform: translateY(-35px) scale(1.08); }
-  60% { transform: translateY(-35px) scale(1.08); }
-  100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-40px) scale(1.06); }
+  55% { transform: translateY(-40px) scale(1.06); }
+  100% { transform: translateY(0); }
 }
 
 @keyframes attackDown {
   0% { transform: translateY(0); }
-  30% { transform: translateY(35px) scale(1.08); }
-  60% { transform: translateY(35px) scale(1.08); }
-  100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(40px) scale(1.06); }
+  55% { transform: translateY(40px) scale(1.06); }
+  100% { transform: translateY(0); }
 }
 
-/* ── 立绘图片（AI生成） ── */
-.portraitImg {
-  width: 140px;
-  height: 180px;
+/* ── 头顶血条区 ── */
+.headBar {
+  width: 120px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-}
-
-.portraitImg img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.6));
-}
-
-.portraitImg.enemyImg img {
-  filter: drop-shadow(0 0 12px rgba(196, 78, 82, 0.3))
-         drop-shadow(0 4px 16px rgba(0, 0, 0, 0.6));
-}
-
-.portraitImg.playerImg img {
-  filter: drop-shadow(0 0 12px rgba(102, 153, 255, 0.3))
-         drop-shadow(0 4px 16px rgba(0, 0, 0, 0.6));
-}
-
-/* ── Emoji降级（无立绘时） ── */
-.portraitEmoji {
-  width: 100px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 56px;
-  border-radius: 16px;
-}
-
-.portraitEmoji.enemyEmoji {
-  background: radial-gradient(circle, #2a1a2a 0%, #1a0a1a 100%);
-  border: 2px solid rgba(196, 78, 82, 0.3);
-  box-shadow: 0 0 24px rgba(196, 78, 82, 0.15);
-}
-
-.portraitEmoji.playerEmoji {
-  background: radial-gradient(circle, #1a2a3a 0%, #0a1a2a 100%);
-  border: 2px solid rgba(102, 153, 255, 0.3);
-  box-shadow: 0 0 24px rgba(102, 153, 255, 0.15);
-}
-
-/* ── 状态覆盖层（名字+HP/MP条） ── */
-.statusOverlay {
-  width: 130px;
+  gap: 2px;
+  margin-bottom: 4px;
 }
 
 .unitName {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  text-align: center;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
-  margin-bottom: 3px;
-}
-
-/* HP/MP bars */
-.barRow {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-bottom: 2px;
-}
-
-.barLabel {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.35);
-  width: 14px;
-  text-align: right;
-  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .barTrack {
-  flex: 1;
+  width: 100%;
   height: 5px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   overflow: hidden;
+}
+
+.mpTrack {
+  height: 3px;
 }
 
 .barFill {
@@ -258,85 +181,116 @@
 .barFill.hpLow { background: linear-gradient(90deg, #c44e52, #e06060); }
 .barFill.mp { background: linear-gradient(90deg, #4488cc, #66aaee); }
 
-.barValue {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.3);
-  width: 38px;
-  text-align: right;
-  flex-shrink: 0;
+/* ── 立绘图片（大尺寸） ── */
+.portraitImg {
+  width: 220px;
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.portraitImg img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.portraitImg.enemyImg img {
+  filter: drop-shadow(0 0 16px rgba(196, 78, 82, 0.25))
+         drop-shadow(0 6px 20px rgba(0, 0, 0, 0.5));
+}
+
+.portraitImg.playerImg img {
+  filter: drop-shadow(0 0 16px rgba(102, 153, 255, 0.25))
+         drop-shadow(0 6px 20px rgba(0, 0, 0, 0.5));
+}
+
+/* ── Emoji 降级 ── */
+.portraitEmoji {
+  width: 180px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+  border-radius: 20px;
+}
+
+.portraitEmoji.enemyEmoji {
+  background: radial-gradient(circle, #2a1a2a 0%, #140a14 100%);
+  box-shadow: 0 0 40px rgba(196, 78, 82, 0.1);
+}
+
+.portraitEmoji.playerEmoji {
+  background: radial-gradient(circle, #1a2a3a 0%, #0a1420 100%);
+  box-shadow: 0 0 40px rgba(102, 153, 255, 0.1);
 }
 
 /* ── 浮动伤害数字 ── */
 .floatNumber {
   position: absolute;
   font-weight: 900;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
   pointer-events: none;
   z-index: 20;
   animation: floatUp 1.2s ease forwards;
   left: 50%;
-  top: 10%;
+  top: 20%;
 }
 
 .floatNumber.damage {
-  font-size: 24px;
+  font-size: 28px;
   color: #ff4444;
-  transform: translateX(-50%);
 }
 
 .floatNumber.heal {
-  font-size: 22px;
+  font-size: 26px;
   color: #44ff88;
-  transform: translateX(-50%);
 }
 
 @keyframes floatUp {
   0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(0.5); }
-  20% { opacity: 1; transform: translateX(-50%) translateY(-20px) scale(1.3); }
-  40% { opacity: 1; transform: translateX(-50%) translateY(-30px) scale(1); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-60px) scale(0.8); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(-24px) scale(1.3); }
+  40% { opacity: 1; transform: translateX(-50%) translateY(-36px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-70px) scale(0.8); }
 }
 
-/* ── 战斗日志 ── */
+/* ── 战斗日志（1行） ── */
 .logTicker {
-  padding: 6px 16px;
-  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 16px;
+  background: rgba(0, 0, 0, 0.4);
   z-index: 2;
   flex-shrink: 0;
 }
 
 .logLine {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7);
   text-align: center;
   animation: logFade 0.3s ease;
-  line-height: 1.5;
-}
-
-.logLine:last-child {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 600;
 }
 
 @keyframes logFade {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── 底部操作面板 ── */
+/* ── 底部操作面板（紧凑） ── */
 .actionPanel {
-  background: linear-gradient(180deg, #12121e 0%, #0a0a14 100%);
-  border-top: 1px solid rgba(201, 168, 76, 0.15);
-  padding: 10px 12px;
-  padding-bottom: calc(10px + var(--safe-bottom));
+  background: rgba(10, 10, 20, 0.95);
+  border-top: 1px solid rgba(201, 168, 76, 0.12);
+  padding: 6px 10px;
+  padding-bottom: calc(6px + var(--safe-bottom));
   z-index: 10;
 }
 
 .skillRow {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   scrollbar-width: none;
 }
 
@@ -348,65 +302,60 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
 }
 
 .skillBtn:hover:not(:disabled) {
-  border-color: rgba(201, 168, 76, 0.6);
-  background: rgba(201, 168, 76, 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(201, 168, 76, 0.15);
+  border-color: rgba(201, 168, 76, 0.5);
+  background: rgba(201, 168, 76, 0.06);
+  transform: translateY(-1px);
 }
 
 .skillBtn:active:not(:disabled) { transform: scale(0.95); }
-.skillBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.skillBtn:disabled { opacity: 0.25; cursor: not-allowed; }
 
-.skillIcon { font-size: 24px; line-height: 1; }
-.skillName { font-size: 9px; color: rgba(255, 255, 255, 0.7); margin-top: 2px; white-space: nowrap; }
-.skillCost { font-size: 8px; color: #66aaee; position: absolute; top: 3px; right: 5px; }
-.skillMult { font-size: 8px; color: #c9a84c; position: absolute; top: 3px; left: 5px; }
+.skillIcon { font-size: 18px; line-height: 1; }
+.skillName { font-size: 8px; color: rgba(255, 255, 255, 0.6); margin-top: 1px; white-space: nowrap; }
+.skillCost { font-size: 7px; color: #66aaee; position: absolute; top: 2px; right: 3px; }
+.skillMult { font-size: 7px; color: #c9a84c; position: absolute; top: 2px; left: 3px; }
 
-.bottomRow { display: flex; gap: 8px; margin-top: 2px; }
+.bottomRow { display: flex; gap: 6px; }
 
 .autoBtn {
   flex: 1;
-  padding: 8px;
-  border: 1px solid rgba(126, 200, 227, 0.3);
-  border-radius: var(--radius-md);
+  padding: 6px;
+  border: 1px solid rgba(126, 200, 227, 0.2);
+  border-radius: 8px;
   background: transparent;
-  color: rgba(126, 200, 227, 0.8);
-  font-size: 12px;
+  color: rgba(126, 200, 227, 0.7);
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .autoBtn.active {
-  background: rgba(126, 200, 227, 0.12);
-  border-color: rgba(126, 200, 227, 0.6);
+  background: rgba(126, 200, 227, 0.1);
+  border-color: rgba(126, 200, 227, 0.5);
   color: #7ec8e3;
-  box-shadow: 0 0 12px rgba(126, 200, 227, 0.1);
 }
 
 .fleeBtn {
-  padding: 8px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s;
 }
-
-.fleeBtn:hover { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.2); }
 
 /* ── 结算遮罩 ── */
 .resultOverlay {
@@ -417,22 +366,22 @@
   align-items: center;
   justify-content: center;
   z-index: 50;
-  animation: overlayFadeIn 0.6s ease;
+  animation: overlayIn 0.6s ease;
 }
 
 .resultOverlay.victory {
-  background: radial-gradient(circle, rgba(201, 168, 76, 0.15) 0%, rgba(10, 10, 18, 0.95) 70%);
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.12) 0%, rgba(10, 10, 18, 0.95) 70%);
 }
 
 .resultOverlay.defeat {
-  background: radial-gradient(circle, rgba(196, 78, 82, 0.15) 0%, rgba(10, 10, 18, 0.95) 70%);
+  background: radial-gradient(circle, rgba(196, 78, 82, 0.12) 0%, rgba(10, 10, 18, 0.95) 70%);
 }
 
-@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 
 .resultIcon {
-  font-size: 64px;
-  margin-bottom: 12px;
+  font-size: 56px;
+  margin-bottom: 10px;
   animation: resultBounce 0.8s ease;
 }
 
@@ -443,106 +392,84 @@
 }
 
 .resultTitle {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   font-family: var(--font-main);
   letter-spacing: 4px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
-.resultTitle.victory { color: #c9a84c; text-shadow: 0 0 20px rgba(201, 168, 76, 0.5); }
-.resultTitle.defeat { color: #c44e52; text-shadow: 0 0 20px rgba(196, 78, 82, 0.5); }
+.resultTitle.victory { color: #c9a84c; text-shadow: 0 0 16px rgba(201, 168, 76, 0.4); }
+.resultTitle.defeat { color: #c44e52; text-shadow: 0 0 16px rgba(196, 78, 82, 0.4); }
 
 .rewardList {
   display: flex;
   gap: 20px;
-  margin-bottom: 24px;
-  animation: rewardSlideUp 0.6s ease 0.3s both;
+  margin-bottom: 20px;
+  animation: slideUp 0.5s ease 0.3s both;
 }
 
-@keyframes rewardSlideUp {
-  from { opacity: 0; transform: translateY(20px); }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.rewardItem { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.rewardIcon { font-size: 24px; }
+.rewardItem { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rewardIcon { font-size: 22px; }
 .rewardValue { font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.9); }
-.rewardLabel { font-size: 10px; color: rgba(255, 255, 255, 0.4); }
+.rewardLabel { font-size: 9px; color: rgba(255, 255, 255, 0.35); }
 
-.resultActions { display: flex; gap: 12px; animation: rewardSlideUp 0.6s ease 0.5s both; }
+.resultActions { display: flex; gap: 10px; animation: slideUp 0.5s ease 0.5s both; }
 
 .btnGold {
-  padding: 10px 28px;
+  padding: 10px 24px;
   background: linear-gradient(135deg, #c9a84c 0%, #a68a3a 100%);
-  color: #0a0a12;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.3);
+  color: #0a0a12; border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.25);
 }
-
-.btnGold:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201, 168, 76, 0.4); }
 
 .btnGhost {
-  padding: 10px 28px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 10px 24px;
+  background: transparent; color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+  font-size: 14px; cursor: pointer;
 }
-
-.btnGhost:hover { color: rgba(255, 255, 255, 0.9); border-color: rgba(255, 255, 255, 0.3); }
 
 /* ── 空态 ── */
 .emptyState {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px; z-index: 2;
+  align-items: center; justify-content: center; gap: 10px; z-index: 2;
 }
-
-.emptyIcon { font-size: 56px; opacity: 0.2; }
-.emptyTitle { font-size: 18px; font-weight: 600; color: rgba(255, 255, 255, 0.7); font-family: var(--font-main); }
-.emptyHint { font-size: 13px; color: rgba(255, 255, 255, 0.3); }
+.emptyIcon { font-size: 48px; opacity: 0.15; }
+.emptyTitle { font-size: 17px; font-weight: 600; color: rgba(255, 255, 255, 0.6); font-family: var(--font-main); }
+.emptyHint { font-size: 12px; color: rgba(255, 255, 255, 0.25); }
 
 .startBtn {
-  margin-top: 16px; padding: 12px 36px;
+  margin-top: 14px; padding: 11px 32px;
   background: linear-gradient(135deg, #c9a84c 0%, #a68a3a 100%);
-  color: #0a0a12; border: none; border-radius: var(--radius-md);
+  color: #0a0a12; border: none; border-radius: 8px;
   font-size: 15px; font-weight: 700; cursor: pointer;
-  transition: all 0.2s; box-shadow: 0 4px 20px rgba(201, 168, 76, 0.25);
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.2);
 }
-
-.startBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(201, 168, 76, 0.35); }
 
 .loadingState {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  color: rgba(255, 255, 255, 0.4); font-size: 14px; z-index: 2;
+  color: rgba(255, 255, 255, 0.3); font-size: 14px; z-index: 2;
 }
 
 /* ── Tooltip ── */
 .tooltipWrap { position: absolute; inset: 0; z-index: 5; }
 
 .tooltip {
-  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  padding: 8px 12px; background: rgba(20, 20, 40, 0.95); color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(201, 168, 76, 0.3); border-radius: var(--radius-md);
-  font-size: 11px; line-height: 1.5; white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6); z-index: 30;
-  animation: tooltipIn 0.15s ease;
-}
-
-@keyframes tooltipIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 6px 10px; background: rgba(16, 16, 32, 0.95); color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(201, 168, 76, 0.25); border-radius: 6px;
+  font-size: 10px; line-height: 1.4; white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6); z-index: 30;
 }
 
 .tooltip::after {
   content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top-color: rgba(20, 20, 40, 0.95);
+  border: 4px solid transparent; border-top-color: rgba(16, 16, 32, 0.95);
 }

@@ -63,7 +63,7 @@ function PortraitImage({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boo
   );
 }
 
-/* ═══════════ 角色区块 ═══════════ */
+/* ═══════════ 角色区块（血条在头顶） ═══════════ */
 function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
   unit: BattleUnitData; isPlayer: boolean;
   floats: FloatingNumber[]; hitIds: Set<string>; attackAnim: string | null;
@@ -85,6 +85,19 @@ function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
 
   return (
     <div className={slotCls}>
+      {/* 头顶：名字 + HP/MP 条 */}
+      <div className={styles.headBar}>
+        <div className={styles.unitName}>{unit.name}</div>
+        <div className={styles.barTrack}>
+          <div className={`${styles.barFill} ${hpClass}`} style={{ width: `${hpPct}%` }} />
+        </div>
+        {unit.maxMp > 0 && (
+          <div className={`${styles.barTrack} ${styles.mpTrack}`}>
+            <div className={`${styles.barFill} ${styles.mp}`} style={{ width: `${mpPct}%` }} />
+          </div>
+        )}
+      </div>
+      {/* 立绘 */}
       <PortraitImage unit={unit} isPlayer={isPlayer} />
       {/* 浮动数字 */}
       {myFloats.map(f => (
@@ -92,26 +105,6 @@ function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
           {f.isHeal ? '+' : '-'}{f.value}
         </span>
       ))}
-      {/* HP/MP 条 */}
-      <div className={styles.statusOverlay}>
-        <div className={styles.unitName}>{unit.name}</div>
-        <div className={styles.barRow}>
-          <span className={styles.barLabel}>HP</span>
-          <div className={styles.barTrack}>
-            <div className={`${styles.barFill} ${hpClass}`} style={{ width: `${hpPct}%` }} />
-          </div>
-          <span className={styles.barValue}>{unit.hp}/{unit.maxHp}</span>
-        </div>
-        {unit.maxMp > 0 && (
-          <div className={styles.barRow}>
-            <span className={styles.barLabel}>MP</span>
-            <div className={styles.barTrack}>
-              <div className={`${styles.barFill} ${styles.mp}`} style={{ width: `${mpPct}%` }} />
-            </div>
-            <span className={styles.barValue}>{unit.mp}/{unit.maxMp}</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -339,12 +332,10 @@ export default function BattlePage() {
               </div>
             </div>
 
-            {/* 战斗日志 */}
+            {/* 战斗日志（仅最新一条） */}
             {logs.length > 0 && (
               <div className={styles.logTicker}>
-                {logs.slice(-3).map((a, i) => (
-                  <div key={i} className={styles.logLine}>{a.description}</div>
-                ))}
+                <div className={styles.logLine}>{logs[logs.length - 1].description}</div>
               </div>
             )}
 
