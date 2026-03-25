@@ -7,8 +7,7 @@ import HomeScene from '../../phaser/HomeScene';
 import {
   fetchPersonInfo, fetchExploreStatus, fetchPets, fetchCompanions,
   fetchRebirthStatus, fetchCheckinStatus, doCheckin,
-  generatePortrait, generateBackground,
-  generateSubjectPortrait, editSubjectPortrait,
+  generateBackground, generateSubjectPortrait, editSubjectPortrait,
   logout,
   type PersonData, type PetData, type CompanionData,
   type PortraitTarget, type EditPortraitParams,
@@ -216,35 +215,20 @@ export default function HomePage() {
     } catch { toast.error('签到失败'); }
   }, [data.checkin]);
 
-  /* ── 人物立绘（保留原有逻辑，同时生成背景） ── */
-  const handleGeneratePersonPortrait = useCallback(async (style: string) => {
-    if (generating) return;
-    setGenerating(true);
-    setPickerMode(null);
-    try {
-      const res = await generatePortrait({ style, force: !!portraitUrls.person });
-      setPortraitUrls((prev) => ({ ...prev, person: res.portraitUrl }));
-      if (res.bgUrl) setBgUrl(res.bgUrl);
-      toast.success('立绘生成完成');
-    } catch { toast.error('立绘生成失败'); }
-    setGenerating(false);
-  }, [generating, portraitUrls.person]);
-
-  /* ── 统一立绘生成（灵侣/宠物/也可用于人物） ── */
+  /* ── 统一立绘生成（角色/灵侣/宠物） ── */
   const handleGenerateSubject = useCallback(async (style: string) => {
     if (generating) return;
-    if (activeSubject === 'person') { handleGeneratePersonPortrait(style); return; }
-
     setGenerating(true);
     setPickerMode(null);
     try {
       const res = await generateSubjectPortrait({ target: activeSubject, targetId: activeTargetId, style });
-      const key = activeSubject === 'companion' ? `comp_${activeTargetId}` : `pet_${activeTargetId}`;
+      const key = activeSubject === 'person' ? 'person'
+        : activeSubject === 'companion' ? `comp_${activeTargetId}` : `pet_${activeTargetId}`;
       setPortraitUrls((prev) => ({ ...prev, [key]: res.portraitUrl }));
       toast.success('立绘生成完成');
     } catch { toast.error('立绘生成失败'); }
     setGenerating(false);
-  }, [generating, activeSubject, activeTargetId, handleGeneratePersonPortrait]);
+  }, [generating, activeSubject, activeTargetId]);
 
   const handleGenerateBg = useCallback(async (theme: string) => {
     if (generatingBg) return;
