@@ -14,7 +14,6 @@ import type { BookWorld, DialogueChoice, DialogueMessage, Emotion } from '../../
 import { EMOTION_LABELS } from '../../constants/emotion';
 import styles from './StoryPage.module.css';
 
-/** 预置图片风格选项 */
 const ART_STYLE_PRESETS = [
   '水墨仙侠风', '赛博朋克风', '日系动漫风', '油画写实风',
   '像素复古风', '暗黑哥特风', '清新水彩风', '蒸汽朋克风',
@@ -25,7 +24,6 @@ export default function StoryPage() {
   const player = usePlayerStore();
   const game = useGameStore();
 
-  // 共用状态
   const [loading, setLoading] = useState(false);
   const [dialogueError, setDialogueError] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState(false);
@@ -78,12 +76,10 @@ export default function StoryPage() {
 
   const currentRelation = player.relations.find((r) => r.npcId === dialogue.npcId);
 
-  // ── 初始化：检查是否已选书 ──
+  // 初始化
   useEffect(() => {
     setBookLoading(true);
     const wi = player.currentWorldIndex || 1;
-
-    // 并行加载已选书籍 + 缘分数据
     Promise.all([
       fetchSelectedBook(wi).catch(() => ({ bookId: '' }) as SelectedBookData),
       player.relations.length === 0 && player.playerId
@@ -93,7 +89,6 @@ export default function StoryPage() {
       if (sel && sel.bookId) {
         setSelectedBook(sel);
         setArtStyle(sel.customArtStyle || sel.artStyle || '');
-        // 加载该书的NPC
         fetchNpcs(wi, sel.title)
           .then((res) => game.setNpcsInScene(res.npcs))
           .catch(() => {});
@@ -101,15 +96,13 @@ export default function StoryPage() {
     }).finally(() => setBookLoading(false));
   }, [player.currentWorldIndex, player.playerId]);
 
-  // 从探索页跳转过来时，自动开始与指定NPC对话
+  // 自动对话触发
   useEffect(() => {
     const autoNpcId = game.pageParams?.autoNpcId as string | undefined;
     if (autoNpcId && selectedBook && !dialogue.isActive && !loading) {
-      // 确保NPC列表已加载后再触发
       const npc = game.npcsInScene.find(n => n.npcId === autoNpcId);
       if (npc) {
         handleStartDialogue(autoNpcId);
-        // 清除参数，避免重复触发
         game.navigateTo('story');
       }
     }
@@ -117,17 +110,13 @@ export default function StoryPage() {
 
   // 自动滚动
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [dialogue.messages.length, dialogue.currentText]);
 
-  // ── 选书 ──
+  // ── 选书逻辑 ──
   const loadBooks = useCallback(() => {
     if (books.length > 0) return;
-    fetchBookWorlds()
-      .then((res) => setBooks(res.books))
-      .catch(() => {});
+    fetchBookWorlds().then((res) => setBooks(res.books)).catch(() => {});
   }, [books.length]);
 
   const handleSelectBook = useCallback(async (book: BookWorld) => {
@@ -145,7 +134,6 @@ export default function StoryPage() {
       setSelectedBook(sel);
       setArtStyle(style || book.artStyle || '');
       game.setBookWorld(book);
-      // 加载NPC
       const res = await fetchNpcs(wi, book.title);
       game.setNpcsInScene(res.npcs);
     } catch (e) {
@@ -164,7 +152,6 @@ export default function StoryPage() {
       const res = await addBookFromWeb(title);
       setAddBookMsg({ type: 'success', text: res.msg });
       setAddBookTitle('');
-      // 刷新书籍列表
       fetchBookWorlds().then((r) => setBooks(r.books)).catch(() => {});
       setTimeout(() => setAddBookMsg(null), 3000);
     } catch (e) {
@@ -190,8 +177,7 @@ export default function StoryPage() {
     await updateArtStyle(wi, style).catch(() => {});
   }, [customArtInput, artStyle, player.currentWorldIndex]);
 
-  // ── 对话逻辑（同之前） ──
-
+  // ── 对话逻辑 ──
   const historyToMessages = useCallback((history: DialogueHistoryItem[], sessionId: string): DialogueMessage[] => {
     return history.map((item) => ({
       sessionId,
@@ -200,8 +186,7 @@ export default function StoryPage() {
       text: item.text,
       choices: parseChoices(item.choicesJson || '[]'),
       allowFreeInput: false,
-      fateDelta: 0,
-      trustDelta: 0,
+      fateDelta: 0, trustDelta: 0,
       isPlayer: item.role === 'player',
     }));
   }, []);
@@ -209,18 +194,12 @@ export default function StoryPage() {
   const handleComplete = useCallback((data: DialogueData) => {
     const choices = parseChoices(data.choicesJson);
     dialogue.completeMessage({
-      sessionId: data.sessionId,
-      speaker: data.speaker,
-      emotion: (data.emotion || 'calm') as Emotion,
-      text: data.text,
-      choices,
-      allowFreeInput: data.allowFreeInput,
-      fateDelta: data.fateDelta,
-      trustDelta: data.trustDelta,
+      sessionId: data.sessionId, speaker: data.speaker,
+      emotion: (data.emotion || 'calm') as Emotion, text: data.text,
+      choices, allowFreeInput: data.allowFreeInput,
+      fateDelta: data.fateDelta, trustDelta: data.trustDelta,
     });
     setLoading(false);
-
-    // 场景变化时刷新图片
     if (data.sceneHint) {
       dialogue.setSceneImageLoading(true);
       generateSceneImage(dialogue.npcId, player.currentWorldIndex, artStyle || undefined, data.sceneHint)
@@ -237,8 +216,6 @@ export default function StoryPage() {
     setLoading(true);
     setDialogueError('');
     const npc = game.npcsInScene.find((n) => n.npcId === npcId);
-
-    // 并行请求场景图片（传入artStyle）
     dialogue.setSceneImageLoading(true);
     generateSceneImage(npcId, player.currentWorldIndex, artStyle || undefined)
       .then((res) => dialogue.pushSceneImage(res.imageUrl))
@@ -341,7 +318,7 @@ export default function StoryPage() {
   }, [dialogue.sessionId]);
 
   // ════════════════════════════════════════════════════
-  // 渲染：三步流程
+  // 渲染
   // ════════════════════════════════════════════════════
 
   // ── 阶段3：对话进行中 ──
@@ -349,6 +326,7 @@ export default function StoryPage() {
     const lastMsg = dialogue.messages[dialogue.messages.length - 1];
     return (
       <div className={styles.page}>
+        {/* 场景图区域 */}
         <div className={styles.scenePortrait} onClick={() => {
           if (dialogue.sceneImages.length > 0) {
             setGalleryIndex(dialogue.sceneImages.length - 1);
@@ -385,6 +363,7 @@ export default function StoryPage() {
           )}
         </div>
 
+        {/* 全屏画廊 */}
         {fullscreenImage && dialogue.sceneImages.length > 0 && (
           <div className={styles.fullscreenOverlay} onClick={() => setFullscreenImage(false)}>
             <div
@@ -416,16 +395,14 @@ export default function StoryPage() {
                     />
                   ))}
                 </div>
-                <span className={styles.galleryCounter}>
-                  {galleryIndex + 1} / {dialogue.sceneImages.length}
-                </span>
-                <span className={styles.galleryHint}>左右滑动切换</span>
+                <span className={styles.galleryCounter}>{galleryIndex + 1} / {dialogue.sceneImages.length}</span>
               </div>
             )}
             <button className={styles.fullscreenClose} onClick={() => setFullscreenImage(false)}>✕</button>
           </div>
         )}
 
+        {/* 对话区 */}
         <div className={styles.dialogueArea} ref={scrollRef}>
           {showHistory && dialogue.messages.slice(0, -1).map((msg, i) => (
             <div key={i} className={msg.isPlayer ? styles.historyMsgPlayer : styles.historyMsg}>
@@ -435,7 +412,7 @@ export default function StoryPage() {
           ))}
           {!showHistory && dialogue.messages.length > 1 && (
             <button className={styles.showHistoryBtn} onClick={() => setShowHistory(true)}>
-              ↑ 查看历史对话 ({dialogue.messages.length - 1}条)
+              查看历史对话 ({dialogue.messages.length - 1}条)
             </button>
           )}
           {dialogue.isStreaming && (
@@ -457,6 +434,7 @@ export default function StoryPage() {
           )}
         </div>
 
+        {/* 操作区 */}
         <div className={styles.actionArea}>
           {!loading && !dialogue.isStreaming && dialogue.currentChoices.length > 0 && (
             <div className={styles.choices}>
@@ -492,28 +470,61 @@ export default function StoryPage() {
     );
   }
 
-  // ── 阶段1：选书（无已选书籍） ──
+  // ── 阶段1：选书 ──
   if (!selectedBook && !bookLoading) {
-    // 触发加载书籍列表
     if (books.length === 0) loadBooks();
 
     return (
-      <div className={styles.page}>
-        <div className={styles.sceneHeader}>
-          <div className={styles.headerActions}>
-            <h2 className={styles.sceneTitle}>选择书籍世界</h2>
-            <button className={styles.changBookBtn} onClick={() => setShowAddBook(!showAddBook)}>
-              {showAddBook ? '收起' : '添加书籍'}
-            </button>
-          </div>
-          <p className={styles.sceneDesc}>踏入一部作品的世界，与其中角色对话</p>
+      <div className={`${styles.page} ${styles.pageLibrary}`}>
+        {/* 书架头部 */}
+        <div className={styles.libraryHeader}>
+          <h2 className={styles.libraryTitle}>书阁</h2>
+          <p className={styles.librarySubtitle}>选择一部作品，踏入其中的世界</p>
         </div>
 
-        {showAddBook && (
-          <div className={styles.addBookSection}>
-            <div className={styles.freeInputRow}>
+        {/* 画风选择区 */}
+        <div className={styles.artStyleBar}>
+          <div className={styles.artStyleRow}>
+            <span className={styles.artStyleLabel}>画风</span>
+            <div className={styles.artStyleTags}>
+              {ART_STYLE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  className={`${styles.artTag} ${artStyle === preset ? styles.artTagActive : ''}`}
+                  onClick={() => setArtStyle(artStyle === preset ? '' : preset)}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className={styles.artCustomRow}>
+            <input
+              className={styles.artCustomInput}
+              value={customArtInput}
+              onChange={(e) => setCustomArtInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && customArtInput.trim()) { setArtStyle(customArtInput.trim()); setCustomArtInput(''); } }}
+              placeholder="自定义画风..."
+              maxLength={50}
+            />
+            {customArtInput.trim() && (
+              <button className={styles.artCustomBtn} onClick={() => { setArtStyle(customArtInput.trim()); setCustomArtInput(''); }}>
+                确定
+              </button>
+            )}
+          </div>
+          {artStyle && <span className={styles.artCurrent}>当前：{artStyle}</span>}
+        </div>
+
+        {/* 添加书籍入口 */}
+        <div className={styles.addBookBar}>
+          <button className={styles.addBookToggle} onClick={() => setShowAddBook(!showAddBook)}>
+            {showAddBook ? '收起' : '+ 添加书籍'}
+          </button>
+          {showAddBook && (
+            <div className={styles.addBookForm}>
               <input
-                className={styles.freeInput}
+                className={styles.addBookInput}
                 placeholder={'输入书名，如"雪中悍刀行"'}
                 value={addBookTitle}
                 onChange={(e) => setAddBookTitle(e.target.value)}
@@ -521,81 +532,48 @@ export default function StoryPage() {
                 disabled={addBookLoading}
                 maxLength={50}
               />
-              <button className={styles.sendBtn} onClick={handleAddBook} disabled={addBookLoading || !addBookTitle.trim()}>
-                {addBookLoading ? '获取中...' : '搜索添加'}
+              <button className={styles.addBookBtn} onClick={handleAddBook} disabled={addBookLoading || !addBookTitle.trim()}>
+                {addBookLoading ? '获取中...' : '搜索'}
               </button>
             </div>
-            {addBookLoading && <p className={styles.loadingHint}>正在从网络获取书籍并分析角色...</p>}
-            {addBookMsg && (
-              <p className={addBookMsg.type === 'success' ? styles.loadingHint : styles.errorHint}>{addBookMsg.text}</p>
-            )}
-          </div>
-        )}
-
-        {/* 图片风格选择 */}
-        <div className={styles.artStyleSection}>
-          <span className={styles.artStyleLabel}>场景画风</span>
-          <div className={styles.artStylePresets}>
-            {ART_STYLE_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                className={`${styles.artStyleTag} ${artStyle === preset ? styles.artStyleTagActive : ''}`}
-                onClick={() => setArtStyle(artStyle === preset ? '' : preset)}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-          <div className={styles.freeInputRow}>
-            <input
-              className={styles.freeInput}
-              value={customArtInput}
-              onChange={(e) => setCustomArtInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && customArtInput.trim()) { setArtStyle(customArtInput.trim()); setCustomArtInput(''); } }}
-              placeholder="或输入自定义画风..."
-              maxLength={50}
-            />
-            {customArtInput.trim() && (
-              <button className={styles.sendBtn} onClick={() => { setArtStyle(customArtInput.trim()); setCustomArtInput(''); }}>
-                确定
-              </button>
-            )}
-          </div>
-          {artStyle && (
-            <p className={styles.artStyleCurrent}>当前画风：{artStyle}</p>
+          )}
+          {addBookLoading && <p className={styles.addBookHint}>正在从网络获取书籍并分析角色...</p>}
+          {addBookMsg && (
+            <p className={addBookMsg.type === 'success' ? styles.addBookHint : styles.addBookError}>{addBookMsg.text}</p>
           )}
         </div>
 
-        {/* 可滚动区域 */}
-        <div className={styles.scrollWrap}>
-          <div className={styles.bookGrid}>
-            {books.length === 0 ? (
-              <div className={styles.emptyHint}><p>加载书籍中...</p></div>
-            ) : books.map((book) => (
-              <button
-                key={book.id}
-                className={styles.bookCard}
-                onClick={() => handleSelectBook(book)}
-                disabled={loading}
-              >
-                <div className={styles.bookCoverGrad} style={{
-                  background: book.colorPalette
-                    ? `linear-gradient(135deg, ${book.colorPalette.split(',')[0]}, ${book.colorPalette.split(',')[1] || '#333'})`
-                    : undefined,
-                }}>
-                  <span className={styles.bookInitial}>{book.title.charAt(0)}</span>
-                </div>
-                <div className={styles.bookMeta}>
-                  <span className={styles.bookName}>{book.title}</span>
-                  <span className={styles.bookAuthor}>{book.author}</span>
-                  <span className={styles.bookStyle}>{book.artStyle}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {dialogueError && <div className={styles.errorHint}><p>{dialogueError}</p></div>}
-          {loading && <div className={styles.loadingHint}><p>选择中...</p></div>}
+        {/* 书籍列表 */}
+        <div className={styles.bookScroll}>
+          {books.length === 0 ? (
+            <div className={styles.emptyHint}>加载书籍中...</div>
+          ) : (
+            <div className={styles.bookList}>
+              {books.map((book) => (
+                <button
+                  key={book.id}
+                  className={styles.bookCard}
+                  onClick={() => handleSelectBook(book)}
+                  disabled={loading}
+                >
+                  <div className={styles.bookCover} style={{
+                    background: book.colorPalette
+                      ? `linear-gradient(135deg, ${book.colorPalette.split(',')[0]}, ${book.colorPalette.split(',')[1] || '#333'})`
+                      : 'linear-gradient(135deg, #2a2420, #1a1610)',
+                  }}>
+                    <span className={styles.bookInitial}>{book.title.charAt(0)}</span>
+                  </div>
+                  <div className={styles.bookInfo}>
+                    <span className={styles.bookTitle}>{book.title}</span>
+                    <span className={styles.bookAuthor}>{book.author}</span>
+                    {book.artStyle && <span className={styles.bookArtStyle}>{book.artStyle}</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          {dialogueError && <div className={styles.errorHint}>{dialogueError}</div>}
+          {loading && <div className={styles.loadingHint}>选择中...</div>}
         </div>
       </div>
     );
@@ -605,39 +583,49 @@ export default function StoryPage() {
   if (bookLoading) {
     return (
       <div className={styles.page}>
-        <div className={styles.emptyHint}><p>加载中...</p></div>
+        <div className={styles.emptyHint}>加载中...</div>
       </div>
     );
   }
 
-  // ── 阶段2：选角色（已选书，未进入对话） ──
+  // ── 阶段2：选角色 ──
   return (
-    <div className={styles.page}>
-      <div className={styles.sceneHeader}>
-        <h2 className={styles.sceneTitle}>{selectedBook?.title || '书籍世界'}</h2>
-        <p className={styles.sceneDesc}>{selectedBook?.loreSummary || '选择一位角色开始对话'}</p>
-        <div className={styles.headerActionsCenter}>
-          <button className={styles.changBookBtn} onClick={handleChangeBook}>换书</button>
-          {artStyle && <span className={styles.artStyleBadge}>画风：{artStyle}</span>}
+    <div className={`${styles.page} ${styles.pageNpcSelect}`}>
+      {/* 书籍信息头 */}
+      <div className={styles.bookHeader}>
+        <div className={styles.bookHeaderBg} style={{
+          background: selectedBook?.colorPalette
+            ? `linear-gradient(135deg, ${selectedBook.colorPalette.split(',')[0]}40, ${selectedBook.colorPalette.split(',')[1] || '#333'}30)`
+            : undefined,
+        }} />
+        <div className={styles.bookHeaderContent}>
+          <h2 className={styles.bookHeaderTitle}>{selectedBook?.title || '书籍世界'}</h2>
+          {selectedBook?.loreSummary && (
+            <p className={styles.bookHeaderLore}>{selectedBook.loreSummary}</p>
+          )}
+          <div className={styles.bookHeaderActions}>
+            <button className={styles.changeBookBtn} onClick={handleChangeBook}>换书</button>
+            {artStyle && <span className={styles.artBadge}>{artStyle}</span>}
+          </div>
         </div>
       </div>
 
-      {/* 图片风格快改 */}
-      <div className={styles.artStyleInline}>
-        <div className={styles.artStylePresets}>
+      {/* 画风快捷切换 */}
+      <div className={styles.artQuickBar}>
+        <div className={styles.artStyleTags}>
           {ART_STYLE_PRESETS.slice(0, 4).map((preset) => (
             <button
               key={preset}
-              className={`${styles.artStyleTag} ${artStyle === preset ? styles.artStyleTagActive : ''}`}
+              className={`${styles.artTag} ${artStyle === preset ? styles.artTagActive : ''}`}
               onClick={() => { setArtStyle(preset); updateArtStyle(player.currentWorldIndex || 1, preset).catch(() => {}); }}
             >
               {preset}
             </button>
           ))}
         </div>
-        <div className={styles.freeInputRow}>
+        <div className={styles.artCustomRow}>
           <input
-            className={styles.freeInput}
+            className={styles.artCustomInput}
             value={customArtInput}
             onChange={(e) => setCustomArtInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleArtStyleSave(); }}
@@ -645,12 +633,14 @@ export default function StoryPage() {
             maxLength={50}
           />
           {customArtInput.trim() && (
-            <button className={styles.sendBtn} onClick={handleArtStyleSave}>确定</button>
+            <button className={styles.artCustomBtn} onClick={handleArtStyleSave}>确定</button>
           )}
         </div>
       </div>
 
-      <div className={styles.npcList}>
+      {/* NPC角色列表 */}
+      <div className={styles.npcScroll}>
+        <div className={styles.npcSectionTitle}>书中人物</div>
         {game.npcsInScene.map((npc) => {
           const rel = player.relations.find((r) => r.npcId === npc.npcId);
           return (
@@ -661,24 +651,29 @@ export default function StoryPage() {
               disabled={loading}
             >
               <div className={styles.npcAvatar}>{npc.npcName.charAt(0)}</div>
-              <div className={styles.npcCardInfo}>
-                <span className={styles.npcCardName}>{npc.npcName}</span>
-                <span className={styles.npcCardRole}>{npc.role}{npc.gender ? ` · ${npc.gender}` : ''}{npc.age ? ` · ${npc.age}` : ''}</span>
-                {npc.features && <span className={styles.npcCardFeatures}>{npc.features}</span>}
+              <div className={styles.npcInfo}>
+                <span className={styles.npcName}>{npc.npcName}</span>
+                <span className={styles.npcRole}>
+                  {npc.role}{npc.gender ? ` · ${npc.gender}` : ''}{npc.age ? ` · ${npc.age}` : ''}
+                </span>
+                {npc.features && <span className={styles.npcFeatures}>{npc.features}</span>}
               </div>
-              {rel && <FateBar fateScore={rel.fateScore} trustScore={rel.trustScore} npcName="" compact />}
+              {rel && (
+                <div className={styles.npcFate}>
+                  <FateBar fateScore={rel.fateScore} trustScore={rel.trustScore} npcName="" compact />
+                </div>
+              )}
+              <span className={styles.npcArrow}>›</span>
             </button>
           );
         })}
         {game.npcsInScene.length === 0 && !loading && (
-          <div className={styles.emptyHint}>
-            <p>该书暂无可交互角色</p>
-          </div>
+          <div className={styles.emptyHint}>该书暂无可交互角色</div>
         )}
       </div>
 
-      {dialogueError && <div className={styles.errorHint}><p>{dialogueError}</p></div>}
-      {loading && <div className={styles.loadingHint}><p>连接中...</p></div>}
+      {dialogueError && <div className={styles.errorHint}>{dialogueError}</div>}
+      {loading && <div className={styles.loadingHint}>连接中...</div>}
     </div>
   );
 }

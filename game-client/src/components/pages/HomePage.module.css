@@ -282,6 +282,11 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+.portraitDepthContainer:active {
+  cursor: grabbing;
 }
 
 /* 底层投影 — 旋转时向反方向偏移，制造立体分离感 */

@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+   剧情页 — 书阁 · 对话 · 画廊
+   ═══════════════════════════════════════════ */
+
 .page {
   height: 100%;
   min-height: 0;
@@ -7,138 +11,452 @@
   overflow: hidden;
 }
 
-/* === 场景选择 === */
-.sceneHeader {
-  padding: 24px 16px 16px;
+/* ════════════════════════════════════════════
+   阶段1：书阁（选书页面）
+   ════════════════════════════════════════════ */
+
+.pageLibrary {
+  background: var(--ink);
+}
+
+.libraryHeader {
+  padding: 28px 20px 16px;
   text-align: center;
-  border-bottom: 1px solid var(--paper-darker);
+  flex-shrink: 0;
 }
 
-.sceneTitle {
+.libraryTitle {
   font-family: var(--font-main);
-  font-size: 20px;
-  color: var(--ink);
-  margin-bottom: 4px;
+  font-size: 24px;
+  color: var(--gold);
+  letter-spacing: 6px;
+  margin: 0 0 6px;
 }
 
-.sceneDesc {
-  font-size: 13px;
-  color: var(--ink);
-  opacity: 0.5;
+.librarySubtitle {
+  font-size: 12px;
+  color: var(--paper-darker);
+  opacity: 0.4;
+  margin: 0;
 }
 
-.npcList {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 16px;
+/* 画风选择区 */
+.artStyleBar {
+  padding: 0 20px 12px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.artStyleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.artStyleLabel {
+  font-size: 12px;
+  color: var(--paper-darker);
+  opacity: 0.5;
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.artStyleTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.artTag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  background: transparent;
+  font-size: 11px;
+  color: var(--paper-darker);
+  opacity: 0.6;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.artTagActive {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold);
+  opacity: 1;
+}
+
+.artCustomRow {
+  display: flex;
+  gap: 8px;
+}
+
+.artCustomInput {
+  flex: 1;
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(201, 168, 76, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  color: var(--paper);
+  outline: none;
+  font-family: var(--font-ui);
+}
+.artCustomInput::placeholder { color: var(--paper-darker); opacity: 0.3; }
+.artCustomInput:focus { border-color: rgba(201, 168, 76, 0.3); }
+
+.artCustomBtn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.artCurrent {
+  font-size: 11px;
+  color: var(--gold-dim);
+  opacity: 0.6;
+}
+
+/* 添加书籍 */
+.addBookBar {
+  padding: 8px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
+}
+
+.addBookToggle {
+  background: none;
+  border: none;
+  color: var(--gold-dim);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  padding: 4px 0;
+  opacity: 0.6;
+}
+.addBookToggle:active { opacity: 1; }
+
+.addBookForm {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.addBookInput {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+  color: var(--paper);
+  outline: none;
+  font-family: var(--font-ui);
+}
+.addBookInput::placeholder { color: var(--paper-darker); opacity: 0.3; }
+
+.addBookBtn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.addBookBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.addBookHint {
+  font-size: 11px;
+  color: var(--gold-dim);
+  opacity: 0.6;
+  margin: 6px 0 0;
+}
+
+.addBookError {
+  font-size: 11px;
+  color: #e07070;
+  margin: 6px 0 0;
+}
+
+/* 书籍滚动列表 */
+.bookScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 16px 20px;
+}
+.bookScroll::-webkit-scrollbar { display: none; }
+
+.bookList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bookCard {
+  display: flex;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.bookCard:active {
+  transform: scale(0.98);
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+.bookCover {
+  width: 72px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bookInitial {
+  font-family: var(--font-main);
+  font-size: 28px;
+  color: var(--paper);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.bookInfo {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.bookTitle {
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: var(--paper);
+}
+
+.bookAuthor {
+  font-size: 12px;
+  color: var(--paper-darker);
+  opacity: 0.5;
+}
+
+.bookArtStyle {
+  font-size: 10px;
+  color: var(--gold-dim);
+  opacity: 0.5;
+  margin-top: 2px;
+}
+
+/* ════════════════════════════════════════════
+   阶段2：选角色
+   ════════════════════════════════════════════ */
+
+.pageNpcSelect {
+  background: var(--paper);
+}
+
+.bookHeader {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.bookHeaderBg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--paper-dark), var(--paper));
+  opacity: 0.5;
+}
+
+.bookHeaderContent {
+  position: relative;
+  padding: 24px 20px 16px;
+}
+
+.bookHeaderTitle {
+  font-family: var(--font-main);
+  font-size: 22px;
+  color: var(--ink);
+  margin: 0 0 6px;
+  letter-spacing: 2px;
+}
+
+.bookHeaderLore {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.45;
+  margin: 0 0 10px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bookHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.changeBookBtn {
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--paper-darker);
+  background: none;
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all var(--transition-fast);
+}
+.changeBookBtn:active { opacity: 1; border-color: var(--gold-dim); }
+
+.artBadge {
+  font-size: 11px;
+  color: var(--gold-dim);
+  padding: 3px 10px;
+  background: rgba(201, 168, 76, 0.08);
+  border-radius: 999px;
+}
+
+/* 画风快捷栏 */
+.artQuickBar {
+  padding: 8px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--paper-darker);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* NPC列表 */
+.npcScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 12px 20px;
+}
+.npcScroll::-webkit-scrollbar { display: none; }
+
+.npcSectionTitle {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.35;
+  font-family: var(--font-ui);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
 }
 
 .npcCard {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: left;
   font-family: inherit;
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 .npcCard:active {
   transform: scale(0.98);
+  border-color: var(--gold-dim);
   background: var(--paper-darker);
 }
 
 .npcAvatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--gold);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
   color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-main);
-  font-size: 18px;
+  font-size: 20px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.2);
 }
 
-.npcCardInfo {
+.npcInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
-.npcCardName {
+.npcName {
   font-family: var(--font-main);
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
 }
 
-.npcCardRole {
+.npcRole {
   font-size: 12px;
   color: var(--ink);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
-.npcCardFeatures {
+.npcFeatures {
   font-size: 11px;
   color: var(--gold-dim);
-  opacity: 0.7;
+  opacity: 0.6;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.emptyHint {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: var(--ink);
+.npcFate {
+  flex-shrink: 0;
+}
+
+.npcArrow {
+  font-size: 20px;
+  color: var(--paper-darker);
+  flex-shrink: 0;
   opacity: 0.4;
 }
 
-.errorHint {
-  margin: 8px 16px 0;
-  padding: 10px 14px;
-  background: rgba(180, 60, 60, 0.15);
-  border: 1px solid rgba(180, 60, 60, 0.4);
-  border-radius: var(--radius-md);
-  color: #e07070;
-  font-size: 13px;
-  text-align: center;
-}
+/* ════════════════════════════════════════════
+   阶段3：对话
+   ════════════════════════════════════════════ */
 
-.loadingHint {
-  margin: 8px 16px 0;
-  padding: 10px 14px;
-  color: var(--gold);
-  font-size: 13px;
-  text-align: center;
-  opacity: 0.7;
-}
-
-.demoBtn {
-  padding: 8px 20px;
-  background: var(--gold);
-  color: var(--ink);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  opacity: 1;
-}
-
-/* === 对话场景区域（图片+NPC信息合一） === */
+/* 场景图区域 */
 .scenePortrait {
   position: relative;
   width: 100%;
@@ -178,7 +496,7 @@
   font-family: var(--font-main);
   font-size: 48px;
   color: var(--gold-dim);
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 .sceneOverlay {
@@ -205,7 +523,7 @@
   font-family: var(--font-main);
   font-size: 18px;
   color: var(--paper);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .sceneNpcEmotion {
@@ -223,7 +541,6 @@
   z-index: 1;
 }
 
-/* 全屏提示 */
 .fullscreenHint {
   position: absolute;
   top: 8px;
@@ -238,10 +555,7 @@
   transition: opacity var(--transition-fast);
   z-index: 1;
 }
-
-.scenePortrait:hover .fullscreenHint {
-  opacity: 1;
-}
+.scenePortrait:hover .fullscreenHint { opacity: 1; }
 
 /* 全屏画廊 */
 .fullscreenOverlay {
@@ -268,10 +582,7 @@
   touch-action: pan-y;
   user-select: none;
 }
-
-.galleryBody:active {
-  cursor: grabbing;
-}
+.galleryBody:active { cursor: grabbing; }
 
 .fullscreenImage {
   max-width: 100%;
@@ -297,15 +608,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition-fast);
   z-index: 1;
 }
 
-.fullscreenClose:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* 画廊底部信息区 */
 .galleryFooter {
   flex-shrink: 0;
   width: 100%;
@@ -332,10 +637,6 @@
   transition: all var(--transition-fast);
 }
 
-.galleryDot:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
 .galleryDotActive {
   background: var(--gold);
   width: 10px;
@@ -348,13 +649,7 @@
   font-family: var(--font-ui);
 }
 
-.galleryHint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.25);
-  font-family: var(--font-ui);
-}
-
-/* === 对话界面 === */
+/* ── 对话界面 ── */
 .dialogueArea {
   flex: 1;
   overflow-y: auto;
@@ -365,17 +660,17 @@
 }
 
 .historyMsg {
-  padding: 8px 12px;
-  background: rgba(201, 168, 76, 0.08);
-  border-radius: var(--radius-md);
-  border-left: 2px solid var(--gold-dim);
+  padding: 10px 14px;
+  background: rgba(201, 168, 76, 0.06);
+  border-radius: 10px;
+  border-left: 3px solid var(--gold-dim);
 }
 
 .historyMsgPlayer {
-  padding: 8px 12px;
-  background: rgba(120, 160, 200, 0.1);
-  border-radius: var(--radius-md);
-  border-right: 2px solid rgba(120, 160, 200, 0.5);
+  padding: 10px 14px;
+  background: rgba(120, 160, 200, 0.08);
+  border-radius: 10px;
+  border-right: 3px solid rgba(120, 160, 200, 0.4);
   text-align: right;
 }
 
@@ -395,8 +690,8 @@
   font-size: 13px;
   color: var(--ink);
   opacity: 0.6;
-  margin-top: 2px;
-  line-height: 1.6;
+  margin-top: 4px;
+  line-height: 1.7;
 }
 
 .showHistoryBtn {
@@ -405,15 +700,16 @@
   color: var(--gold-dim);
   font-size: 12px;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
   text-align: center;
   font-family: var(--font-ui);
+  opacity: 0.6;
 }
 
 .dialogueBubble {
-  padding: 16px;
+  padding: 18px;
   background: var(--paper-dark);
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   border: 1px solid var(--paper-darker);
   animation: fadeIn var(--transition-normal) forwards;
 }
@@ -421,7 +717,7 @@
 .dialogueText {
   font-family: var(--font-main);
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.9;
   color: var(--ink);
 }
 
@@ -431,7 +727,7 @@
   font-weight: bold;
 }
 
-/* === 操作区 === */
+/* ── 操作区 ── */
 .actionArea {
   padding: 12px 16px;
   padding-bottom: calc(12px + var(--safe-bottom));
@@ -452,11 +748,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 12px 16px;
   background: var(--ink);
   color: var(--paper);
   border: 1px solid var(--gold-dim);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: left;
@@ -469,9 +765,7 @@
   color: var(--ink);
 }
 
-.choiceText {
-  flex: 1;
-}
+.choiceText { flex: 1; }
 
 .choiceWeight {
   display: flex;
@@ -481,13 +775,8 @@
   font-family: var(--font-ui);
 }
 
-.fateUp {
-  color: var(--emotion-tender);
-}
-
-.trustUp {
-  color: var(--emotion-calm);
-}
+.fateUp { color: var(--emotion-tender); }
+.trustUp { color: var(--emotion-calm); }
 
 .freeInputRow {
   display: flex;
@@ -499,233 +788,81 @@
   padding: 10px 14px;
   background: var(--paper-dark);
   border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   font-size: 14px;
   color: var(--ink);
   outline: none;
   font-family: var(--font-ui);
 }
-
-.freeInput:focus {
-  border-color: var(--gold);
-}
-
-.freeInput::placeholder {
-  color: var(--ink);
-  opacity: 0.3;
-}
+.freeInput:focus { border-color: var(--gold); }
+.freeInput::placeholder { color: var(--ink); opacity: 0.3; }
 
 .sendBtn {
   padding: 10px 16px;
   background: var(--gold);
   color: var(--ink);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
   font-family: var(--font-ui);
   font-weight: 500;
 }
-
-.sendBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .endBtn {
   background: none;
   border: none;
   color: var(--ink);
-  opacity: 0.4;
+  opacity: 0.35;
   font-size: 12px;
   cursor: pointer;
   padding: 6px;
   text-align: center;
   font-family: var(--font-ui);
 }
+.endBtn:hover { opacity: 0.6; }
 
-.endBtn:hover {
-  opacity: 0.7;
-}
-
-/* === 书籍滚动容器 === */
-.scrollWrap {
+/* ── 通用状态 ── */
+.emptyHint {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 12px 16px;
-}
-
-/* === 书籍选择网格 === */
-.bookGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.bookCard {
-  display: flex;
-  flex-direction: column;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  transition: all var(--transition-fast);
-}
-
-.bookCard:active {
-  transform: scale(0.97);
-}
-
-.bookCoverGrad {
-  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--paper-darker), var(--paper-dark));
-}
-
-.bookInitial {
-  font-family: var(--font-main);
-  font-size: 28px;
-  color: var(--paper);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-}
-
-.bookMeta {
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.bookName {
-  font-family: var(--font-main);
+  color: var(--paper-darker);
+  opacity: 0.4;
   font-size: 13px;
-  color: var(--ink);
+  padding: 40px 20px;
+  text-align: center;
 }
 
-.bookAuthor {
-  font-size: 11px;
-  color: var(--ink);
-  opacity: 0.5;
-}
-
-.bookStyle {
-  font-size: 10px;
-  color: var(--gold-dim);
-  margin-top: 2px;
-}
-
-/* === 图片风格选择 === */
-.artStyleSection {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--paper-darker);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.artStyleLabel {
-  font-family: var(--font-main);
+.errorHint {
+  margin: 8px 20px 0;
+  padding: 10px 14px;
+  background: rgba(180, 60, 60, 0.1);
+  border: 1px solid rgba(180, 60, 60, 0.3);
+  border-radius: 8px;
+  color: #e07070;
   font-size: 13px;
-  color: var(--ink);
-  opacity: 0.7;
+  text-align: center;
 }
 
-.artStylePresets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.artStyleTag {
-  padding: 4px 10px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.7;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  transition: all var(--transition-fast);
-}
-
-.artStyleTagActive {
-  border-color: var(--gold);
-  background: rgba(201, 168, 76, 0.15);
-  color: var(--gold-dim);
-  opacity: 1;
-}
-
-.artStyleCurrent {
-  font-size: 12px;
-  color: var(--gold-dim);
-  opacity: 0.8;
-}
-
-.artStyleInline {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--paper-darker);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-/* === 头部操作 === */
-.headerActions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-/* === 添加书籍区 === */
-.addBookSection {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--paper-darker);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.headerActionsCenter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.changBookBtn {
-  padding: 4px 12px;
-  background: none;
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--ink);
+.loadingHint {
+  margin: 8px 20px 0;
+  padding: 10px 14px;
+  color: var(--gold);
+  font-size: 13px;
+  text-align: center;
   opacity: 0.6;
-  cursor: pointer;
-  font-family: var(--font-ui);
 }
 
-.changBookBtn:active {
-  opacity: 1;
-  border-color: var(--gold-dim);
+/* ── 关键帧 ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.artStyleBadge {
-  font-size: 11px;
-  color: var(--gold-dim);
-  padding: 3px 8px;
-  background: rgba(201, 168, 76, 0.1);
-  border-radius: var(--radius-sm);
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }

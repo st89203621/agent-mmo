@@ -41,7 +41,7 @@ interface ResolvedEvent {
 }
 
 export default function ExplorePage() {
-  const { currentBookWorld } = useGameStore();
+  const { currentBookWorld, navigateTo } = useGameStore();
   const { currentWorldIndex } = usePlayerStore();
 
   const [status, setStatus] = useState<ExploreStatus | null>(null);
@@ -51,35 +51,29 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [exploring, setExploring] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [battleLoading, setBattleLoading] = useState(false);
   const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
   const [recoverCountdown, setRecoverCountdown] = useState(0);
+  const mapScrollRef = useRef<HTMLDivElement>(null);
 
-  // 战斗加载状态
-  const [battleLoading, setBattleLoading] = useState(false);
-
-  const { navigateTo } = useGameStore();
   const bookTitle = currentBookWorld?.title || '';
 
   // 未选书引导
   if (!currentBookWorld) {
     return (
       <div className={styles.page}>
-        <div className={styles.eventArea}>
-          <div className={styles.emptyHint}>
-            请先选择一部书籍，才能踏入书中世界探索<br /><br />
-            <button
-              className={styles.exploreBtn}
-              onClick={() => navigateTo('story')}
-            >
-              前往选书
-            </button>
-          </div>
+        <div className={styles.emptyGuide}>
+          <div className={styles.emptyIcon}>🗺️</div>
+          <p className={styles.emptyText}>尚未踏入任何书中世界</p>
+          <p className={styles.emptySubtext}>选择一部书籍，开启你的探索之旅</p>
+          <button className={styles.guideBtn} onClick={() => navigateTo('story')}>
+            前往选书
+          </button>
         </div>
       </div>
     );
   }
 
-  // 加载状态和历史
   const loadData = useCallback(async () => {
     try {
       const [s, h] = await Promise.all([fetchExploreStatus(), fetchExploreHistory()]);
@@ -89,16 +83,19 @@ export default function ExplorePage() {
         event: e,
         reward: { message: '', fateDelta: 0, trustDelta: 0, itemName: null, memoryTitle: null, imageUrl: null },
       })));
-    } catch {
-      // 静默
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* 静默 */ }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  /** 奖励结算后同步全局状态（货币、缘分） */
+  // 滚动到底部（当前位置）
+  useEffect(() => {
+    if (!loading && mapScrollRef.current) {
+      mapScrollRef.current.scrollTop = mapScrollRef.current.scrollHeight;
+    }
+  }, [loading, history.length]);
+
   const syncAfterReward = useCallback(async () => {
     try {
       const [cur, rel] = await Promise.all([
@@ -130,7 +127,6 @@ export default function ExplorePage() {
     return () => { if (recoverTimerRef.current) clearInterval(recoverTimerRef.current); };
   }, [status, recoverCountdown]);
 
-  // 探索
   const handleExplore = useCallback(async () => {
     if (exploring || !status || status.actionPoints <= 0) return;
     setExploring(true);
@@ -148,11 +144,9 @@ export default function ExplorePage() {
     }
   }, [exploring, status, currentWorldIndex, bookTitle]);
 
-  // 普通事件选择
   const handleChoice = useCallback(async (choiceId: number) => {
     if (resolving || !currentEvent) return;
 
-    // combat 类型：choiceId=0 是迎战，跳转独立战斗界面
     if (currentEvent.type === 'combat' && choiceId === 0) {
       setBattleLoading(true);
       try {
@@ -166,7 +160,6 @@ export default function ExplorePage() {
       return;
     }
 
-    // 普通选择 / combat 逃跑
     setResolving(true);
     try {
       const reward = await resolveExploreChoice(currentEvent.eventId, choiceId);
@@ -178,9 +171,9 @@ export default function ExplorePage() {
     } finally {
       setResolving(false);
     }
-  }, [resolving, currentEvent]);
+  }, [resolving, currentEvent, navigateTo, syncAfterReward]);
 
-  // 从战斗页返回时自动结算探索战斗
+  // 战斗返回结算
   const pendingResolveRef = useRef<string | null>(null);
   useEffect(() => {
     const params = useGameStore.getState().pageParams;
@@ -195,7 +188,6 @@ export default function ExplorePage() {
     }
   });
 
-  // 关闭奖励
   const handleDismissReward = useCallback(() => {
     setCurrentEvent(null);
     setCurrentReward(null);
@@ -204,7 +196,10 @@ export default function ExplorePage() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.loading}>进入书中世界...</div>
+        <div className={styles.loadingState}>
+          <div className={styles.loadingOrb} />
+          <span>步入书中世界...</span>
+        </div>
       </div>
     );
   }
@@ -218,48 +213,107 @@ export default function ExplorePage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // 反转历史用于地图显示（最旧的在上，最新的在下）
+  const mapEvents = [...history].reverse();
 
   return (
     <div className={styles.page}>
-      {/* 顶栏 */}
-      <div className={styles.topBar}>
-        <span className={styles.sceneName}>{bookTitle} · 书中漫步</span>
-        <span className={styles.todayCount}>今日探索 {status?.todayCount ?? 0} 次</span>
-      </div>
-
-      {/* 行动力 */}
-      <div className={styles.actionBar}>
-        <span className={styles.actionLabel}>行动力</span>
-        <div className={styles.actionDots}>
-          {Array.from({ length: maxAp }, (_, i) => (
-            <div key={i} className={`${styles.dot} ${i < ap ? styles.dotFilled : ''}`} />
+      {/* 大气层 */}
+      <div className={styles.atmosphere}>
+        <div className={styles.fogTop} />
+        <div className={styles.fogBottom} />
+        <div className={styles.particles}>
+          {Array.from({ length: 6 }, (_, i) => (
+            <span key={i} className={styles.particle} style={{ '--i': i } as React.CSSProperties} />
           ))}
         </div>
-        <span className={styles.actionText}>{ap}/{maxAp}</span>
       </div>
-      {ap < maxAp && recoverCountdown > 0 && (
-        <div className={styles.recoverHint}>下一点恢复：{formatTime(recoverCountdown)}</div>
-      )}
 
-      {/* 事件区域 */}
-      <div className={styles.eventArea}>
-        {/* 当前事件卡片 */}
-        {currentEvent && !currentReward && (
-          <div className={styles.eventCard}>
-            <div className={styles.cardHeader}>
-              <span className={styles.eventIcon} data-type={currentEvent.type}>
-                {EVENT_ICONS[currentEvent.type] || '?'}
-              </span>
-              <span className={styles.eventType} data-type={currentEvent.type}>
-                {EVENT_LABELS[currentEvent.type] || currentEvent.type}
-              </span>
-              <span className={styles.eventTitle}>{currentEvent.title}</span>
+      {/* 地图头部 */}
+      <div className={styles.mapHeader}>
+        <div className={styles.mapTitleRow}>
+          <span className={styles.mapTitle}>{bookTitle}</span>
+          <span className={styles.mapSubtitle}>书中漫步</span>
+        </div>
+        <div className={styles.apRow}>
+          <div className={styles.apDots}>
+            {Array.from({ length: maxAp }, (_, i) => (
+              <span key={i} className={`${styles.apDot} ${i < ap ? styles.apDotFilled : ''}`} />
+            ))}
+          </div>
+          <span className={styles.apText}>{ap}/{maxAp}</span>
+          {ap < maxAp && recoverCountdown > 0 && (
+            <span className={styles.recoverText}>{formatTime(recoverCountdown)}</span>
+          )}
+        </div>
+      </div>
+
+      {/* 地图主体 */}
+      <div className={styles.mapBody} ref={mapScrollRef}>
+        <div className={styles.mapTrail}>
+          {/* 起点 */}
+          <div className={styles.trailOrigin}>
+            <div className={styles.originDot} />
+            <span className={styles.originLabel}>起点</span>
+          </div>
+
+          {/* 路径线 */}
+          <div className={styles.pathLine} />
+
+          {/* 历史节点 */}
+          {mapEvents.map((item, i) => (
+            <div
+              key={item.event.eventId + i}
+              className={styles.mapNode}
+              data-type={item.event.type}
+              data-side={i % 2 === 0 ? 'left' : 'right'}
+            >
+              <div className={styles.nodeConnector} />
+              <div className={styles.nodeDot} data-type={item.event.type}>
+                <span className={styles.nodeIcon}>{EVENT_ICONS[item.event.type] || '?'}</span>
+              </div>
+              <div className={styles.nodeCard}>
+                <span className={styles.nodeType} data-type={item.event.type}>
+                  {EVENT_LABELS[item.event.type] || item.event.type}
+                </span>
+                <span className={styles.nodeTitle}>{item.event.title}</span>
+                {item.reward.message && (
+                  <span className={styles.nodeReward}>{item.reward.message}</span>
+                )}
+              </div>
             </div>
-            <div className={styles.eventDesc}>{currentEvent.description}</div>
+          ))}
 
-            {/* 选择按钮 */}
+          {/* 当前位置标记 */}
+          <div className={styles.currentPos}>
+            <div className={styles.currentPulse} />
+            <div className={styles.currentDot} />
+            <span className={styles.currentLabel}>
+              {exploring ? '命运织就中...' : currentEvent ? '事件进行中' : '当前位置'}
+            </span>
+          </div>
+
+          {/* 未探索迷雾 */}
+          <div className={styles.unexplored}>
+            <div className={styles.mistLine} />
+            <span className={styles.mistText}>未知领域</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 事件浮层 — 当前事件卡片 */}
+      {currentEvent && !currentReward && (
+        <div className={styles.eventOverlay}>
+          <div className={styles.eventCard}>
+            <div className={styles.cardBadge} data-type={currentEvent.type}>
+              <span>{EVENT_ICONS[currentEvent.type] || '?'}</span>
+              <span>{EVENT_LABELS[currentEvent.type] || currentEvent.type}</span>
+            </div>
+            <h3 className={styles.cardTitle}>{currentEvent.title}</h3>
+            <p className={styles.cardDesc}>{currentEvent.description}</p>
+
             {!battleLoading && (
-              <div className={styles.choicesRow}>
+              <div className={styles.cardChoices}>
                 {currentEvent.choices.map(c => (
                   <button
                     key={c.id}
@@ -268,102 +322,60 @@ export default function ExplorePage() {
                     disabled={resolving}
                     onClick={() => handleChoice(c.id)}
                   >
+                    <span className={styles.choiceText}>{c.text}</span>
                     {c.risk !== 'low' && (
                       <span className={styles.riskTag} data-risk={c.risk}>
                         {RISK_LABELS[c.risk] || c.risk}
                       </span>
                     )}
-                    {c.text}
                   </button>
                 ))}
-                {/* encounter 类型且有 npcId：额外的"交谈"按钮 */}
                 {currentEvent.type === 'encounter' && currentEvent.npcId && (
                   <button
-                    className={styles.choiceBtn}
-                    style={{ borderColor: 'var(--gold-dim)' }}
+                    className={`${styles.choiceBtn} ${styles.choiceTalk}`}
                     onClick={() => {
                       resolveExploreChoice(currentEvent.eventId, 0)
-                        .then(() => {
-                          setCurrentReward(null);
-                          setCurrentEvent(null);
-                          syncAfterReward();
-                        })
+                        .then(() => { setCurrentReward(null); setCurrentEvent(null); syncAfterReward(); })
                         .catch(() => {});
                       navigateTo('story', { autoNpcId: currentEvent.npcId });
                     }}
                   >
-                    与之交谈
+                    <span className={styles.choiceText}>与之交谈</span>
                   </button>
                 )}
               </div>
             )}
-
-            {/* 战斗加载中 */}
             {battleLoading && (
-              <div className={styles.generating}>拔剑出鞘...</div>
+              <div className={styles.battleHint}>拔剑出鞘...</div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 奖励展示 */}
-        {currentReward && (
-          <div className={styles.eventCard} onClick={handleDismissReward} style={{ cursor: 'pointer' }}>
-            <div className={styles.rewardPopup}>
-              <div className={styles.rewardMessage}>{currentReward.message}</div>
-              {(currentReward.fateDelta !== 0 || currentReward.trustDelta !== 0) && (
-                <div className={styles.rewardDetail}>
-                  {currentReward.fateDelta > 0 && <span style={{ color: '#e8b4c8' }}>缘分 +{currentReward.fateDelta} </span>}
-                  {currentReward.fateDelta < 0 && <span style={{ color: '#999' }}>缘分 {currentReward.fateDelta} </span>}
-                  {currentReward.trustDelta > 0 && <span style={{ color: '#8bc5cd' }}>信任 +{currentReward.trustDelta} </span>}
-                  {currentReward.trustDelta < 0 && <span style={{ color: '#999' }}>信任 {currentReward.trustDelta} </span>}
-                </div>
-              )}
-              {currentReward.itemName && (
-                <div className={styles.rewardDetail}>获得物品：{currentReward.itemName}</div>
-              )}
-              {currentReward.memoryTitle && (
-                <div className={styles.rewardDetail}>获得记忆：{currentReward.memoryTitle}</div>
-              )}
-              <div className={styles.rewardDetail} style={{ marginTop: 8, opacity: 0.6 }}>
-                点击继续
+      {/* 奖励浮层 */}
+      {currentReward && (
+        <div className={styles.eventOverlay} onClick={handleDismissReward}>
+          <div className={styles.rewardCard}>
+            <div className={styles.rewardGlow} />
+            <p className={styles.rewardMessage}>{currentReward.message}</p>
+            {(currentReward.fateDelta !== 0 || currentReward.trustDelta !== 0) && (
+              <div className={styles.rewardStats}>
+                {currentReward.fateDelta > 0 && <span className={styles.statFate}>缘分 +{currentReward.fateDelta}</span>}
+                {currentReward.fateDelta < 0 && <span className={styles.statFateNeg}>缘分 {currentReward.fateDelta}</span>}
+                {currentReward.trustDelta > 0 && <span className={styles.statTrust}>信任 +{currentReward.trustDelta}</span>}
+                {currentReward.trustDelta < 0 && <span className={styles.statTrustNeg}>信任 {currentReward.trustDelta}</span>}
               </div>
-            </div>
+            )}
+            {currentReward.itemName && (
+              <div className={styles.rewardItem}>获得物品：{currentReward.itemName}</div>
+            )}
+            {currentReward.memoryTitle && (
+              <div className={styles.rewardItem}>获得记忆：{currentReward.memoryTitle}</div>
+            )}
+            <span className={styles.rewardDismiss}>点击继续</span>
           </div>
-        )}
-
-        {/* 生成中 */}
-        {exploring && (
-          <div className={styles.generating}>翻开书页，命运正在织就...</div>
-        )}
-
-        {/* 空状态提示 */}
-        {!currentEvent && !currentReward && !exploring && history.length === 0 && (
-          <div className={styles.emptyHint}>
-            踏入书页，开启你的书中漫步之旅<br />
-            每一次探索都是一段未知的故事
-          </div>
-        )}
-
-        {/* 历史事件 */}
-        {history.length > 0 && !currentEvent && !currentReward && (
-          <div className={styles.historySection}>
-            <div className={styles.historyTitle}>漫步日志</div>
-            {history.map((item, i) => (
-              <div key={item.event.eventId + i} className={styles.historyCard} data-type={item.event.type}>
-                <span className={styles.historyIcon}>{EVENT_ICONS[item.event.type] || '?'}</span>
-                <div className={styles.historyInfo}>
-                  <div className={styles.historyName}>
-                    {EVENT_LABELS[item.event.type]} · {item.event.title}
-                  </div>
-                </div>
-                {item.reward.message && (
-                  <span className={styles.historyReward}>{item.reward.message}</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 底部探索按钮 */}
       <div className={styles.bottomBar}>
@@ -372,8 +384,11 @@ export default function ExplorePage() {
           disabled={ap <= 0 || exploring || (!!currentEvent && !currentReward)}
           onClick={handleExplore}
         >
-          {ap <= 0 ? '行动力不足' : exploring ? '命运织就中...' : '踏入书页'}
+          <span className={styles.exploreBtnInner}>
+            {ap <= 0 ? '行动力不足' : exploring ? '命运织就中...' : '踏入书页'}
+          </span>
         </button>
+        <span className={styles.todayHint}>今日探索 {status?.todayCount ?? 0} 次</span>
       </div>
     </div>
   );

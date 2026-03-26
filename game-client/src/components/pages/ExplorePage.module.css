@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════
+   探索页 — 书中漫步地图
+   ═══════════════════════════════════════════ */
+
 .page {
   height: 100%;
   display: flex;
@@ -7,308 +11,607 @@
   overflow: hidden;
 }
 
-/* ── 顶栏 ── */
-.topBar {
-  padding: 12px 16px 8px;
+/* ── 大气层效果 ── */
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fogTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, rgba(14, 11, 9, 0.9), transparent);
+  z-index: 1;
+}
+
+.fogBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to top, rgba(14, 11, 9, 0.95), transparent);
+  z-index: 1;
+}
+
+.particles {
+  position: absolute;
+  inset: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.25);
+  animation: particleFloat 8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.3s);
+  left: calc(15% + var(--i) * 12%);
+  top: calc(20% + var(--i) * 10%);
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+  20% { opacity: 0.6; }
+  50% { transform: translateY(-40px) translateX(15px); opacity: 0.3; }
+  80% { opacity: 0.5; }
+}
+
+/* ── 地图头部 ── */
+.mapHeader {
+  position: relative;
+  z-index: 2;
+  padding: 14px 16px 10px;
+  flex-shrink: 0;
+}
+
+.mapTitleRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.sceneName {
+.mapTitle {
   font-family: var(--font-main);
-  font-size: 15px;
+  font-size: 18px;
   color: var(--gold);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
-.todayCount {
-  font-size: 11px;
+.mapSubtitle {
+  font-size: 12px;
   color: var(--paper-darker);
+  opacity: 0.5;
 }
 
-/* ── 行动力条 ── */
-.actionBar {
-  padding: 8px 16px 12px;
+.apRow {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.actionLabel {
-  font-size: 11px;
-  color: var(--paper-darker);
-  white-space: nowrap;
-}
-
-.actionDots {
+.apDots {
   display: flex;
-  gap: 4px;
-  flex: 1;
+  gap: 3px;
 }
 
-.dot {
-  width: 10px;
-  height: 14px;
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  background: rgba(201, 168, 76, 0.15);
-  transition: background 0.3s, box-shadow 0.3s;
+.apDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.12);
+  transition: all 0.3s;
 }
 
-.dotFilled {
+.apDotFilled {
   background: var(--gold);
   box-shadow: 0 0 6px rgba(201, 168, 76, 0.4);
 }
 
-.actionText {
+.apText {
   font-size: 12px;
   color: var(--gold);
   font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: right;
+  font-family: var(--font-ui);
 }
 
-.recoverHint {
+.recoverText {
   font-size: 10px;
   color: var(--paper-darker);
-  padding: 0 16px 6px;
+  opacity: 0.5;
+  font-family: var(--font-ui);
 }
 
-/* ── 事件区域 ── */
-.eventArea {
+/* ── 地图主体（可滚动） ── */
+.mapBody {
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px 16px;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: none;
+  padding: 0 20px;
+}
+.mapBody::-webkit-scrollbar { display: none; }
+
+.mapTrail {
+  position: relative;
+  min-height: 100%;
+  padding: 20px 0 40px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-/* ── 事件卡片 ── */
-.eventCard {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: var(--radius-md, 8px);
-  padding: 16px;
-  animation: cardFadeIn 0.5s ease-out;
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.cardHeader {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
 }
 
-.eventIcon {
-  font-size: 18px;
+/* 中央路径线 */
+.pathLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(201, 168, 76, 0.4),
+    rgba(201, 168, 76, 0.15) 70%,
+    transparent 100%
+  );
+  transform: translateX(-50%);
+}
+
+/* ── 起点 ── */
+.trailOrigin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  z-index: 1;
+}
+
+.originDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold-dim);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+}
+
+.originLabel {
+  font-size: 10px;
+  color: var(--paper-darker);
+  opacity: 0.5;
+  font-family: var(--font-ui);
+}
+
+/* ── 地图节点 ── */
+.mapNode {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  z-index: 1;
+  animation: nodeAppear 0.4s ease-out;
+}
+
+@keyframes nodeAppear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 左侧节点 */
+.mapNode[data-side="left"] {
+  flex-direction: row-reverse;
+  padding-right: 52%;
+}
+
+/* 右侧节点 */
+.mapNode[data-side="right"] {
+  padding-left: 52%;
+}
+
+/* 节点连接线 */
+.nodeConnector {
+  position: absolute;
+  top: 14px;
+  height: 1px;
+  background: rgba(201, 168, 76, 0.2);
+}
+
+.mapNode[data-side="left"] .nodeConnector {
+  right: 48%;
+  width: 4%;
+}
+
+.mapNode[data-side="right"] .nodeConnector {
+  left: 48%;
+  width: 4%;
+}
+
+/* 节点圆点 */
+.nodeDot {
   width: 28px;
   height: 28px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
   flex-shrink: 0;
+  border: 1.5px solid rgba(201, 168, 76, 0.3);
+  background: rgba(14, 11, 9, 0.8);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.eventIcon[data-type="encounter"] { background: rgba(192, 78, 82, 0.2); }
-.eventIcon[data-type="discovery"] { background: rgba(212, 168, 75, 0.2); }
-.eventIcon[data-type="lore"]      { background: rgba(139, 107, 197, 0.2); }
-.eventIcon[data-type="dilemma"]   { background: rgba(85, 165, 219, 0.2); }
-.eventIcon[data-type="vista"]     { background: rgba(110, 197, 184, 0.2); }
+.nodeDot[data-type="encounter"] { border-color: rgba(192, 78, 82, 0.5); background: rgba(192, 78, 82, 0.1); }
+.nodeDot[data-type="discovery"] { border-color: rgba(212, 168, 75, 0.5); background: rgba(212, 168, 75, 0.1); }
+.nodeDot[data-type="lore"]      { border-color: rgba(139, 107, 197, 0.5); background: rgba(139, 107, 197, 0.1); }
+.nodeDot[data-type="dilemma"]   { border-color: rgba(85, 165, 219, 0.5); background: rgba(85, 165, 219, 0.1); }
+.nodeDot[data-type="vista"]     { border-color: rgba(110, 197, 184, 0.5); background: rgba(110, 197, 184, 0.1); }
+.nodeDot[data-type="combat"]    { border-color: rgba(192, 78, 82, 0.6); background: rgba(192, 78, 82, 0.15); }
+.nodeDot[data-type="deja_vu"]   { border-color: rgba(201, 168, 76, 0.5); background: rgba(201, 168, 76, 0.1); }
 
-.eventType {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  color: #fff;
+.nodeIcon {
+  font-size: 13px;
+  line-height: 1;
 }
 
-.eventType[data-type="encounter"] { background: rgba(192, 78, 82, 0.6); }
-.eventType[data-type="discovery"] { background: rgba(212, 168, 75, 0.6); }
-.eventType[data-type="lore"]      { background: rgba(139, 107, 197, 0.6); }
-.eventType[data-type="dilemma"]   { background: rgba(85, 165, 219, 0.6); }
-.eventType[data-type="vista"]     { background: rgba(110, 197, 184, 0.6); }
+/* 节点信息卡 */
+.nodeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(201, 168, 76, 0.1);
+  border-radius: 6px;
+  max-width: 160px;
+}
 
-.eventTitle {
-  font-size: 15px;
+.mapNode[data-side="left"] .nodeCard {
+  text-align: right;
+  margin-right: 8px;
+}
+
+.mapNode[data-side="right"] .nodeCard {
+  margin-left: 8px;
+}
+
+.nodeType {
+  font-size: 10px;
+  font-family: var(--font-ui);
+  opacity: 0.7;
+}
+
+.nodeType[data-type="encounter"] { color: rgba(192, 78, 82, 0.8); }
+.nodeType[data-type="discovery"] { color: rgba(212, 168, 75, 0.8); }
+.nodeType[data-type="lore"]      { color: rgba(139, 107, 197, 0.8); }
+.nodeType[data-type="dilemma"]   { color: rgba(85, 165, 219, 0.8); }
+.nodeType[data-type="vista"]     { color: rgba(110, 197, 184, 0.8); }
+.nodeType[data-type="combat"]    { color: rgba(192, 78, 82, 0.9); }
+.nodeType[data-type="deja_vu"]   { color: var(--gold); }
+
+.nodeTitle {
+  font-size: 12px;
   color: var(--paper);
   font-family: var(--font-main);
-  flex: 1;
+  line-height: 1.4;
 }
 
-.eventDesc {
-  font-size: 13px;
+.nodeReward {
+  font-size: 10px;
+  color: var(--gold-dim);
+  opacity: 0.6;
+}
+
+/* ── 当前位置 ── */
+.currentPos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 0 16px;
+  z-index: 2;
+}
+
+.currentPulse {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(201, 168, 76, 0.15);
+  animation: currentPulse 2s ease-out infinite;
+}
+
+@keyframes currentPulse {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.currentDot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--paper);
+  box-shadow:
+    0 0 12px rgba(201, 168, 76, 0.6),
+    0 0 24px rgba(201, 168, 76, 0.3);
+  z-index: 1;
+}
+
+.currentLabel {
+  font-size: 11px;
+  color: var(--gold);
+  font-family: var(--font-ui);
+  opacity: 0.8;
+}
+
+/* ── 未探索区域 ── */
+.unexplored {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 20px;
+}
+
+.mistLine {
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(to bottom, rgba(201, 168, 76, 0.15), transparent);
+}
+
+.mistText {
+  font-size: 11px;
   color: var(--paper-darker);
-  line-height: 1.7;
-  margin-bottom: 14px;
+  opacity: 0.25;
+  font-family: var(--font-main);
+  letter-spacing: 4px;
+}
+
+/* ── 事件浮层 ── */
+.eventOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(14, 11, 9, 0.75);
+  backdrop-filter: blur(8px);
+  animation: overlayIn 0.3s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.eventCard {
+  width: 100%;
+  max-width: 360px;
+  background: linear-gradient(165deg, #1a1610, #0e0b09);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 12px;
+  padding: 24px 20px;
+  animation: cardSlideUp 0.4s ease-out;
+}
+
+@keyframes cardSlideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-family: var(--font-ui);
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.cardBadge[data-type="encounter"] { background: rgba(192, 78, 82, 0.5); }
+.cardBadge[data-type="discovery"] { background: rgba(212, 168, 75, 0.5); }
+.cardBadge[data-type="lore"]      { background: rgba(139, 107, 197, 0.5); }
+.cardBadge[data-type="dilemma"]   { background: rgba(85, 165, 219, 0.5); }
+.cardBadge[data-type="vista"]     { background: rgba(110, 197, 184, 0.5); }
+.cardBadge[data-type="combat"]    { background: rgba(192, 78, 82, 0.6); }
+.cardBadge[data-type="deja_vu"]   { background: linear-gradient(135deg, rgba(201, 168, 76, 0.6), rgba(139, 107, 197, 0.6)); }
+
+.cardTitle {
+  font-family: var(--font-main);
+  font-size: 18px;
+  color: var(--paper);
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.cardDesc {
+  font-size: 14px;
+  color: var(--paper-darker);
+  line-height: 1.8;
+  margin: 0 0 20px;
 }
 
 /* ── 选择按钮 ── */
-.choicesRow {
+.cardChoices {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .choiceBtn {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  border-radius: 6px;
-  background: rgba(201, 168, 76, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 8px;
+  background: rgba(201, 168, 76, 0.04);
   color: var(--paper);
-  font-size: 13px;
+  font-size: 14px;
+  font-family: var(--font-main);
   cursor: pointer;
   transition: all 0.2s;
-  text-align: center;
-  position: relative;
+  text-align: left;
 }
 
 .choiceBtn:hover {
-  background: rgba(201, 168, 76, 0.15);
-  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.12);
+  border-color: var(--gold-dim);
 }
 
 .choiceBtn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
-.choiceBtn[data-risk="medium"] {
-  border-color: rgba(212, 168, 75, 0.5);
+.choiceBtn[data-risk="medium"] { border-color: rgba(212, 168, 75, 0.4); }
+.choiceBtn[data-risk="high"]   { border-color: rgba(192, 78, 82, 0.4); }
+
+.choiceTalk {
+  border-color: rgba(201, 168, 76, 0.3);
 }
 
-.choiceBtn[data-risk="high"] {
-  border-color: rgba(192, 78, 82, 0.5);
+.choiceText {
+  flex: 1;
 }
 
 .riskTag {
-  font-size: 9px;
-  position: absolute;
-  top: -6px;
-  right: 6px;
-  padding: 1px 5px;
-  border-radius: 6px;
-  background: var(--ink);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  margin-left: 8px;
 }
 
-.riskTag[data-risk="low"]    { color: rgba(139, 197, 99, 0.8); }
-.riskTag[data-risk="medium"] { color: rgba(212, 168, 75, 0.8); }
-.riskTag[data-risk="high"]   { color: rgba(192, 78, 82, 0.8); }
+.riskTag[data-risk="low"]    { color: rgba(139, 197, 99, 0.8); background: rgba(139, 197, 99, 0.1); }
+.riskTag[data-risk="medium"] { color: rgba(212, 168, 75, 0.9); background: rgba(212, 168, 75, 0.1); }
+.riskTag[data-risk="high"]   { color: rgba(192, 78, 82, 0.9); background: rgba(192, 78, 82, 0.1); }
 
-/* ── 奖励弹出 ── */
-.rewardPopup {
+.battleHint {
   text-align: center;
+  color: var(--paper-darker);
+  font-size: 14px;
   padding: 12px;
-  animation: rewardFade 0.4s ease-out;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes rewardFade {
+/* ── 奖励卡 ── */
+.rewardCard {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(165deg, #1a1610, #0e0b09);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  animation: rewardAppear 0.5s ease-out;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+@keyframes rewardAppear {
   from { opacity: 0; transform: scale(0.9); }
-  to   { opacity: 1; transform: scale(1); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.rewardGlow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(201, 168, 76, 0.08), transparent 50%);
+  pointer-events: none;
 }
 
 .rewardMessage {
-  font-size: 14px;
-  color: var(--gold);
   font-family: var(--font-main);
-  margin-bottom: 4px;
+  font-size: 16px;
+  color: var(--gold);
+  line-height: 1.6;
+  margin: 0 0 12px;
 }
 
-.rewardDetail {
-  font-size: 11px;
-  color: var(--paper-darker);
+.rewardStats {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-/* ── 历史卡片 ── */
-.historySection {
-  margin-top: 8px;
-}
+.statFate { color: #e8b4c8; font-size: 13px; font-family: var(--font-ui); }
+.statFateNeg { color: #999; font-size: 13px; font-family: var(--font-ui); }
+.statTrust { color: #8bc5cd; font-size: 13px; font-family: var(--font-ui); }
+.statTrustNeg { color: #999; font-size: 13px; font-family: var(--font-ui); }
 
-.historyTitle {
+.rewardItem {
   font-size: 12px;
   color: var(--paper-darker);
-  margin-bottom: 8px;
-  padding-left: 2px;
+  margin-top: 4px;
 }
 
-.historyCard {
+.rewardDismiss {
+  display: block;
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--paper-darker);
+  opacity: 0.4;
+  font-family: var(--font-ui);
+}
+
+/* ── 底部栏 ── */
+.bottomBar {
+  position: relative;
+  z-index: 3;
+  padding: 12px 20px calc(16px + var(--safe-bottom, 0px));
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 6px;
-  margin-bottom: 4px;
-  border-left: 3px solid rgba(201, 168, 76, 0.2);
-}
-
-.historyCard[data-type="encounter"] { border-left-color: rgba(192, 78, 82, 0.5); }
-.historyCard[data-type="discovery"] { border-left-color: rgba(212, 168, 75, 0.5); }
-.historyCard[data-type="lore"]      { border-left-color: rgba(139, 107, 197, 0.5); }
-.historyCard[data-type="dilemma"]   { border-left-color: rgba(85, 165, 219, 0.5); }
-.historyCard[data-type="vista"]     { border-left-color: rgba(110, 197, 184, 0.5); }
-
-.historyIcon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.historyInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.historyName {
-  font-size: 12px;
-  color: var(--paper);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.historyReward {
-  font-size: 11px;
-  color: var(--gold);
-  white-space: nowrap;
-}
-
-/* ── 底部探索按钮 ── */
-.bottomBar {
-  padding: 12px 16px 16px;
-  border-top: 1px solid rgba(201, 168, 76, 0.15);
 }
 
 .exploreBtn {
   width: 100%;
-  padding: 14px;
+  max-width: 300px;
+  padding: 0;
   border: 1px solid var(--gold);
-  border-radius: 8px;
-  background: rgba(201, 168, 76, 0.1);
-  color: var(--gold);
-  font-size: 15px;
-  font-family: var(--font-main);
+  border-radius: 10px;
+  background: transparent;
   cursor: pointer;
   transition: all 0.3s;
-  position: relative;
   overflow: hidden;
-  letter-spacing: 2px;
+  position: relative;
 }
 
-.exploreBtn:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.2);
-  box-shadow: 0 0 20px rgba(201, 168, 76, 0.15);
+.exploreBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0.05));
+  transition: background 0.3s;
+}
+
+.exploreBtn:hover:not(:disabled)::before {
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.1));
 }
 
 .exploreBtn:active:not(:disabled) {
@@ -316,212 +619,98 @@
 }
 
 .exploreBtn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
   border-color: rgba(201, 168, 76, 0.3);
 }
 
-/* ── 加载/空状态 ── */
-.loading {
+.exploreBtnInner {
+  display: block;
+  position: relative;
+  padding: 14px 24px;
+  font-family: var(--font-main);
+  font-size: 16px;
+  color: var(--gold);
+  letter-spacing: 3px;
+}
+
+.todayHint {
+  font-size: 10px;
+  color: var(--paper-darker);
+  opacity: 0.35;
+  font-family: var(--font-ui);
+}
+
+/* ── 空状态 ── */
+.emptyGuide {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+  padding: 40px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-family: var(--font-main);
+  font-size: 16px;
+  color: var(--paper);
+  margin: 0;
+}
+
+.emptySubtext {
+  font-size: 13px;
+  color: var(--paper-darker);
+  opacity: 0.5;
+  margin: 0;
+}
+
+.guideBtn {
+  margin-top: 8px;
+  padding: 10px 28px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: rgba(201, 168, 76, 0.1);
+  color: var(--gold);
+  font-size: 14px;
+  font-family: var(--font-main);
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+
+/* ── 加载态 ── */
+.loadingState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
   color: var(--paper-darker);
   font-size: 14px;
 }
 
-.emptyHint {
-  text-align: center;
-  color: var(--paper-darker);
-  font-size: 13px;
-  padding: 40px 20px;
-  line-height: 1.8;
+.loadingOrb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.6;
+  animation: orbPulse 1.5s ease-in-out infinite;
 }
 
-.generating {
-  text-align: center;
-  padding: 30px;
-  color: var(--paper-darker);
-  font-size: 13px;
-  animation: pulse 1.5s ease-in-out infinite;
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.3); opacity: 0.8; }
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
-
-/* ── 内嵌战斗面板 ── */
-.battlePanel {
-  margin-top: 12px;
-  padding: 12px;
-  border-top: 1px solid rgba(201, 168, 76, 0.15);
-  animation: cardFadeIn 0.4s ease-out;
-}
-
-.battleUnit {
-  margin-bottom: 10px;
-  transition: opacity 0.3s;
-}
-
-.unitHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.unitName {
-  font-size: 13px;
-  color: var(--paper);
-  font-family: var(--font-main);
-}
-
-.unitName[data-type="enemy"] {
-  color: #c44e52;
-}
-
-.unitName[data-type="player"] {
-  color: var(--gold);
-}
-
-.unitHpText {
-  font-size: 11px;
-  color: var(--paper-darker);
-  font-variant-numeric: tabular-nums;
-}
-
-.hpBarBg {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.hpBar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease-out;
-}
-
-.mpText {
-  font-size: 10px;
-  color: #55a5db;
-  margin-top: 2px;
-  text-align: right;
-}
-
-.battleDivider {
-  text-align: center;
-  font-size: 11px;
-  color: var(--paper-darker);
-  padding: 6px 0;
-  letter-spacing: 2px;
-  opacity: 0.6;
-}
-
-.battleLogArea {
-  margin: 10px 0;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  max-height: 80px;
-  overflow-y: auto;
-}
-
-.battleLogLine {
-  font-size: 11px;
-  color: var(--paper-darker);
-  line-height: 1.6;
-}
-
-.battleLogLine:last-child {
-  color: var(--paper);
-}
-
-.battleResult {
-  text-align: center;
-  font-size: 16px;
-  font-family: var(--font-main);
-  padding: 10px;
-  animation: rewardFade 0.5s ease-out;
-}
-
-.battleResult[data-result="VICTORY"] {
-  color: var(--gold);
-}
-
-.battleResult[data-result="DEFEAT"] {
-  color: #c44e52;
-}
-
-.battleActions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.battleBtn {
-  flex: 1;
-  padding: 10px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  background: rgba(201, 168, 76, 0.05);
-  color: var(--paper);
-}
-
-.battleBtn:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.15);
-  border-color: var(--gold);
-}
-
-.battleBtn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.battleBtn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.battleBtn[data-action="attack"] {
-  border-color: rgba(192, 78, 82, 0.4);
-}
-
-.battleBtn[data-action="attack"]:hover:not(:disabled) {
-  background: rgba(192, 78, 82, 0.15);
-  border-color: #c44e52;
-}
-
-.battleBtn[data-action="skill"] {
-  border-color: rgba(85, 165, 219, 0.4);
-}
-
-.battleBtn[data-action="skill"]:hover:not(:disabled) {
-  background: rgba(85, 165, 219, 0.15);
-  border-color: #55a5db;
-}
-
-.battleBtn[data-action="defend"] {
-  border-color: rgba(139, 197, 99, 0.4);
-}
-
-.battleBtn[data-action="defend"]:hover:not(:disabled) {
-  background: rgba(139, 197, 99, 0.15);
-  border-color: #8bc563;
-}
-
-/* combat 事件卡片特殊样式 */
-.eventIcon[data-type="combat"] { background: rgba(192, 78, 82, 0.25); }
-.eventType[data-type="combat"] { background: rgba(192, 78, 82, 0.7); }
-.historyCard[data-type="combat"] { border-left-color: rgba(192, 78, 82, 0.6); }
-
-/* 前世回响事件样式 */
-.eventIcon[data-type="deja_vu"] { background: rgba(201, 168, 76, 0.3); }
-.eventType[data-type="deja_vu"] { background: linear-gradient(135deg, rgba(201, 168, 76, 0.7), rgba(139, 107, 197, 0.7)); }
-.historyCard[data-type="deja_vu"] { border-left-color: var(--gold); }
