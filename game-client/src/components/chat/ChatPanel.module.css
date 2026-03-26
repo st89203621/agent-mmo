@@ -3,20 +3,17 @@
    ═══════════════════════════════════════════ */
 
 .chatWrapper {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  flex-shrink: 0;
   z-index: 3;
   pointer-events: none;
   display: flex;
   flex-direction: column;
-  max-height: 45%;
+  max-height: 40vh;
   transition: max-height var(--transition-normal);
 }
 
 .chatWrapper.collapsed {
-  max-height: 36px;
+  max-height: 32px;
 }
 
 /* ── 头部标签栏 ── */
