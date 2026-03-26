@@ -141,11 +141,19 @@ public class ExploreService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("无效选择"));
 
+        // 根据事件类型和风险计算奖励
+        Map<String, Object> reward = calculateReward(event, chosen);
+
+        // 持久化奖励快照
         event.setResolved(true);
+        event.setRewardMessage((String) reward.get("message"));
+        event.setRewardFateDelta((int) reward.get("fateDelta"));
+        event.setRewardTrustDelta((int) reward.get("trustDelta"));
+        event.setRewardItemName((String) reward.get("itemName"));
+        event.setRewardMemoryTitle((String) reward.get("memoryTitle"));
         eventRepository.save(event);
 
-        // 根据事件类型和风险计算奖励
-        return calculateReward(event, chosen);
+        return reward;
     }
 
     /**
@@ -207,9 +215,6 @@ public class ExploreService {
         if (event.getUserId() != userId) throw new RuntimeException("无权操作");
         if (event.isResolved()) throw new RuntimeException("事件已解决");
 
-        event.setResolved(true);
-        eventRepository.save(event);
-
         ThreadLocalRandom rand = ThreadLocalRandom.current();
         Map<String, Object> reward = new LinkedHashMap<>();
         if (victory) {
@@ -230,6 +235,15 @@ public class ExploreService {
             reward.put("memoryTitle", null);
             reward.put("imageUrl", null);
         }
+
+        // 持久化奖励快照
+        event.setResolved(true);
+        event.setRewardMessage((String) reward.get("message"));
+        event.setRewardFateDelta((int) reward.get("fateDelta"));
+        event.setRewardTrustDelta((int) reward.get("trustDelta"));
+        event.setRewardItemName((String) reward.get("itemName"));
+        event.setRewardMemoryTitle((String) reward.get("memoryTitle"));
+        eventRepository.save(event);
         return reward;
     }
 

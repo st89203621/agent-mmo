@@ -59,13 +59,14 @@ export default function ScenePage() {
           {scenes.map(scene => {
             const theme = SCENE_THEMES[scene.sceneId] || SCENE_THEMES.adventure;
             const locked = !scene.unlocked;
+            const vars = { '--scene-color': theme.color, '--scene-bg': theme.bg } as React.CSSProperties;
             return (
               <div key={scene.sceneId}
-                className={`${styles.card} ${locked ? styles.cardLocked : ''}`}
-                style={locked ? undefined : { borderColor: theme.color, background: theme.bg }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
-                    <p className={styles.cardTitle} style={locked ? undefined : { color: theme.color }}>
+                className={`${styles.card} ${locked ? styles.cardLocked : styles.cardThemed}`}
+                style={locked ? undefined : vars}>
+                <div className={styles.cardRow}>
+                  <div className={styles.cardBody}>
+                    <p className={`${styles.cardTitle} ${locked ? '' : styles.cardTitleThemed}`}>
                       {scene.name}
                     </p>
                     <p className={styles.cardMeta}>
@@ -74,8 +75,7 @@ export default function ScenePage() {
                     </p>
                     <p className={styles.cardDesc}>{scene.description}</p>
                   </div>
-                  <button className={styles.actionBtn}
-                    style={locked ? { opacity: 0.4 } : { background: theme.bg, borderColor: theme.color, color: theme.color, border: `1px solid ${theme.color}` }}
+                  <button className={`${styles.actionBtn} ${locked ? styles.actionBtnLocked : styles.actionBtnThemed}`}
                     disabled={locked || entering === scene.sceneId}
                     onClick={() => handleEnter(scene)}>
                     {entering === scene.sceneId ? '...' : locked ? '未解锁' : '进入'}

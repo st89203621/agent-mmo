@@ -4,7 +4,7 @@ import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchExploreStatus, exploreAction, resolveExploreChoice, fetchExploreHistory,
   startExploreCombat, resolveExploreCombat,
-  fetchPlayerCurrency, fetchRelations,
+  fetchPlayerCurrency, fetchRelations, generateSceneImage,
 } from '../../services/api';
 import type { ExploreStatus, ExploreEvent, ExploreReward } from '../../types';
 import styles from './ExplorePage.module.css';
@@ -52,6 +52,7 @@ export default function ExplorePage() {
   const [exploring, setExploring] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [battleLoading, setBattleLoading] = useState(false);
+  const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
   const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
   const [recoverCountdown, setRecoverCountdown] = useState(0);
   const mapScrollRef = useRef<HTMLDivElement>(null);
@@ -81,7 +82,14 @@ export default function ExplorePage() {
       setRecoverCountdown(s.nextRecoverSec);
       setHistory(h.events.map(e => ({
         event: e,
-        reward: { message: '', fateDelta: 0, trustDelta: 0, itemName: null, memoryTitle: null, imageUrl: null },
+        reward: {
+          message: e.rewardMessage || '',
+          fateDelta: e.rewardFateDelta || 0,
+          trustDelta: e.rewardTrustDelta || 0,
+          itemName: e.rewardItemName || null,
+          memoryTitle: e.rewardMemoryTitle || null,
+          imageUrl: null,
+        },
       })));
     } catch { /* 静默 */ }
     finally { setLoading(false); }
@@ -131,9 +139,19 @@ export default function ExplorePage() {
     if (exploring || !status || status.actionPoints <= 0) return;
     setExploring(true);
     setCurrentReward(null);
+    setEventImageUrl(null);
     try {
       const { event } = await exploreAction(currentWorldIndex, bookTitle);
       setCurrentEvent(event);
+      // 为有视觉内容的事件生成场景图
+      const hint = event.sceneHint
+        || (event.type === 'encounter' && event.npcId ? `偶遇${event.title}` : null)
+        || (event.type === 'combat' && event.enemyName ? `遭遇${event.enemyName}` : null);
+      if (hint) {
+        generateSceneImage(event.npcId || 'scene', currentWorldIndex, undefined, hint)
+          .then(res => setEventImageUrl(res.imageUrl))
+          .catch(() => {});
+      }
       const s = await fetchExploreStatus();
       setStatus(s);
       setRecoverCountdown(s.nextRecoverSec);
@@ -310,6 +328,11 @@ export default function ExplorePage() {
               <span>{EVENT_LABELS[currentEvent.type] || currentEvent.type}</span>
             </div>
             <h3 className={styles.cardTitle}>{currentEvent.title}</h3>
+            {eventImageUrl && (
+              <div className={styles.cardImage}>
+                <img src={eventImageUrl} alt={currentEvent.title} />
+              </div>
+            )}
             <p className={styles.cardDesc}>{currentEvent.description}</p>
 
             {!battleLoading && (

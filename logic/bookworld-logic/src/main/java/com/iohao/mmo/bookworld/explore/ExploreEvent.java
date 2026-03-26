@@ -32,6 +32,13 @@ public class ExploreEvent {
     private boolean resolved;
     private Instant createTime = Instant.now();
 
+    // ── 奖励快照（resolve时写入） ──
+    private String rewardMessage;
+    private int rewardFateDelta;
+    private int rewardTrustDelta;
+    private String rewardItemName;
+    private String rewardMemoryTitle;
+
     @Data
     public static class Choice {
         private int id;

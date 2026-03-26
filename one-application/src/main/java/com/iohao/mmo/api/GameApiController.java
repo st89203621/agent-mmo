@@ -2819,6 +2819,14 @@ public class GameApiController {
             }
         }
         m.put("choices", choices);
+        // 已解决的事件附带奖励快照
+        if (e.isResolved() && e.getRewardMessage() != null) {
+            m.put("rewardMessage", e.getRewardMessage());
+            m.put("rewardFateDelta", e.getRewardFateDelta());
+            m.put("rewardTrustDelta", e.getRewardTrustDelta());
+            m.put("rewardItemName", e.getRewardItemName());
+            m.put("rewardMemoryTitle", e.getRewardMemoryTitle());
+        }
         return m;
     }
 

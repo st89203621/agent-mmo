@@ -173,6 +173,12 @@ export interface ExploreEvent {
   sceneHint: string | null;
   enemyName: string | null;
   battleId: string | null;
+  // 已解决事件的奖励快照
+  rewardMessage?: string;
+  rewardFateDelta?: number;
+  rewardTrustDelta?: number;
+  rewardItemName?: string | null;
+  rewardMemoryTitle?: string | null;
 }
 
 /** 探索奖励 */

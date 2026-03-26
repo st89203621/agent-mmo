@@ -10,6 +10,7 @@ import {
   type DialogueData, type DialogueHistoryItem, type SelectedBookData,
 } from '../../services/api';
 import FateBar from '../common/FateBar';
+import { useNpcPortraits } from '../../hooks/useNpcPortraits';
 import type { BookWorld, DialogueChoice, DialogueMessage, Emotion } from '../../types';
 import { EMOTION_LABELS } from '../../constants/emotion';
 import styles from './StoryPage.module.css';
@@ -75,6 +76,7 @@ export default function StoryPage() {
   }, [galleryIndex, dialogue.sceneImages.length]);
 
   const currentRelation = player.relations.find((r) => r.npcId === dialogue.npcId);
+  const portraitUrls = useNpcPortraits(game.npcsInScene, player.currentWorldIndex, artStyle);
 
   // 初始化
   useEffect(() => {
@@ -650,7 +652,11 @@ export default function StoryPage() {
               onClick={() => handleStartDialogue(npc.npcId)}
               disabled={loading}
             >
-              <div className={styles.npcAvatar}>{npc.npcName.charAt(0)}</div>
+              <div className={styles.npcAvatar}>
+                {portraitUrls[npc.npcId]
+                  ? <img src={portraitUrls[npc.npcId]} alt={npc.npcName} className={styles.npcAvatarImg} />
+                  : npc.npcName.charAt(0)}
+              </div>
               <div className={styles.npcInfo}>
                 <span className={styles.npcName}>{npc.npcName}</span>
                 <span className={styles.npcRole}>

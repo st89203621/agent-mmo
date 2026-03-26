@@ -171,11 +171,30 @@
   filter: grayscale(0.5);
 }
 
+.cardThemed {
+  border-color: var(--scene-color);
+  background: var(--scene-bg);
+}
+
+.cardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardBody {
+  flex: 1;
+}
+
 .cardTitle {
   font-family: var(--font-main);
   font-size: 15px;
   color: var(--ink);
   margin-bottom: 4px;
+}
+
+.cardTitleThemed {
+  color: var(--scene-color);
 }
 
 .cardMeta {
@@ -479,6 +498,16 @@
   cursor: pointer;
   font-family: var(--font-ui);
   margin-top: 8px;
+}
+
+.actionBtnLocked {
+  opacity: 0.4;
+}
+
+.actionBtnThemed {
+  background: var(--scene-bg);
+  border: 1px solid var(--scene-color);
+  color: var(--scene-color);
 }
 
 .primaryBtn {
