@@ -616,6 +616,8 @@ export interface BattleUnitData {
   speed: number;
   defending: boolean;
   portraitUrl?: string;
+  grade?: string;
+  actionGauge?: number;
 }
 
 export interface BattleActionData {

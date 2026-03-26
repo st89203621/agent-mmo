@@ -24,6 +24,10 @@ public class BattleUnit {
     private boolean defending;
     /** 立绘URL（玩家用已有立绘，怪物AI生成） */
     private String portraitUrl;
+    /** 怪物等级：C B A S SS SSS */
+    private String grade;
+    /** 行动条（0-100+），满100时可行动 */
+    private int actionGauge;
 
     public boolean isAlive() {
         return hp > 0;

@@ -64,8 +64,9 @@ public class ExploreService {
      */
     public Map<String, Object> getStatus(long userId) {
         ExploreState state = getOrCreateState(userId);
-        recoverActionPoints(state);
-        stateRepository.save(state);
+        if (recoverActionPoints(state)) {
+            stateRepository.save(state);
+        }
 
         long nextRecoverSec = 0;
         if (state.getActionPoints() < MAX_ACTION_POINTS) {
@@ -90,7 +91,7 @@ public class ExploreService {
     /**
      * 执行一次探索：消耗行动力 → AI生成事件 → 返回事件数据
      */
-    public ExploreEvent explore(long userId, int worldIndex, String bookTitle) {
+    public ExploreEvent explore(long userId, int worldIndex, String bookTitle, double dejaVuChance) {
         if (arkService == null) {
             throw new RuntimeException("AI服务未初始化");
         }
@@ -113,7 +114,7 @@ public class ExploreService {
         stateRepository.save(state);
 
         // AI生成事件
-        ExploreEvent event = generateEvent(userId, bookTitle);
+        ExploreEvent event = generateEvent(userId, bookTitle, dejaVuChance);
         event.setWorldIndex(worldIndex);
         event.setBookTitle(bookTitle);
         eventRepository.save(event);
@@ -175,15 +176,16 @@ public class ExploreService {
         });
     }
 
-    private void recoverActionPoints(ExploreState state) {
-        if (state.getActionPoints() >= MAX_ACTION_POINTS) return;
+    private boolean recoverActionPoints(ExploreState state) {
+        if (state.getActionPoints() >= MAX_ACTION_POINTS) return false;
 
         long elapsedSec = Instant.now().getEpochSecond() - state.getLastRecoverTime().getEpochSecond();
         int recovered = (int) (elapsedSec / RECOVER_INTERVAL_SEC);
-        if (recovered > 0) {
-            state.setActionPoints(Math.min(MAX_ACTION_POINTS, state.getActionPoints() + recovered));
-            state.setLastRecoverTime(state.getLastRecoverTime().plus(recovered * RECOVER_INTERVAL_SEC, ChronoUnit.SECONDS));
-        }
+        if (recovered <= 0) return false;
+
+        state.setActionPoints(Math.min(MAX_ACTION_POINTS, state.getActionPoints() + recovered));
+        state.setLastRecoverTime(state.getLastRecoverTime().plus(recovered * RECOVER_INTERVAL_SEC, ChronoUnit.SECONDS));
+        return true;
     }
 
     /**
@@ -231,23 +233,9 @@ public class ExploreService {
         return reward;
     }
 
-    /** 检查是否应触发前世记忆回响事件（基于REBIRTH技能） */
-    private boolean shouldTriggerDejaVu(long userId) {
-        // 通过dejaVuChance字段判断（由GameApiController注入）
-        // 默认15%概率（如果有似曾相识技能）
-        return dejaVuChanceMap.getOrDefault(userId, 0.0) > ThreadLocalRandom.current().nextDouble();
-    }
-
-    /** 由外部注入的前世回响概率（技能系统） */
-    private final Map<Long, Double> dejaVuChanceMap = new java.util.concurrent.ConcurrentHashMap<>();
-
-    public void setDejaVuChance(long userId, double chance) {
-        dejaVuChanceMap.put(userId, chance);
-    }
-
-    private ExploreEvent generateEvent(long userId, String bookTitle) {
+    private ExploreEvent generateEvent(long userId, String bookTitle, double dejaVuChance) {
         // 前世记忆回响（约15%触发率，需要轮回技能）
-        if (shouldTriggerDejaVu(userId)) {
+        if (dejaVuChance > ThreadLocalRandom.current().nextDouble()) {
             return buildDejaVuEvent(userId, bookTitle);
         }
 

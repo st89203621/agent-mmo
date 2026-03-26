@@ -101,9 +101,10 @@ export default function DungeonPage() {
         isComplete: res.dungeon.status === 'COMPLETED',
       });
       await loadData();
-      fetchPlayerCurrency().then(c => {
+      try {
+        const c = await fetchPlayerCurrency();
         usePlayerStore.getState().setCurrency(c.gold, c.diamond);
-      }).catch(() => {});
+      } catch { /* noop */ }
     } catch { /* noop */ }
     setOperating(false);
   }, [loadData]);

@@ -63,6 +63,15 @@ function PortraitImage({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boo
   );
 }
 
+const GRADE_STYLE: Record<string, { label: string; color: string }> = {
+  C:   { label: 'C',   color: '#9e9e9e' },
+  B:   { label: 'B',   color: '#4caf50' },
+  A:   { label: 'A',   color: '#2196f3' },
+  S:   { label: 'S',   color: '#ffc107' },
+  SS:  { label: 'SS',  color: '#ff9800' },
+  SSS: { label: 'SSS', color: '#e91e63' },
+};
+
 /* ═══════════ 角色区块（血条在头顶） ═══════════ */
 function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
   unit: BattleUnitData; isPlayer: boolean;
@@ -70,10 +79,12 @@ function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
 }) {
   const hpPct = unit.maxHp > 0 ? (unit.hp / unit.maxHp) * 100 : 0;
   const mpPct = unit.maxMp > 0 ? (unit.mp / unit.maxMp) * 100 : 0;
+  const atbPct = Math.min(100, unit.actionGauge ?? 0);
   const hpClass = hpPct > 50 ? styles.hpHigh : hpPct > 20 ? styles.hpMid : styles.hpLow;
   const isHit = hitIds.has(unit.unitId);
   const isAttacking = attackAnim === unit.unitId;
   const myFloats = floats.filter(f => f.unitId === unit.unitId);
+  const gradeInfo = !isPlayer && unit.grade ? GRADE_STYLE[unit.grade] : null;
 
   const slotCls = [
     styles.unitSlot,
@@ -85,9 +96,16 @@ function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
 
   return (
     <div className={slotCls}>
-      {/* 头顶：名字 + HP/MP 条 */}
+      {/* 头顶：名字 + 等级徽章 + HP/MP 条 */}
       <div className={styles.headBar}>
-        <div className={styles.unitName}>{unit.name}</div>
+        <div className={styles.unitName}>
+          {gradeInfo && (
+            <span className={styles.gradeBadge} style={{ color: gradeInfo.color, borderColor: gradeInfo.color }}>
+              {gradeInfo.label}
+            </span>
+          )}
+          {unit.name}
+        </div>
         <div className={styles.barTrack}>
           <div className={`${styles.barFill} ${hpClass}`} style={{ width: `${hpPct}%` }} />
         </div>
@@ -96,6 +114,9 @@ function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
             <div className={`${styles.barFill} ${styles.mp}`} style={{ width: `${mpPct}%` }} />
           </div>
         )}
+        <div className={`${styles.barTrack} ${styles.atbTrack}`}>
+          <div className={`${styles.barFill} ${styles.atb}`} style={{ width: `${atbPct}%` }} />
+        </div>
       </div>
       {/* 立绘 */}
       <PortraitImage unit={unit} isPlayer={isPlayer} />
@@ -120,6 +141,7 @@ export default function BattlePage() {
   const [hitIds, setHitIds] = useState<Set<string>>(new Set());
   const [attackAnim, setAttackAnim] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState(false);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
   const autoRef = useRef(false);
   const battleRef = useRef<BattleData | null>(null);
 
@@ -140,15 +162,16 @@ export default function BattlePage() {
   const dungeonId = pageParams?.dungeonId as string | undefined;
   const isDungeonBattle = pageParams?.dungeonBattle as boolean | undefined;
 
-  /* ── 加载已有战斗 ── */
+  /* ── 加载已有战斗 + 背景图 ── */
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getBattleState();
-      if (res.battle?.id) {
-        setBattle(res.battle);
-        setLogs(res.battle.actionLog || []);
+      const [battleRes, personRes] = await Promise.all([getBattleState(), fetchPersonInfo()]);
+      if (battleRes.battle?.id) {
+        setBattle(battleRes.battle);
+        setLogs(battleRes.battle.actionLog || []);
       }
+      if (personRes.bgUrl) setBgUrl(personRes.bgUrl);
     } catch { /* noop */ }
     setLoading(false);
   }, []);
@@ -303,6 +326,10 @@ export default function BattlePage() {
   /* ═══════════ 渲染 ═══════════ */
   return (
     <div className={styles.page}>
+      {/* 战斗背景图 */}
+      {bgUrl && (
+        <div className={styles.battleBg} style={{ backgroundImage: `url(${bgUrl})` }} />
+      )}
       {/* Phaser 特效层（透明覆盖整个页面） */}
       <div ref={phaserRef} className={styles.phaserLayer} />
 
@@ -336,10 +363,14 @@ export default function BattlePage() {
               </div>
             </div>
 
-            {/* 战斗日志（仅最新一条） */}
-            {logs.length > 0 && (
+            {/* 战斗日志（本回合所有行动） */}
+            {battle.actionLog && battle.actionLog.length > 0 && (
               <div className={styles.logTicker}>
-                <div className={styles.logLine}>{logs[logs.length - 1].description}</div>
+                {battle.actionLog.map((a, i) => (
+                  <div key={i} className={`${styles.logLine} ${a.actorName === '玩家' ? styles.logPlayer : styles.logEnemy}`}>
+                    {a.description}
+                  </div>
+                ))}
               </div>
             )}
 

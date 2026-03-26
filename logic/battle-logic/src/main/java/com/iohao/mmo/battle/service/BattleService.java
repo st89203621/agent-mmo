@@ -32,12 +32,11 @@ public class BattleService {
     public BattleState startBattleWithEnemy(long userId, String enemyName,
                                             int playerHp, int playerMp,
                                             int pAtk, int pDef, int mAtk, int mDef, int speed) {
-        BattleState state = startBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed);
+        BattleState state = buildBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed, null);
         if (enemyName != null && !enemyName.isBlank()) {
             state.getEnemyUnits().forEach(e -> e.setName(enemyName));
-            mongoTemplate.save(state);
         }
-        return state;
+        return mongoTemplate.save(state);
     }
 
     /**
@@ -48,25 +47,11 @@ public class BattleService {
                                            int playerHp, int playerMp,
                                            int pAtk, int pDef, int mAtk, int mDef, int speed,
                                            List<BattleSkill> skills) {
-        // 清理旧战斗
         mongoTemplate.remove(
                 Query.query(Criteria.where("userId").is(userId).and("status").is("ONGOING")),
                 BattleState.class);
 
-        BattleUnit player = new BattleUnit();
-        player.setUnitId("player");
-        player.setName("玩家");
-        player.setUnitType("PLAYER");
-        player.setMaxHp(Math.max(playerHp, 100));
-        player.setHp(player.getMaxHp());
-        player.setMaxMp(Math.max(playerMp, 50));
-        player.setMp(player.getMaxMp());
-        player.setPhysicsAttack(Math.max(pAtk, 10));
-        player.setPhysicsDefense(Math.max(pDef, 5));
-        player.setMagicAttack(Math.max(mAtk, 8));
-        player.setMagicDefense(Math.max(mDef, 5));
-        player.setSpeed(Math.max(speed, 10));
-
+        BattleUnit player = buildPlayerUnit(playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed);
         BattleUnit enemy = generateDungeonEnemy(player, enemyName, enemyLevel, isBoss, dungeonDifficulty);
 
         BattleState state = new BattleState();
@@ -76,12 +61,7 @@ public class BattleService {
         state.setPlayerUnits(new ArrayList<>(List.of(player)));
         state.setEnemyUnits(new ArrayList<>(List.of(enemy)));
         state.setStartTime(System.currentTimeMillis());
-
-        List<BattleSkill> available = new ArrayList<>();
-        available.add(buildDefaultSkill("attack", "普通攻击", "⚔️", 0, 1.0, "physical_damage"));
-        available.add(buildDefaultSkill("defend", "防御", "🛡️", 0, 0, "buff_defense"));
-        if (skills != null) available.addAll(skills);
-        state.setAvailableSkills(available);
+        state.setAvailableSkills(buildAvailableSkills(skills));
 
         return mongoTemplate.save(state);
     }
@@ -90,6 +70,7 @@ public class BattleService {
     private BattleUnit generateDungeonEnemy(BattleUnit player, String name, int level,
                                              boolean isBoss, int difficulty) {
         ThreadLocalRandom rng = ThreadLocalRandom.current();
+        String grade = isBoss ? rollBossGrade(rng, difficulty) : rollGrade(rng, difficulty);
         double levelScale = 1.0 + (level - 1) * 0.08;
         double diffScale = 1.0 + (difficulty - 1) * 0.15;
         double bossScale = isBoss ? 1.8 : 1.0;
@@ -99,6 +80,7 @@ public class BattleService {
         enemy.setUnitId("enemy_1");
         enemy.setName(name);
         enemy.setUnitType("MONSTER");
+        enemy.setGrade(grade);
         enemy.setMaxHp((int) (player.getMaxHp() * total * rng.nextInt(90, 111) / 100));
         enemy.setHp(enemy.getMaxHp());
         enemy.setMaxMp((int) (player.getMaxMp() * total * rng.nextInt(70, 101) / 100));
@@ -109,6 +91,28 @@ public class BattleService {
         enemy.setMagicDefense((int) (player.getMagicDefense() * total * rng.nextInt(75, 106) / 100));
         enemy.setSpeed((int) (player.getSpeed() * total * rng.nextInt(85, 116) / 100));
         return enemy;
+    }
+
+    /** BOSS 等级保底更高 */
+    private String rollBossGrade(ThreadLocalRandom rng, int difficulty) {
+        int[] weights = switch (difficulty) {
+            case 1  -> new int[]{ 0, 10, 30, 35, 20,  5};
+            case 2  -> new int[]{ 0,  5, 20, 35, 28, 12};
+            case 3  -> new int[]{ 0,  0, 10, 30, 35, 25};
+            case 4  -> new int[]{ 0,  0,  5, 20, 35, 40};
+            case 5  -> new int[]{ 0,  0,  0, 10, 30, 60};
+            default -> new int[]{ 0, 15, 35, 30, 15,  5};
+        };
+        String[] grades = {"C", "B", "A", "S", "SS", "SSS"};
+        int total = 0;
+        for (int w : weights) total += w;
+        int r = rng.nextInt(total);
+        int cum = 0;
+        for (int i = 0; i < weights.length; i++) {
+            cum += weights[i];
+            if (r < cum) return grades[i];
+        }
+        return "S";
     }
 
     /**
@@ -122,11 +126,31 @@ public class BattleService {
     public BattleState startBattle(long userId, int playerHp, int playerMp,
                                    int pAtk, int pDef, int mAtk, int mDef, int speed,
                                    List<BattleSkill> skills) {
-        // 清理旧战斗
         mongoTemplate.remove(
                 Query.query(Criteria.where("userId").is(userId).and("status").is("ONGOING")),
                 BattleState.class);
+        return mongoTemplate.save(buildBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed, skills));
+    }
 
+    private BattleState buildBattle(long userId, int playerHp, int playerMp,
+                                    int pAtk, int pDef, int mAtk, int mDef, int speed,
+                                    List<BattleSkill> skills) {
+        BattleUnit player = buildPlayerUnit(playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed);
+        BattleUnit enemy = generateEnemy(player);
+
+        BattleState state = new BattleState();
+        state.setUserId(userId);
+        state.setRound(1);
+        state.setStatus("ONGOING");
+        state.setPlayerUnits(new ArrayList<>(List.of(player)));
+        state.setEnemyUnits(new ArrayList<>(List.of(enemy)));
+        state.setStartTime(System.currentTimeMillis());
+        state.setAvailableSkills(buildAvailableSkills(skills));
+        return state;
+    }
+
+    private BattleUnit buildPlayerUnit(int playerHp, int playerMp,
+                                       int pAtk, int pDef, int mAtk, int mDef, int speed) {
         BattleUnit player = new BattleUnit();
         player.setUnitId("player");
         player.setName("玩家");
@@ -140,27 +164,16 @@ public class BattleService {
         player.setMagicAttack(Math.max(mAtk, 8));
         player.setMagicDefense(Math.max(mDef, 5));
         player.setSpeed(Math.max(speed, 10));
+        player.setActionGauge(100); // 玩家先手
+        return player;
+    }
 
-        BattleUnit enemy = generateEnemy(player);
-
-        BattleState state = new BattleState();
-        state.setUserId(userId);
-        state.setRound(1);
-        state.setStatus("ONGOING");
-        state.setPlayerUnits(new ArrayList<>(List.of(player)));
-        state.setEnemyUnits(new ArrayList<>(List.of(enemy)));
-        state.setStartTime(System.currentTimeMillis());
-
-        // 构建可用技能列表（始终包含普攻和防御）
+    private List<BattleSkill> buildAvailableSkills(List<BattleSkill> extra) {
         List<BattleSkill> available = new ArrayList<>();
         available.add(buildDefaultSkill("attack", "普通攻击", "⚔️", 0, 1.0, "physical_damage"));
         available.add(buildDefaultSkill("defend", "防御", "🛡️", 0, 0, "buff_defense"));
-        if (skills != null) {
-            available.addAll(skills);
-        }
-        state.setAvailableSkills(available);
-
-        return mongoTemplate.save(state);
+        if (extra != null) available.addAll(extra);
+        return available;
     }
 
     private BattleSkill buildDefaultSkill(String id, String name, String icon,
@@ -195,38 +208,74 @@ public class BattleService {
 
         state.setActionLog(new ArrayList<>());
 
-        // 回合开始：清除所有防御状态
-        state.getPlayerUnits().forEach(u -> u.setDefending(false));
-        state.getEnemyUnits().forEach(u -> u.setDefending(false));
+        BattleUnit player = state.getPlayerUnits().stream()
+                .filter(BattleUnit::isAlive).findFirst().orElse(null);
+        if (player == null) {
+            state.setStatus("DEFEAT");
+            return mongoTemplate.save(state);
+        }
 
-        // 按速度排序
-        List<BattleUnit> allUnits = new ArrayList<>();
-        allUnits.addAll(state.getPlayerUnits());
-        allUnits.addAll(state.getEnemyUnits());
-        allUnits.sort((a, b) -> b.getSpeed() - a.getSpeed());
+        // 玩家行动，清除防御状态
+        player.setDefending(false);
+        executePlayerAction(state, player, actionType, targetId, skillId);
+        player.setActionGauge(0);
 
-        for (BattleUnit unit : allUnits) {
-            if (!unit.isAlive()) continue;
-            if (state.allPlayersDead() || state.allEnemiesDead()) break;
-
-            if ("PLAYER".equals(unit.getUnitType())) {
-                executePlayerAction(state, unit, actionType, targetId, skillId);
-            } else {
-                executeEnemyAction(state, unit);
+        if (!checkBattleEnd(state)) {
+            // ATB：推进行动条直到玩家再次就绪
+            advanceUntilPlayerReady(state);
+            if (!state.isFinished()) {
+                state.setRound(state.getRound() + 1);
             }
         }
 
-        // 检查胜负
+        return mongoTemplate.save(state);
+    }
+
+    /** 检查胜负，设置状态，返回是否已结束 */
+    private boolean checkBattleEnd(BattleState state) {
         if (state.allEnemiesDead()) {
             state.setStatus("VICTORY");
             state.setRewards("战斗胜利");
+            return true;
         } else if (state.allPlayersDead()) {
             state.setStatus("DEFEAT");
-        } else {
-            state.setRound(state.getRound() + 1);
+            return true;
         }
+        return false;
+    }
 
-        return mongoTemplate.save(state);
+    /**
+     * ATB推进：每tick各单位行动条 += speed，满100时怪物行动；
+     * 直到玩家行动条 >= 100 或战斗结束。
+     */
+    private void advanceUntilPlayerReady(BattleState state) {
+        List<BattleUnit> allUnits = new ArrayList<>();
+        allUnits.addAll(state.getPlayerUnits());
+        allUnits.addAll(state.getEnemyUnits());
+
+        for (int tick = 0; tick < 2000; tick++) {
+            for (BattleUnit unit : allUnits) {
+                if (unit.isAlive()) {
+                    unit.setActionGauge(unit.getActionGauge() + unit.getSpeed());
+                }
+            }
+
+            // 怪物行动
+            for (BattleUnit unit : allUnits) {
+                if (!unit.isAlive() || !"MONSTER".equals(unit.getUnitType())) continue;
+                if (unit.getActionGauge() >= 100) {
+                    unit.setActionGauge(unit.getActionGauge() - 100);
+                    unit.setDefending(false);
+                    executeEnemyAction(state, unit);
+                    if (checkBattleEnd(state)) return;
+                }
+            }
+
+            // 玩家就绪则等待输入
+            boolean playerReady = state.getPlayerUnits().stream()
+                    .anyMatch(u -> u.isAlive() && u.getActionGauge() >= 100);
+            if (playerReady || state.allEnemiesDead()) return;
+        }
     }
 
     private void executePlayerAction(BattleState state, BattleUnit player,
@@ -239,7 +288,6 @@ public class BattleService {
                     .findFirst().orElse(null);
         }
 
-        // 如果传了skillId但找不到对应技能，或actionType是DEFEND
         if ("DEFEND".equals(actionType) || (skill != null && "buff_defense".equals(skill.getEffectType()))) {
             player.setDefending(true);
             BattleAction action = new BattleAction();
@@ -362,23 +410,58 @@ public class BattleService {
     private BattleUnit generateEnemy(BattleUnit player) {
         String[] names = {"妖狐", "石魔", "幽灵", "蛮兽", "暗影刺客", "血蝠", "冰魄", "火灵"};
         ThreadLocalRandom rng = ThreadLocalRandom.current();
+        String grade = rollGrade(rng, 0);
+        double gm = gradeMultiplier(grade);
 
         BattleUnit enemy = new BattleUnit();
         enemy.setUnitId("enemy_1");
         enemy.setName(names[rng.nextInt(names.length)]);
         enemy.setUnitType("MONSTER");
-        int hpScale = rng.nextInt(80, 121);
-        enemy.setMaxHp(player.getMaxHp() * hpScale / 100);
+        enemy.setGrade(grade);
+        enemy.setMaxHp((int) (player.getMaxHp() * gm * rng.nextInt(80, 121) / 100));
         enemy.setHp(enemy.getMaxHp());
-        // 敌人也有MP，支持法术
-        enemy.setMaxMp(player.getMaxMp() * rng.nextInt(60, 101) / 100);
+        enemy.setMaxMp((int) (player.getMaxMp() * gm * rng.nextInt(60, 101) / 100));
         enemy.setMp(enemy.getMaxMp());
-        enemy.setPhysicsAttack(player.getPhysicsAttack() * rng.nextInt(75, 110) / 100);
-        enemy.setPhysicsDefense(player.getPhysicsDefense() * rng.nextInt(70, 110) / 100);
-        enemy.setMagicAttack(player.getMagicAttack() * rng.nextInt(60, 100) / 100);
-        enemy.setMagicDefense(player.getMagicDefense() * rng.nextInt(60, 100) / 100);
-        enemy.setSpeed(player.getSpeed() * rng.nextInt(80, 120) / 100);
+        enemy.setPhysicsAttack((int) (player.getPhysicsAttack() * gm * rng.nextInt(75, 110) / 100));
+        enemy.setPhysicsDefense((int) (player.getPhysicsDefense() * gm * rng.nextInt(70, 110) / 100));
+        enemy.setMagicAttack((int) (player.getMagicAttack() * gm * rng.nextInt(60, 100) / 100));
+        enemy.setMagicDefense((int) (player.getMagicDefense() * gm * rng.nextInt(60, 100) / 100));
+        enemy.setSpeed((int) (player.getSpeed() * gm * rng.nextInt(80, 120) / 100));
         return enemy;
+    }
+
+    /** 随机怪物等级，difficulty 0=普通关卡，1-5=副本难度 */
+    private String rollGrade(ThreadLocalRandom rng, int difficulty) {
+        // 概率表：[C, B, A, S, SS, SSS]，difficulty 越高高级概率越大
+        int[] weights = switch (difficulty) {
+            case 1  -> new int[]{35, 30, 20, 10, 4, 1};
+            case 2  -> new int[]{20, 25, 25, 18, 9, 3};
+            case 3  -> new int[]{10, 15, 25, 25, 18, 7};
+            case 4  -> new int[]{ 5, 10, 20, 28, 25, 12};
+            case 5  -> new int[]{ 2,  5, 13, 25, 30, 25};
+            default -> new int[]{40, 30, 18,  8,  3,  1};
+        };
+        String[] grades = {"C", "B", "A", "S", "SS", "SSS"};
+        int total = 0;
+        for (int w : weights) total += w;
+        int r = rng.nextInt(total);
+        int cum = 0;
+        for (int i = 0; i < weights.length; i++) {
+            cum += weights[i];
+            if (r < cum) return grades[i];
+        }
+        return "C";
+    }
+
+    private double gradeMultiplier(String grade) {
+        return switch (grade) {
+            case "B"   -> 1.15;
+            case "A"   -> 1.35;
+            case "S"   -> 1.65;
+            case "SS"  -> 2.2;
+            case "SSS" -> 3.0;
+            default    -> 1.0; // C
+        };
     }
 
     /** 获取玩家的胜利场次 */

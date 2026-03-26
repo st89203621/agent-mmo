@@ -154,12 +154,7 @@ public class AdventureService {
     }
 
     public Dungeon exitDungeon(long userId, String dungeonId) {
-        Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
-        if (dungeon != null && dungeon.getStatus() == Dungeon.DungeonStatus.IN_PROGRESS) {
-            dungeon.setStatus(Dungeon.DungeonStatus.FAILED);
-            return dungeonRepository.save(dungeon);
-        }
-        return dungeon;
+        return markDungeonFailed(userId, dungeonId);
     }
 
     /** 获取当前关卡的敌人信息（用于发起战斗） */
@@ -203,6 +198,10 @@ public class AdventureService {
 
     /** 副本失败（战斗失败时调用） */
     public Dungeon failDungeon(long userId, String dungeonId) {
+        return markDungeonFailed(userId, dungeonId);
+    }
+
+    private Dungeon markDungeonFailed(long userId, String dungeonId) {
         Dungeon dungeon = dungeonRepository.findByUserIdAndDungeonId(userId, dungeonId);
         if (dungeon != null && dungeon.getStatus() == Dungeon.DungeonStatus.IN_PROGRESS) {
             dungeon.setStatus(Dungeon.DungeonStatus.FAILED);
