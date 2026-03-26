@@ -1063,13 +1063,14 @@ public class GameApiController {
         long userId = requireLogin(session);
         Bag bag = bagService.ofBag(userId);
         List<Map<String, Object>> items = new ArrayList<>();
+
+        // 普通背包物品
         if (bag.getItemMap() != null) {
             bag.getItemMap().forEach((id, item) -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id", item.getId());
                 m.put("itemTypeId", item.getItemTypeId());
                 m.put("quantity", item.getQuantity());
-                // 补充物品元信息
                 ShopItem shopItem = shopService.getItem(item.getItemTypeId());
                 if (shopItem != null) {
                     m.put("name", shopItem.getName());
@@ -1084,6 +1085,31 @@ public class GameApiController {
                 items.add(m);
             });
         }
+
+        // 装备也展示在背包中（category=equipment）
+        List<Equip> equips = equipService.listByUser(userId);
+        for (Equip equip : equips) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", equip.getId());
+            m.put("itemTypeId", equip.getItemTypeId());
+            m.put("quantity", 1);
+            m.put("category", "equipment");
+            m.put("equipId", equip.getId());
+            m.put("equipPosition", equip.getPosition());
+            ShopItem src = shopService.getItem(equip.getItemTypeId());
+            if (src != null) {
+                m.put("name", src.getName());
+                m.put("icon", src.getIcon());
+                m.put("description", src.getDescription());
+                m.put("quality", src.getQuality());
+            } else {
+                m.put("name", equipPositionName(equip.getPosition()));
+                m.put("icon", "⚔️");
+                m.put("quality", "common");
+            }
+            items.add(m);
+        }
+
         return ok(Map.of("items", items));
     }
 

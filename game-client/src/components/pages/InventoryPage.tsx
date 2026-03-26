@@ -1,16 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchBagItems, useBagItem, type BagItemData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { toast } from '../../store/toastStore';
 import { QUALITY_COLOR_MAP } from '../../constants/quality';
 import styles from './PageSkeleton.module.css';
 
 const GRID_SIZE = 30;
+const POSITION_LABELS: Record<number, string> = { 1: '武器', 2: '护甲', 3: '饰品' };
+
+const TABS = [
+  { key: '', label: '全部' },
+  { key: 'equipment', label: '装备' },
+  { key: 'consumable', label: '消耗品' },
+  { key: 'other', label: '其他' },
+];
 
 export default function InventoryPage() {
   const [items, setItems] = useState<BagItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BagItemData | null>(null);
   const [operating, setOperating] = useState(false);
+  const [tab, setTab] = useState('');
   const { navigateTo } = useGameStore();
 
   const loadBag = useCallback(() => {
@@ -28,21 +38,43 @@ export default function InventoryPage() {
     setOperating(true);
     try {
       await useBagItem(selected.id, selected.itemTypeId, 1);
+      toast.success('使用成功');
       setSelected(null);
       loadBag();
     } catch { /* noop */ }
     setOperating(false);
   }, [selected, loadBag]);
 
-  const slots: (BagItemData | null)[] = [...items];
+  const filtered = tab
+    ? items.filter(i => {
+        if (tab === 'equipment') return i.category === 'equipment';
+        if (tab === 'consumable') return i.category === 'consumable';
+        return i.category !== 'equipment' && i.category !== 'consumable';
+      })
+    : items;
+
+  const slots: (BagItemData | null)[] = [...filtered];
   while (slots.length < GRID_SIZE) slots.push(null);
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h2 className={styles.title}>背包</h2>
-        <p className={styles.subtitle}>{items.length} / {GRID_SIZE}</p>
+        <p className={styles.subtitle}>{items.length} 件物品</p>
       </div>
+
+      <div className={styles.tabRow}>
+        {TABS.map(t => (
+          <button
+            key={t.key}
+            className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
+            onClick={() => { setTab(t.key); setSelected(null); }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.scrollArea}>
         {loading ? (
           <div className={styles.empty}><p>加载中...</p></div>
@@ -78,6 +110,15 @@ export default function InventoryPage() {
                           x{item.quantity}
                         </span>
                       )}
+                      {item.category === 'equipment' && (
+                        <span style={{
+                          position: 'absolute', top: '1px', left: '2px',
+                          fontSize: '7px', color: QUALITY_COLOR_MAP[item.quality ?? ''] || '#888',
+                          fontWeight: 700,
+                        }}>
+                          {POSITION_LABELS[item.equipPosition ?? 0] || '装'}
+                        </span>
+                      )}
                     </>
                   )}
                 </button>
@@ -92,7 +133,7 @@ export default function InventoryPage() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '24px' }}>{selected.icon || '📦'}</span>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <p style={{
                       fontSize: '14px', fontWeight: 600,
                       color: QUALITY_COLOR_MAP[selected.quality ?? ''] || 'var(--ink)',
@@ -105,6 +146,7 @@ export default function InventoryPage() {
                         color: QUALITY_COLOR_MAP[selected.quality] || '#888',
                       }}>
                         {selected.quality}
+                        {selected.equipPosition ? ` · ${POSITION_LABELS[selected.equipPosition] || '装备'}` : ''}
                       </span>
                     )}
                   </div>
@@ -114,14 +156,36 @@ export default function InventoryPage() {
                     {selected.description}
                   </p>
                 )}
-                <p style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.5, marginTop: 4 }}>
-                  数量：{selected.quantity}
-                </p>
-                {selected.category === 'consumable' && (
-                  <button className={styles.actionBtn} onClick={handleUse} disabled={operating} style={{ marginTop: 8 }}>
-                    {operating ? '使用中...' : '使用'}
-                  </button>
+                {selected.category !== 'equipment' && (
+                  <p style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.5, marginTop: 4 }}>
+                    数量：{selected.quantity}
+                  </p>
                 )}
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {selected.category === 'consumable' && (
+                    <button className={styles.actionBtn} onClick={handleUse} disabled={operating}>
+                      {operating ? '使用中...' : '使用'}
+                    </button>
+                  )}
+                  {selected.equipId && (
+                    <button
+                      className={styles.actionBtn}
+                      onClick={() => navigateTo('equip-detail', { equipId: selected.equipId })}
+                    >
+                      查看详情
+                    </button>
+                  )}
+                  {selected.equipId && (
+                    <button
+                      className={styles.actionBtn}
+                      style={{ background: 'var(--paper-darker)', color: 'var(--ink)' }}
+                      onClick={() => navigateTo('enchant', { equipId: selected.equipId })}
+                    >
+                      附魔
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -132,7 +196,7 @@ export default function InventoryPage() {
                 <p>背包空空如也</p>
                 <p className={styles.hint}>通过探索、战斗、商城获取物品</p>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button className={styles.actionBtn} onClick={() => navigateTo('book-world')}>
+                  <button className={styles.actionBtn} onClick={() => navigateTo('explore')}>
                     去探索
                   </button>
                   <button className={styles.actionBtn} onClick={() => navigateTo('shop')}

@@ -369,6 +369,8 @@ export interface BagItemData {
   description?: string;
   category?: string;
   quality?: string;
+  equipId?: string;
+  equipPosition?: number;
 }
 
 export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
