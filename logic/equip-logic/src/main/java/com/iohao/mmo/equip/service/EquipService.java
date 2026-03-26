@@ -45,6 +45,13 @@ public class EquipService {
     final MongoTemplate mongoTemplate;
 
     /**
+     * 保存装备
+     */
+    public Equip save(Equip equip) {
+        return mongoTemplate.save(equip);
+    }
+
+    /**
      * 通过装备id查询装备
      * @param id 装备id
      * @return

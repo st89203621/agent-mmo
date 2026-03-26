@@ -20,6 +20,7 @@ import com.iohao.mmo.story.proto.DialogueMessage;
 import com.iohao.mmo.story.service.StoryService;
 import com.iohao.mmo.equip.entity.ElseEquipProperty;
 import com.iohao.mmo.equip.entity.Equip;
+import com.iohao.mmo.equip.entity.FixedEquipProperty;
 import com.iohao.mmo.equip.service.EquipService;
 import com.iohao.mmo.bag.entity.Bag;
 import com.iohao.mmo.bag.entity.BagItem;
@@ -1216,6 +1217,16 @@ public class GameApiController {
         return ok(Map.of("msg", "删除成功"));
     }
 
+    /** 随机获取一件装备（用于抽奖/掉落） */
+    @PostMapping("/equip/random")
+    public ResponseEntity<Map<String, Object>> randomDropEquip(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String maxQuality = (String) body.getOrDefault("maxQuality", "epic");
+        Equip equip = dropRandomEquip(userId, maxQuality);
+        if (equip == null) return err("无可用装备池");
+        return ok(equipToMap(equip));
+    }
+
     private Map<String, Object> equipToMap(Equip equip) {
         Map<String, Object> m = new HashMap<>();
         m.put("id", equip.getId());
@@ -1228,6 +1239,12 @@ public class GameApiController {
         m.put("identifyCount", equip.getIdentifyCount());
         m.put("grade", equip.getGrade());
         m.put("furnaceGrade", equip.getFurnaceGrade());
+
+        // 装备名称：从商城数据获取
+        ShopItem src = shopService.getItem(equip.getItemTypeId());
+        m.put("name", src != null ? src.getName() : equipPositionName(equip.getPosition()));
+        m.put("icon", src != null ? src.getIcon() : "⚔️");
+
         if (equip.getFixedEquipProperty() != null) {
             var fp = equip.getFixedEquipProperty();
             m.put("fixedProps", Map.of(
@@ -1245,6 +1262,15 @@ public class GameApiController {
             ));
         }
         return m;
+    }
+
+    private String equipPositionName(int position) {
+        return switch (position) {
+            case 1 -> "武器";
+            case 2 -> "护甲";
+            case 3 -> "饰品";
+            default -> "装备";
+        };
     }
 
     // ── NPC 管理 ──────────────────────────────────────
@@ -1672,8 +1698,9 @@ public class GameApiController {
 
     /** 发放战斗胜利奖励 */
     private Map<String, Object> distributeBattleRewards(long userId, BattleState state) {
-        int rewardGold = 80 + new Random().nextInt(41); // 80~120
-        int rewardExp = 40 + new Random().nextInt(21);   // 40~60
+        Random rng = new Random();
+        int rewardGold = 80 + rng.nextInt(41); // 80~120
+        int rewardExp = 40 + rng.nextInt(21);   // 40~60
 
         PlayerCurrency currency = shopService.getPlayerCurrency(userId);
         currency.addGold(rewardGold);
@@ -1683,10 +1710,10 @@ public class GameApiController {
         detail.put("gold", rewardGold);
         detail.put("exp", rewardExp);
 
-        // 20%概率掉落消耗品
-        String[] dropPool = {"consumable_001", "consumable_002", "consumable_003"};
-        if (new Random().nextInt(5) == 0) {
-            String dropId = dropPool[new Random().nextInt(dropPool.length)];
+        // 25% 掉落消耗品
+        String[] consumablePool = {"consumable_001", "consumable_002", "consumable_003"};
+        if (rng.nextInt(4) == 0) {
+            String dropId = consumablePool[rng.nextInt(consumablePool.length)];
             ShopItem dropItem = shopService.getItem(dropId);
             if (dropItem != null) {
                 BagItem bagItem = new BagItem();
@@ -1698,6 +1725,18 @@ public class GameApiController {
                 detail.put("dropIcon", dropItem.getIcon());
             }
         }
+
+        // 30% 掉落装备（品质上限 rare）
+        if (rng.nextInt(100) < 30) {
+            Equip dropped = dropRandomEquip(userId, "rare");
+            if (dropped != null) {
+                ShopItem src = shopService.getItem(dropped.getItemTypeId());
+                detail.put("equipDrop", src != null ? src.getName() : "神秘装备");
+                detail.put("equipDropIcon", src != null ? src.getIcon() : "⚔️");
+                detail.put("equipDropId", dropped.getId());
+            }
+        }
+
         return detail;
     }
 
@@ -1754,6 +1793,12 @@ public class GameApiController {
             m.put("quality", item.getQuality());
             m.put("isHot", item.isHot());
             m.put("stock", item.getStock());
+            if (item.getAttributes() != null && !item.getAttributes().isEmpty()) {
+                m.put("attributes", item.getAttributes());
+            }
+            if (item.getEquipPosition() > 0) {
+                m.put("equipPosition", item.getEquipPosition());
+            }
             list.add(m);
         }
         return ok(Map.of("items", list));
@@ -1781,26 +1826,89 @@ public class GameApiController {
         return ok(result);
     }
 
-    /** 商城物品发放到背包 */
+    /** 商城物品发放：装备类创建 Equip 实体，其他放背包 */
     private void deliverShopItemToBag(long userId, ShopItem shopItem, int quantity) {
-        String category = shopItem.getCategory();
-        // 武器/防具：不可叠加，每件独立
-        if ("weapon".equals(category) || "armor".equals(category)) {
+        if (shopItem.getEquipPosition() > 0) {
             for (int i = 0; i < quantity; i++) {
-                BagItem bagItem = new BagItem();
-                bagItem.setId(UUID.randomUUID().toString());
-                bagItem.setItemTypeId(shopItem.getId());
-                bagItem.setQuantity(1);
-                bagService.incrementItem(bagItem, userId);
+                generateEquipFromShopItem(userId, shopItem);
             }
         } else {
-            // 消耗品/特殊物品：可叠加
             BagItem bagItem = new BagItem();
             bagItem.setId(shopItem.getId());
             bagItem.setItemTypeId(shopItem.getId());
             bagItem.setQuantity(quantity);
             bagService.incrementItem(bagItem, userId);
         }
+    }
+
+    /** 根据商城装备配置创建真实 Equip 实体 */
+    private Equip generateEquipFromShopItem(long userId, ShopItem shopItem) {
+        Map<String, Integer> attrs = shopItem.getAttributes();
+        int baseAtk = attrVal(attrs, "物攻");
+        int baseMAtk = attrVal(attrs, "法攻");
+        int baseDef = attrVal(attrs, "物防");
+        int baseMDef = attrVal(attrs, "法防");
+        int baseHp = attrVal(attrs, "生命");
+        int baseMp = attrVal(attrs, "法力");
+        int baseSpd = attrVal(attrs, "速度");
+
+        Random rng = new Random();
+        double variance = 0.85 + rng.nextDouble() * 0.3; // 0.85~1.15 随机浮动
+
+        FixedEquipProperty fixed = FixedEquipProperty.builder()
+                .hp((int)(baseHp * variance))
+                .mp((int)(baseMp * variance))
+                .physicsAttack((int)(baseAtk * variance))
+                .physicsDefense((int)(baseDef * variance))
+                .magicAttack((int)(baseMAtk * variance))
+                .magicDefense((int)(baseMDef * variance))
+                .speed((int)(baseSpd * variance))
+                .build();
+
+        int qualityIdx = qualityToIndex(shopItem.getQuality());
+        int totalAttr = 10 + qualityIdx * 8 + rng.nextInt(10);
+
+        Equip equip = Equip.builder()
+                .itemTypeId(shopItem.getId())
+                .userId(userId)
+                .position(shopItem.getEquipPosition())
+                .level(1)
+                .quality(qualityIdx)
+                .fixedEquipProperty(fixed)
+                .fixedEquipPropertyMin(fixed)
+                .fixedEquipPropertyMax(fixed)
+                .attrTotal(totalAttr)
+                .undistributedAttr(totalAttr)
+                .elseEquipProperty(ElseEquipProperty.resetElseEquipProperty())
+                .totalAttrMin(totalAttr - 5)
+                .totalAttrMax(totalAttr + 5)
+                .equipTemplateId(shopItem.getId())
+                .build();
+
+        equipService.save(equip);
+        return equip;
+    }
+
+    /** 随机掉落一件装备（按最大品质筛选） */
+    private Equip dropRandomEquip(long userId, String maxQuality) {
+        List<ShopItem> pool = shopService.listEquipItemsByMaxQuality(maxQuality);
+        if (pool.isEmpty()) return null;
+        ShopItem chosen = pool.get(new Random().nextInt(pool.size()));
+        return generateEquipFromShopItem(userId, chosen);
+    }
+
+    private int attrVal(Map<String, Integer> attrs, String key) {
+        return attrs != null && attrs.containsKey(key) ? attrs.get(key) : 0;
+    }
+
+    private int qualityToIndex(String quality) {
+        return switch (quality) {
+            case "uncommon" -> 1;
+            case "rare" -> 2;
+            case "epic" -> 3;
+            case "legendary" -> 4;
+            default -> 0;
+        };
     }
 
     @GetMapping("/shop/history")
@@ -2000,6 +2108,20 @@ public class GameApiController {
                 droppedItems.add(Map.of("itemName", drop.getItemName(), "quantity", drop.getQuantity(), "rarity", drop.getRarity()));
             }
         }
+
+        // 40% 概率掉落装备（副本品质上限 epic）
+        Random rng = new Random();
+        if (rng.nextInt(100) < 40) {
+            Equip dropped = dropRandomEquip(userId, "epic");
+            if (dropped != null) {
+                ShopItem src = shopService.getItem(dropped.getItemTypeId());
+                String name = src != null ? src.getName() : "神秘装备";
+                droppedItems.add(Map.of("itemName", name, "quantity", 1, "rarity", src != null ? src.getQuality() : "rare"));
+                detail.put("equipDrop", name);
+                detail.put("equipDropId", dropped.getId());
+            }
+        }
+
         detail.put("items", droppedItems);
         return detail;
     }
@@ -2243,15 +2365,20 @@ public class GameApiController {
                 memoryService.createMemory(userId, targetNpcId, npcName, worldIndex, bookTitle, fateScore, memoryTitle);
             }
 
-            // 3. 物品奖励 → BagService（映射到商城预定义物品）
+            // 3. 物品奖励 → 装备或消耗品
             String itemName = (String) reward.get("itemName");
             if (itemName != null && !itemName.isBlank()) {
-                String mappedItemId = mapExploreItemToShopItem(itemName);
-                BagItem bagItem = new BagItem();
-                bagItem.setId(mappedItemId);
-                bagItem.setItemTypeId(mappedItemId);
-                bagItem.setQuantity(1);
-                bagService.incrementItem(bagItem, userId);
+                if (isEquipItemName(itemName)) {
+                    // 探索获得装备
+                    dropRandomEquip(userId, "rare");
+                } else {
+                    String mappedItemId = mapExploreItemToShopItem(itemName);
+                    BagItem bagItem = new BagItem();
+                    bagItem.setId(mappedItemId);
+                    bagItem.setItemTypeId(mappedItemId);
+                    bagItem.setQuantity(1);
+                    bagService.incrementItem(bagItem, userId);
+                }
             }
 
             // 4. 金币奖励
@@ -2266,6 +2393,17 @@ public class GameApiController {
         }
     }
 
+    /** 判断探索物品名是否为装备类 */
+    private boolean isEquipItemName(String itemName) {
+        if (itemName == null) return false;
+        String lower = itemName.toLowerCase();
+        return lower.contains("剑") || lower.contains("刀") || lower.contains("杖") || lower.contains("锤")
+                || lower.contains("弓") || lower.contains("枪") || lower.contains("weapon") || lower.contains("sword")
+                || lower.contains("甲") || lower.contains("铠") || lower.contains("袍") || lower.contains("armor")
+                || lower.contains("戒") || lower.contains("链") || lower.contains("坠") || lower.contains("珠")
+                || lower.contains("项链") || lower.contains("ring") || lower.contains("accessory");
+    }
+
     /** 将AI生成的探索物品名映射到商城预定义物品ID */
     private String mapExploreItemToShopItem(String itemName) {
         if (itemName == null) return "consumable_001";
@@ -2273,9 +2411,10 @@ public class GameApiController {
         if (lower.contains("药") || lower.contains("heal") || lower.contains("生命")) return "consumable_001";
         if (lower.contains("魔") || lower.contains("mana") || lower.contains("法力")) return "consumable_002";
         if (lower.contains("经验") || lower.contains("exp")) return "consumable_003";
+        if (lower.contains("附魔") || lower.contains("符") || lower.contains("材料")) return "material_001";
+        if (lower.contains("矿") || lower.contains("精炼")) return "material_002";
         if (lower.contains("卷轴") || lower.contains("scroll") || lower.contains("传送")) return "special_002";
         if (lower.contains("蛋") || lower.contains("egg") || lower.contains("宠物")) return "special_001";
-        // 默认掉落生命药水
         return "consumable_001";
     }
 

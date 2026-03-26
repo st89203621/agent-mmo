@@ -118,12 +118,12 @@ export default function EquipDetailPage() {
       {/* 装备头部 */}
       <div className={styles.equipBanner}>
         <div className={styles.equipIconLarge} style={{ borderColor: qualityColor, background: `${qualityColor}15` }}>
-          {meta.icon}
+          {equip.icon || meta.icon}
         </div>
         <div className={styles.equipMeta}>
           <div className={styles.equipNameRow}>
             <span className={styles.equipName} style={{ color: qualityColor }}>
-              {equip.itemTypeId || meta.label}
+              {equip.name || meta.label}
             </span>
             <span className={styles.qualityBadge} style={{ background: qualityColor }}>
               {qualityName}
@@ -197,6 +197,10 @@ export default function EquipDetailPage() {
           onClick={handleIdentify}
           disabled={operating}
         >鉴定</button>
+        <button
+          className={`${styles.actionBtn}`}
+          onClick={() => navigateTo('enchant', { equipId: equip.id })}
+        >附魔</button>
         {Object.values(deltas).some((v) => v > 0) && (
           <button
             className={`${styles.actionBtn} ${styles.confirmBtn}`}

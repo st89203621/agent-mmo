@@ -105,16 +105,18 @@ export default function CharacterPage() {
                   onClick={() => {
                     if (equip) {
                       navigateTo('equip-detail', { equipId: equip.id });
+                    } else {
+                      navigateTo('shop');
                     }
                   }}
                 >
-                  <span className={styles.equipIcon}>{meta.icon}</span>
+                  <span className={styles.equipIcon}>{equip?.icon || meta.icon}</span>
                   {equip ? (
                     <span className={styles.equipName} style={{ color: QUALITY_COLORS[equip.quality] || QUALITY_COLORS[0] }}>
-                      Lv.{equip.level}
+                      {equip.name || `Lv.${equip.level}`}
                     </span>
                   ) : (
-                    <span className={styles.equipLabel}>{meta.label}</span>
+                    <span className={styles.equipLabel}>{meta.label}<span style={{ fontSize: 10, opacity: 0.5 }}>（去获取）</span></span>
                   )}
                   {equip && (
                     <span className={styles.qualityDot} style={{ background: QUALITY_COLORS[equip.quality] || QUALITY_COLORS[0] }}>
@@ -165,13 +167,14 @@ export default function CharacterPage() {
         <section className={styles.section}>
           <div className={styles.quickLinks}>
             {([
-              ['skill-tree', '技能树'], ['pet', '宠物'], ['enchant', '附魔'],
+              ['inventory', '背包'], ['shop', '商城'], ['enchant', '附魔'],
+              ['skill-tree', '技能树'], ['pet', '宠物'], ['companion', '灵侣'],
+              ['dungeon', '副本'], ['quest', '任务'], ['battle', '战斗'],
               ['rebirth', '轮回'], ['memory', '记忆'],
               ['achievement', '因缘谱', { tab: 'fate' }],
-              ['book-world', '书库'], ['codex', '图鉴'], ['dungeon', '副本'],
-              ['quest', '任务'], ['shop', '商城'], ['companion', '灵侣'],
+              ['book-world', '书库'], ['codex', '图鉴'],
               ['title', '称号'], ['guild', '盟会'], ['scene', '场景'],
-              ['battle', '战斗'], ['achievement', '排行', { tab: 'rank' }],
+              ['treasure-mountain', '聚宝山'], ['achievement', '排行', { tab: 'rank' }],
             ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
               <button key={label} className={styles.quickLink}
                 onClick={() => navigateTo(page as any, params)}>{label}</button>

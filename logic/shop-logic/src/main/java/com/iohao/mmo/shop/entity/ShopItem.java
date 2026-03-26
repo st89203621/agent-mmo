@@ -20,6 +20,8 @@ public class ShopItem {
     private Map<String, Integer> attributes;
     private Effect effect;
     private int duration;
+    /** 装备槽位（1武器 2护甲 3饰品），非装备为 -1 */
+    private int equipPosition = -1;
 
     @Data
     public static class Effect {

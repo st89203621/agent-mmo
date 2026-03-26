@@ -300,6 +300,8 @@ export function unlockMemory(fragmentId: string): Promise<MemoryFragment> {
 export interface EquipData {
   id: string;
   itemTypeId: string;
+  name?: string;
+  icon?: string;
   position: number;
   level: number;
   quality: number;
@@ -346,6 +348,13 @@ export function deleteEquips(ids: string[]) {
   return request('/equip/delete', {
     method: 'POST',
     body: JSON.stringify({ ids }),
+  });
+}
+
+export function randomEquipDrop(maxQuality = 'epic'): Promise<EquipData> {
+  return request('/equip/random', {
+    method: 'POST',
+    body: JSON.stringify({ maxQuality }),
   });
 }
 
@@ -652,6 +661,9 @@ export interface BattleRewardDetail {
   exp?: number;
   dropItem?: string;
   dropIcon?: string;
+  equipDrop?: string;
+  equipDropIcon?: string;
+  equipDropId?: string;
 }
 
 export interface BattleData {
@@ -697,6 +709,8 @@ export interface ShopItemData {
   quality: string;
   isHot: boolean;
   stock: number;
+  attributes?: Record<string, number>;
+  equipPosition?: number;
 }
 
 export function fetchShopItems(category?: string): Promise<{ items: ShopItemData[] }> {

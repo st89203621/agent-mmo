@@ -632,6 +632,13 @@ export default function BattlePage() {
                       <span className={styles.rewardLabel}>掉落</span>
                     </div>
                   )}
+                  {battle.rewardDetail.equipDrop && (
+                    <div className={styles.rewardItem}>
+                      <span className={styles.rewardIcon}>{battle.rewardDetail.equipDropIcon || '⚔️'}</span>
+                      <span className={styles.rewardValue}>{battle.rewardDetail.equipDrop}</span>
+                      <span className={styles.rewardLabel}>装备掉落</span>
+                    </div>
+                  )}
                 </div>
               )}
               <div className={styles.resultActions}>
