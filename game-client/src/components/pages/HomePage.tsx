@@ -14,6 +14,7 @@ import {
 } from '../../services/api';
 import type { ExploreStatus } from '../../types';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
+import { useParallax3D } from '../../hooks/useParallax3D';
 import styles from './HomePage.module.css';
 
 const ART_STYLES = [
@@ -117,7 +118,9 @@ export default function HomePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
   const { playerName, gold, diamond, clearPlayer } = usePlayerStore();
   const phaserRef = useRef<HTMLDivElement>(null);
+  const portraitZoneRef = useRef<HTMLElement>(null);
   usePhaserGame(phaserRef, [HomeScene]);
+  const parallax = useParallax3D(portraitZoneRef);
 
   const [data, setData] = useState<HomeData>({
     person: null, explore: null, rebirthInfo: null, checkin: null, pets: [], companions: [],
@@ -361,20 +364,55 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 立绘区域 */}
-        <section className={styles.portraitZone}>
-          <div
-            className={`${styles.portraitFrame} ${activePortraitUrl ? styles.alive : ''}`}
-            onClick={() => navigateTo(activeSubject === 'pet' ? 'pet' : activeSubject === 'companion' ? 'companion' : 'character')}
-          >
-            {transparentPortrait ? (
-              <img src={transparentPortrait} alt="立绘" className={styles.portraitImg} />
-            ) : (
-              <div className={styles.portraitPlaceholder}>
-                <span className={styles.portraitChar}>
-                  {activeLabel.charAt(0) || '侠'}
-                </span>
-              </div>
+        {/* 立绘区域 — 3D拖拽旋转 */}
+        <section className={styles.portraitZone} ref={portraitZoneRef}>
+          <div className={styles.portraitDepthContainer}>
+            {/* 底层投影 — 旋转时阴影向反方向偏移 */}
+            {transparentPortrait && (
+              <div
+                className={styles.portraitShadowLayer}
+                style={{
+                  transform: `translateX(${-parallax.translateX * 0.6}px) scale(0.92)`,
+                  opacity: 0.3 + parallax.intensity * 0.3,
+                }}
+              />
+            )}
+            {/* 主体立绘 */}
+            <div
+              className={`${styles.portraitFrame} ${activePortraitUrl ? styles.alive : ''}`}
+              style={{
+                transform: `perspective(600px) rotateY(${parallax.rotateY}deg) rotateX(${parallax.rotateX}deg) translateX(${parallax.translateX}px)`,
+              }}
+            >
+              {transparentPortrait ? (
+                <img src={transparentPortrait} alt="立绘" className={styles.portraitImg} />
+              ) : (
+                <div className={styles.portraitPlaceholder}>
+                  <span className={styles.portraitChar}>
+                    {activeLabel.charAt(0) || '侠'}
+                  </span>
+                </div>
+              )}
+              {/* 动态边光 — 旋转时在边缘产生高光 */}
+              {transparentPortrait && (
+                <div
+                  className={styles.portraitEdgeLight}
+                  style={{
+                    backgroundPosition: `${50 - parallax.rotateY * 2}% 50%`,
+                    opacity: parallax.intensity * 0.6,
+                  }}
+                />
+              )}
+            </div>
+            {/* 前景高光层 — 反向偏移制造纵深 */}
+            {transparentPortrait && (
+              <div
+                className={styles.portraitHighlightLayer}
+                style={{
+                  transform: `translateX(${-parallax.translateX * 1.2}px)`,
+                  opacity: 0.05 + parallax.intensity * 0.15,
+                }}
+              />
             )}
           </div>
 
