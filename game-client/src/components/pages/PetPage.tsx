@@ -8,6 +8,10 @@ const ELEMENT_ICONS: Record<string, string> = {
   earth: '🪨', water: '💧', light: '✨', dark: '🌑',
 };
 
+const TIER_COLORS: Record<number, string> = {
+  1: '#aaa', 2: '#5cb85c', 3: '#3498db', 4: '#a855f7', 5: '#f59e0b', 6: '#ef4444',
+};
+
 const STAT_LABELS = [
   { key: 'constitution', label: '体质' },
   { key: 'magicPower', label: '魔力' },
@@ -56,16 +60,20 @@ export default function PetPage() {
         ) : pets.length > 0 ? (
           <>
             <div className={styles.cardList}>
-              {pets.map((pet) => (
+              {pets.map((pet) => {
+                const tc = TIER_COLORS[pet.tier] || TIER_COLORS[1];
+                return (
                 <button
                   key={pet.id}
                   className={styles.card}
-                  style={selected?.id === pet.id ? { borderColor: 'var(--gold)' } : undefined}
+                  style={selected?.id === pet.id
+                    ? { borderColor: 'var(--gold)' }
+                    : pet.tier >= 4 ? { borderColor: `${tc}60` } : undefined}
                   onClick={() => setSelected(pet.id === selected?.id ? null : pet)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '28px' }}>
-                      {ELEMENT_ICONS[pet.element] || '🐾'}
+                      {pet.icon || ELEMENT_ICONS[pet.element] || '🐾'}
                     </span>
                     <div style={{ flex: 1 }}>
                       <p className={styles.cardTitle}>
@@ -77,13 +85,14 @@ export default function PetPage() {
                         进化 Lv.{pet.mutationNo}
                       </p>
                     </div>
-                    {pet.propertyPointNum > 0 && (
+                    {pet.tierName && (
                       <span style={{
-                        fontSize: '11px', padding: '2px 8px',
-                        background: 'rgba(201,168,76,0.15)', borderRadius: '999px',
-                        color: 'var(--gold-dim)', fontWeight: 600,
+                        fontSize: '10px', padding: '2px 8px',
+                        background: `${tc}15`, borderRadius: '999px',
+                        color: tc, fontWeight: 700,
+                        border: `1px solid ${tc}40`,
                       }}>
-                        +{pet.propertyPointNum}
+                        {pet.tierName}
                       </span>
                     )}
                   </div>
@@ -102,7 +111,8 @@ export default function PetPage() {
                     ))}
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {selected && (

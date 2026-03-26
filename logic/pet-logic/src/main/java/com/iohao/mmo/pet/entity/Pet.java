@@ -54,6 +54,11 @@ public class Pet {
     /** 可分配的属性点数量 */
     int propertyPointNum;
 
+    /** 档次 1-6 (1=普通, 2=优秀, 3=精良, 4=稀有, 5=史诗, 6=传说) */
+    int tier;
+    /** 宠物图标 */
+    String icon;
+
     /** 体质 */
     int constitution;
     /** 魔力 */

@@ -526,6 +526,9 @@ export interface PetData {
   mutationExp: number;
   mutationNo: number;
   propertyPointNum: number;
+  tier: number;
+  tierName: string;
+  icon: string;
   constitution: number;
   magicPower: number;
   power: number;

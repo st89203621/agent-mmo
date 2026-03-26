@@ -2784,6 +2784,9 @@ public class GameApiController {
         m.put("mutationExp", pet.getMutationExp());
         m.put("mutationNo", pet.getMutationNo());
         m.put("propertyPointNum", pet.getPropertyPointNum());
+        m.put("tier", pet.getTier());
+        m.put("tierName", PetService.getTierName(pet.getTier()));
+        m.put("icon", pet.getIcon());
         m.put("constitution", pet.getConstitution());
         m.put("magicPower", pet.getMagicPower());
         m.put("power", pet.getPower());
