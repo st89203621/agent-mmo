@@ -294,6 +294,7 @@ public class BattleService {
             action.setActorId(player.getUnitId());
             action.setActorName(player.getName());
             action.setActionType("DEFEND");
+            action.setEffectType("buff_defense");
             action.setDescription(player.getName() + " 进入防御姿态，减伤50%");
             state.getActionLog().add(action);
             return;
@@ -313,10 +314,10 @@ public class BattleService {
         action.setTargetName(target.getName());
 
         if (skill != null && skill.getMpCost() > 0 && player.getMp() >= skill.getMpCost()) {
-            // 使用技能
             player.setMp(player.getMp() - skill.getMpCost());
             action.setActionType("SKILL");
             action.setSkillName(skill.getName());
+            action.setEffectType(skill.getEffectType());
 
             if ("heal".equals(skill.getEffectType())) {
                 int healAmount = (int) (player.getMagicAttack() * skill.getDamageMultiplier());
@@ -329,15 +330,15 @@ public class BattleService {
                 action.setDamage(actual);
                 action.setDescription(player.getName() + " 使用 " + skill.getName() + " 对 " + target.getName() + " 造成 " + actual + " 点魔法伤害");
             } else {
-                // physical_damage
                 int damage = (int) (calcPhysicsDamage(player, target) * skill.getDamageMultiplier());
                 int actual = target.takeDamage(damage);
                 action.setDamage(actual);
+                action.setEffectType("physical_damage");
                 action.setDescription(player.getName() + " 使用 " + skill.getName() + " 对 " + target.getName() + " 造成 " + actual + " 点伤害");
             }
         } else {
-            // 普通攻击
             action.setActionType("ATTACK");
+            action.setEffectType("physical_damage");
             int damage = calcPhysicsDamage(player, target);
             int actual = target.takeDamage(damage);
             action.setDamage(actual);
@@ -368,24 +369,23 @@ public class BattleService {
         action.setTargetId(target.getUnitId());
         action.setTargetName(target.getName());
 
-        // AI决策
         if (hpRatio < 0.3 && rng.nextDouble() < 0.3) {
-            // 防御
             enemy.setDefending(true);
             action.setActionType("DEFEND");
+            action.setEffectType("buff_defense");
             action.setDescription(enemy.getName() + " 进入防御姿态");
         } else if (enemy.getMp() >= 15 && rng.nextDouble() < 0.4) {
-            // 法术攻击
             enemy.setMp(enemy.getMp() - 15);
             int damage = (int) (calcMagicDamage(enemy, target) * 1.3);
             int actual = target.takeDamage(damage);
             action.setActionType("SKILL");
             action.setSkillName("妖术");
+            action.setEffectType("magic_damage");
             action.setDamage(actual);
             action.setDescription(enemy.getName() + " 施放妖术 对 " + target.getName() + " 造成 " + actual + " 点魔法伤害");
         } else {
-            // 普通攻击
             action.setActionType("ATTACK");
+            action.setEffectType("physical_damage");
             int damage = calcPhysicsDamage(enemy, target);
             int actual = target.takeDamage(damage);
             action.setDamage(actual);

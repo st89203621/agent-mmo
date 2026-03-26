@@ -622,8 +622,11 @@ export interface BattleUnitData {
 
 export interface BattleActionData {
   actorName: string;
+  actorId: string;
   actionType: string;
+  targetId: string;
   targetName: string;
+  effectType: string;
   damage: number;
   heal: number;
   skillName: string;

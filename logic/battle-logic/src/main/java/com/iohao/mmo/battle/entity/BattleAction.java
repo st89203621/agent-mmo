@@ -14,6 +14,8 @@ public class BattleAction {
     private String targetId;
     private String targetName;
     private String skillName;
+    /** 技能效果类型: physical_damage / magic_damage / heal / buff_defense */
+    private String effectType;
     private int damage;
     private int heal;
     private String description;
