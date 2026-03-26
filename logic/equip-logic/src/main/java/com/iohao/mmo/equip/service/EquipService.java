@@ -30,6 +30,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Random;
 
 /**
  * 装备
@@ -126,8 +127,62 @@ public class EquipService {
         return replaceEquipAttr(equip,newAttrTotal);
     }
 
+    private static final int MAX_GRADE = 21;
+    private static final int MAX_FURNACE = 30;
+    private final Random random = new Random();
+
     /**
-     * 替换掉原来装备的属性值，并且重置已分配的属性点
+     * 装备加品（35级后可用，最高21级）
+     * 成功率随等级递减：(22 - currentGrade) * 4%
+     * 加品提升装备总属性 5% 每级
+     */
+    public Equip upgradeGrade(String id) {
+        Equip equip = findById(id);
+        GameCode.objNotFound.assertTrue(equip != null);
+
+        int grade = equip.getGrade();
+        if (grade >= MAX_GRADE) return equip;
+
+        double successRate = (MAX_GRADE + 1 - grade) * 0.04;
+        boolean success = random.nextDouble() < successRate;
+
+        if (success) {
+            equip.setGrade(grade + 1);
+            int bonusAttr = (int) (equip.getAttrTotal() * 0.05);
+            equip.setAttrTotal(equip.getAttrTotal() + bonusAttr);
+            equip.setUndistributedAttr(equip.getUndistributedAttr() + bonusAttr);
+            mongoTemplate.save(equip);
+        }
+        return equip;
+    }
+
+    /**
+     * 鬼炉提升品质（加品21级以上可用，最高30级）
+     * 成功率：(31 - currentFurnace) * 3%
+     * 每级提升装备总属性 3%
+     */
+    public Equip furnaceUpgrade(String id) {
+        Equip equip = findById(id);
+        GameCode.objNotFound.assertTrue(equip != null);
+
+        if (equip.getGrade() < MAX_GRADE) return equip;
+        int furnace = equip.getFurnaceGrade();
+        if (furnace >= MAX_FURNACE) return equip;
+
+        double successRate = (MAX_FURNACE + 1 - furnace) * 0.03;
+        boolean success = random.nextDouble() < successRate;
+
+        if (success) {
+            equip.setFurnaceGrade(furnace + 1);
+            int bonusAttr = (int) (equip.getAttrTotal() * 0.03);
+            equip.setAttrTotal(equip.getAttrTotal() + bonusAttr);
+            equip.setUndistributedAttr(equip.getUndistributedAttr() + bonusAttr);
+            mongoTemplate.save(equip);
+        }
+        return equip;
+    }
+
+    /**
      * @param equip 装备
      * @param newAttrTotal 新随机的可分配属性点
      * @return

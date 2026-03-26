@@ -303,6 +303,8 @@ export interface EquipData {
   position: number;
   level: number;
   quality: number;
+  grade: number;
+  furnaceGrade: number;
   attrTotal: number;
   undistributedAttr: number;
   identifyCount: number;
@@ -395,6 +397,7 @@ export interface PersonData {
   exists: boolean;
   id?: number;
   name?: string;
+  profession?: string;
   portraitUrl?: string;
   bgUrl?: string;
   basicProperty?: {
@@ -402,6 +405,8 @@ export interface PersonData {
     physicsAttack: number; physicsDefense: number;
     magicAttack: number; magicDefense: number;
     speed: number;
+    bonusAttack: number; bonusDefense: number;
+    agility: number; critRate: number;
   };
 }
 
@@ -409,10 +414,10 @@ export function fetchPersonInfo(): Promise<PersonData> {
   return request('/person/me');
 }
 
-export function initPerson(name?: string, gender?: string, features?: string): Promise<{ id: number; name: string }> {
+export function initPerson(name?: string, gender?: string, features?: string, profession?: string): Promise<{ id: number; name: string; profession: string }> {
   return request('/person/init', {
     method: 'POST',
-    body: JSON.stringify({ name: name || '', gender: gender || '', features: features || '' }),
+    body: JSON.stringify({ name: name || '', gender: gender || '', features: features || '', profession: profession || 'ATTACK' }),
   });
 }
 
@@ -731,6 +736,93 @@ export function applyEnchant(equipId: string, runeLevel: number): Promise<Enchan
   });
 }
 
+export function prestigeEnchant(equipId: string): Promise<EnchantData> {
+  return request('/enchant/prestige', {
+    method: 'POST',
+    body: JSON.stringify({ equipId }),
+  });
+}
+
+// ── 装备加品 ──────────────────────────────────────
+
+export function upgradeEquipGrade(equipId: string): Promise<{ equipId: string; grade: number; attrTotal: number; success: boolean }> {
+  return request('/equip/upgrade-grade', {
+    method: 'POST',
+    body: JSON.stringify({ equipId }),
+  });
+}
+
+export function furnaceUpgrade(equipId: string): Promise<{ equipId: string; furnaceGrade: number; attrTotal: number; success: boolean }> {
+  return request('/equip/furnace-upgrade', {
+    method: 'POST',
+    body: JSON.stringify({ equipId }),
+  });
+}
+
+// ── 场景穿梭 ──────────────────────────────────────
+
+export interface GameSceneData {
+  sceneId: string;
+  name: string;
+  description: string;
+  requiredLevel: number;
+  order: number;
+  unlocked: boolean;
+}
+
+export function fetchScenes(): Promise<{ scenes: GameSceneData[]; playerLevel: number }> {
+  return request('/scene/list');
+}
+
+export function enterScene(sceneId: string): Promise<{ sceneId: string; name: string; entered: boolean }> {
+  return request('/scene/enter', {
+    method: 'POST',
+    body: JSON.stringify({ sceneId }),
+  });
+}
+
+// ── 宝山 ──────────────────────────────────────
+
+export interface MountainData {
+  mountainType: string;
+  name: string;
+  description: string;
+  requiredGuildLevel: number;
+  maxDigTimes: number;
+}
+
+export interface MountainStatusData {
+  mountainType: string;
+  digCount: number;
+  totalReward: number;
+  dateTag: number;
+}
+
+export interface DigResult {
+  success: boolean;
+  reward: number;
+  rewardType: string;
+  digCount: number;
+  maxDigTimes: number;
+  totalReward: number;
+  message: string;
+}
+
+export function fetchMountains(): Promise<{ mountains: MountainData[] }> {
+  return request('/treasure/list');
+}
+
+export function fetchMountainStatus(mountainType: string): Promise<MountainStatusData> {
+  return request(`/treasure/status?mountainType=${mountainType}`);
+}
+
+export function digMountain(mountainType: string): Promise<DigResult> {
+  return request('/treasure/dig', {
+    method: 'POST',
+    body: JSON.stringify({ mountainType }),
+  });
+}
+
 // ── 副本 ──────────────────────────────────────
 
 export interface StageInfoData {
@@ -1025,5 +1117,126 @@ export function sendChatMessage(content: string, chatType: number, receiverId = 
   return request('/chat/send', {
     method: 'POST',
     body: JSON.stringify({ content, chatType, receiverId }),
+  });
+}
+
+// ── 称号 ──────────────────────────────────────
+
+export interface TitleBonus {
+  atk: number; def: number; hp: number;
+  magicAtk: number; extraAtk: number; extraDef: number; agility: number;
+}
+
+export interface TitleData {
+  titleId: string;
+  name: string;
+  titleType: string;
+  requiredLevel: number;
+  description: string;
+  equipped: boolean;
+  bonus: TitleBonus;
+}
+
+export function fetchMyTitles(): Promise<{ titles: TitleData[]; equippedId: string }> {
+  return request('/title/list');
+}
+
+export function fetchAvailableTitles(): Promise<{ titles: TitleData[] }> {
+  return request('/title/available');
+}
+
+export function equipTitle(titleId: string): Promise<{ success: boolean }> {
+  return request('/title/equip', {
+    method: 'POST',
+    body: JSON.stringify({ titleId }),
+  });
+}
+
+export function unequipTitle(): Promise<{ success: boolean }> {
+  return request('/title/unequip', { method: 'POST' });
+}
+
+export function grantTitle(titleId: string): Promise<{ success: boolean }> {
+  return request('/title/grant', {
+    method: 'POST',
+    body: JSON.stringify({ titleId }),
+  });
+}
+
+// ── 盟会 ──────────────────────────────────────
+
+export interface GuildData {
+  hasGuild?: boolean;
+  guildId: string;
+  name: string;
+  leaderId: number;
+  leaderName: string;
+  memberCount: number;
+  maxMembers: number;
+  level: number;
+  notice: string;
+  totalConstruction: number;
+  totalHonor: number;
+  myPosition?: string;
+  myContribution?: number;
+  myConstruction?: number;
+  myHonor?: number;
+}
+
+export interface GuildMemberData {
+  playerId: number;
+  playerName: string;
+  position: string;
+  contribution: number;
+  construction: number;
+  honor: number;
+  joinTime: number;
+}
+
+export function fetchMyGuild(): Promise<GuildData> {
+  return request('/guild/my');
+}
+
+export function fetchGuildList(): Promise<{ guilds: GuildData[] }> {
+  return request('/guild/list');
+}
+
+export function fetchGuildMembers(): Promise<{ members: GuildMemberData[] }> {
+  return request('/guild/members');
+}
+
+export function createGuild(name: string): Promise<{ success: boolean; guildId: string }> {
+  return request('/guild/create', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function joinGuild(guildId: string): Promise<{ success: boolean }> {
+  return request('/guild/join', {
+    method: 'POST',
+    body: JSON.stringify({ guildId }),
+  });
+}
+
+export function leaveGuild(): Promise<{ success: boolean }> {
+  return request('/guild/leave', { method: 'POST' });
+}
+
+export function dissolveGuild(): Promise<{ success: boolean }> {
+  return request('/guild/dissolve', { method: 'POST' });
+}
+
+export function donateGold(amount: number): Promise<{ success: boolean }> {
+  return request('/guild/donate-gold', {
+    method: 'POST',
+    body: JSON.stringify({ amount }),
+  });
+}
+
+export function kickGuildMember(targetId: number): Promise<{ success: boolean }> {
+  return request('/guild/kick', {
+    method: 'POST',
+    body: JSON.stringify({ targetId }),
   });
 }

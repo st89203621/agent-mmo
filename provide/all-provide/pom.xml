@@ -102,6 +102,24 @@
             <artifactId>event-provide</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>title-provide</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>guild-provide</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>treasure-mountain-provide</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

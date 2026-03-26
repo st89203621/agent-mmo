@@ -31,8 +31,19 @@ public class EquipEnchant {
         this.guaranteeCount++;
     }
     
+    /**
+     * 附魔属性加成百分比
+     * 10级魔提升300%，每级30%
+     */
     public int getAttributeBonusPercent() {
-        return enchantLevel * 55;
+        return enchantLevel * 30;
+    }
+
+    /**
+     * 声望/荣誉附魔失败时降2级
+     */
+    public void decreaseEnchantLevel() {
+        this.enchantLevel = Math.max(0, this.enchantLevel - 2);
     }
 }
 

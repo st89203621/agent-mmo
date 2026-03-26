@@ -35,6 +35,10 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'companion': { label: '灵侣', back: 'character' },
   'battle': { label: '战斗', back: 'home' },
   'inventory': { label: '背包', back: 'character' },
+  'title': { label: '称号', back: 'character' },
+  'guild': { label: '盟会', back: 'character' },
+  'scene': { label: '场景', back: 'character' },
+  'treasure-mountain': { label: '宝山', back: 'guild' },
 };
 
 interface Props {

@@ -161,6 +161,15 @@ public class GameApiController {
     @Resource
     RelationRepository relationRepository;
 
+    @Resource
+    com.iohao.mmo.title.service.TitleService titleService;
+
+    @Resource
+    com.iohao.mmo.guild.service.GuildService guildService;
+
+    @Resource
+    com.iohao.mmo.treasure.service.TreasureMountainService treasureMountainService;
+
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
     // ── 认证 ─────────────────────────────────────────
@@ -736,14 +745,22 @@ public class GameApiController {
         m.put("exists", true);
         m.put("id", person.getId());
         m.put("name", person.getName());
+        m.put("profession", person.getProfession());
         if (person.getBasicProperty() != null) {
             var bp = person.getBasicProperty();
-            m.put("basicProperty", Map.of(
-                "hp", bp.getHp(), "mp", bp.getMp(),
-                "physicsAttack", bp.getPhysicsAttack(), "physicsDefense", bp.getPhysicsDefense(),
-                "magicAttack", bp.getMagicAttack(), "magicDefense", bp.getMagicDefense(),
-                "speed", bp.getSpeed()
-            ));
+            Map<String, Object> props = new LinkedHashMap<>();
+            props.put("hp", bp.getHp());
+            props.put("mp", bp.getMp());
+            props.put("physicsAttack", bp.getPhysicsAttack());
+            props.put("physicsDefense", bp.getPhysicsDefense());
+            props.put("magicAttack", bp.getMagicAttack());
+            props.put("magicDefense", bp.getMagicDefense());
+            props.put("speed", bp.getSpeed());
+            props.put("bonusAttack", bp.getBonusAttack());
+            props.put("bonusDefense", bp.getBonusDefense());
+            props.put("agility", bp.getAgility());
+            props.put("critRate", bp.getCritRate());
+            m.put("basicProperty", props);
         }
         // 立绘URL
         if (person.getPortraitImageId() != null) {
@@ -1023,13 +1040,19 @@ public class GameApiController {
         String name = (String) body.getOrDefault("name", "");
         String gender = (String) body.getOrDefault("gender", "");
         String features = (String) body.getOrDefault("features", "");
-        personService.initPerson(userId);
+        String profession = (String) body.getOrDefault("profession", "ATTACK");
+
+        Person existing = personService.getPersonById(userId);
+        if (existing == null) {
+            personService.createPerson(userId, profession);
+        }
         Person person = personService.getPersonById(userId);
         if (name != null && !name.isBlank()) person.setName(name);
         if (gender != null && !gender.isBlank()) person.setGender(gender);
         if (features != null && !features.isBlank()) person.setFeatures(features);
+        if (person.getProfession() == null) person.setProfession(profession);
         personService.savePerson(person);
-        return ok(Map.of("id", person.getId(), "name", person.getName()));
+        return ok(Map.of("id", person.getId(), "name", person.getName(), "profession", person.getProfession()));
     }
 
     // ── 背包 ──────────────────────────────────────
@@ -1203,6 +1226,8 @@ public class GameApiController {
         m.put("attrTotal", equip.getAttrTotal());
         m.put("undistributedAttr", equip.getUndistributedAttr());
         m.put("identifyCount", equip.getIdentifyCount());
+        m.put("grade", equip.getGrade());
+        m.put("furnaceGrade", equip.getFurnaceGrade());
         if (equip.getFixedEquipProperty() != null) {
             var fp = equip.getFixedEquipProperty();
             m.put("fixedProps", Map.of(
@@ -1813,6 +1838,34 @@ public class GameApiController {
         EnchantRune.RuneLevel level = EnchantRune.RuneLevel.values()[Math.min(runeLevel - 1, 3)];
         EquipEnchant enchant = enchantService.enchantEquip(equipId, userId, level);
         return ok(enchantToMap(enchant));
+    }
+
+    @PostMapping("/enchant/prestige")
+    public ResponseEntity<Map<String, Object>> prestigeEnchant(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String equipId = (String) body.get("equipId");
+        EquipEnchant enchant = enchantService.prestigeEnchant(equipId, userId);
+        return ok(enchantToMap(enchant));
+    }
+
+    // ── 装备加品 ──────────────────────────────────────
+
+    @PostMapping("/equip/upgrade-grade")
+    public ResponseEntity<Map<String, Object>> upgradeGrade(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        String equipId = (String) body.get("equipId");
+        Equip equip = equipService.upgradeGrade(equipId);
+        return ok(Map.of("equipId", equip.getId(), "grade", equip.getGrade(),
+                "attrTotal", equip.getAttrTotal(), "success", equip.getGrade() > 0));
+    }
+
+    @PostMapping("/equip/furnace-upgrade")
+    public ResponseEntity<Map<String, Object>> furnaceUpgrade(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        String equipId = (String) body.get("equipId");
+        Equip equip = equipService.furnaceUpgrade(equipId);
+        return ok(Map.of("equipId", equip.getId(), "furnaceGrade", equip.getFurnaceGrade(),
+                "attrTotal", equip.getAttrTotal(), "success", equip.getFurnaceGrade() > 0));
     }
 
     // ── 副本 ──────────────────────────────────────
@@ -2673,6 +2726,237 @@ public class GameApiController {
         return m;
     }
 
+    // ── 场景穿梭 ──────────────────────────────────────
+
+    private static final List<Map<String, Object>> GAME_SCENES = List.of(
+        Map.of("sceneId", "adventure", "name", "探险", "description", "神秘大陆，危机四伏", "requiredLevel", 1, "order", 1),
+        Map.of("sceneId", "pirate", "name", "海盗", "description", "汪洋大海，寻宝夺金", "requiredLevel", 20, "order", 2),
+        Map.of("sceneId", "mecha", "name", "机战", "description", "钢铁洪流，科技对决", "requiredLevel", 40, "order", 3),
+        Map.of("sceneId", "sanguo", "name", "三国", "description", "群雄逐鹿，争霸天下", "requiredLevel", 60, "order", 4),
+        Map.of("sceneId", "dragonball", "name", "龙珠", "description", "集齐龙珠，召唤神龙", "requiredLevel", 80, "order", 5)
+    );
+
+    @GetMapping("/scene/list")
+    public ResponseEntity<Map<String, Object>> listScenes(HttpSession session) {
+        long userId = requireLogin(session);
+        // 获取玩家等级（简化：从person取level或默认1）
+        int playerLevel = 1;
+        Person person = personService.getPersonById(userId);
+        if (person != null && person.getBasicProperty() != null) {
+            playerLevel = Math.max(1, person.getBasicProperty().getHp() / 10);
+        }
+
+        List<Map<String, Object>> scenes = new ArrayList<>();
+        for (var scene : GAME_SCENES) {
+            Map<String, Object> s = new LinkedHashMap<>(scene);
+            int req = (int) scene.get("requiredLevel");
+            s.put("unlocked", playerLevel >= req);
+            s.put("playerLevel", playerLevel);
+            scenes.add(s);
+        }
+        return ok(Map.of("scenes", scenes, "playerLevel", playerLevel));
+    }
+
+    @PostMapping("/scene/enter")
+    public ResponseEntity<Map<String, Object>> enterScene(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sceneId = (String) body.get("sceneId");
+        var scene = GAME_SCENES.stream().filter(s -> sceneId.equals(s.get("sceneId"))).findFirst();
+        if (scene.isEmpty()) return err("场景不存在");
+        return ok(Map.of("sceneId", sceneId, "name", scene.get().get("name"), "entered", true));
+    }
+
+    // ── 称号 ──────────────────────────────────────
+
+    @GetMapping("/title/list")
+    public ResponseEntity<Map<String, Object>> listTitles(HttpSession session) {
+        long userId = requireLogin(session);
+        var pt = titleService.getPlayerTitle(userId);
+        List<Map<String, Object>> owned = pt.getOwnedTitleIds().stream().map(id -> {
+            var t = titleService.getTemplate(id);
+            return titleToMap(t, id.equals(pt.getEquippedTitleId()));
+        }).toList();
+        return ok(Map.of("titles", owned, "equippedId", pt.getEquippedTitleId() != null ? pt.getEquippedTitleId() : ""));
+    }
+
+    @GetMapping("/title/available")
+    public ResponseEntity<Map<String, Object>> listAvailableTitles(HttpSession session) {
+        requireLogin(session);
+        List<Map<String, Object>> all = titleService.getAllTemplates().stream()
+                .map(t -> titleToMap(t, false)).toList();
+        return ok(Map.of("titles", all));
+    }
+
+    @PostMapping("/title/equip")
+    public ResponseEntity<Map<String, Object>> equipTitle(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String titleId = (String) body.get("titleId");
+        boolean success = titleService.equipTitle(userId, titleId);
+        return ok(Map.of("success", success));
+    }
+
+    @PostMapping("/title/unequip")
+    public ResponseEntity<Map<String, Object>> unequipTitle(HttpSession session) {
+        long userId = requireLogin(session);
+        titleService.unequipTitle(userId);
+        return ok(Map.of("success", true));
+    }
+
+    @PostMapping("/title/grant")
+    public ResponseEntity<Map<String, Object>> grantTitle(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String titleId = (String) body.get("titleId");
+        titleService.grantTitle(userId, titleId);
+        return ok(Map.of("success", true));
+    }
+
+    private Map<String, Object> titleToMap(com.iohao.mmo.title.entity.TitleTemplate t, boolean equipped) {
+        if (t == null) return Map.of();
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("titleId", t.getId());
+        m.put("name", t.getName());
+        m.put("titleType", t.getTitleType());
+        m.put("requiredLevel", t.getRequiredLevel());
+        m.put("description", t.getDescription());
+        m.put("equipped", equipped);
+        m.put("bonus", Map.of(
+            "atk", t.getBonusAtk(), "def", t.getBonusDef(), "hp", t.getBonusHp(),
+            "magicAtk", t.getBonusMagicAtk(), "extraAtk", t.getBonusExtraAtk(),
+            "extraDef", t.getBonusExtraDef(), "agility", t.getBonusAgility()
+        ));
+        return m;
+    }
+
+    // ── 盟会 ──────────────────────────────────────
+
+    @GetMapping("/guild/my")
+    public ResponseEntity<Map<String, Object>> getMyGuild(HttpSession session) {
+        long userId = requireLogin(session);
+        var guild = guildService.getGuildByPlayer(userId);
+        if (guild == null) return ok(Map.of("hasGuild", false));
+        Map<String, Object> m = guildToMap(guild);
+        m.put("hasGuild", true);
+        var member = guild.getMember(userId);
+        if (member != null) {
+            m.put("myPosition", member.getPosition());
+            m.put("myContribution", member.getContribution());
+            m.put("myConstruction", member.getConstruction());
+            m.put("myHonor", member.getHonor());
+        }
+        return ok(m);
+    }
+
+    @GetMapping("/guild/list")
+    public ResponseEntity<Map<String, Object>> listGuilds(HttpSession session) {
+        requireLogin(session);
+        List<Map<String, Object>> guilds = guildService.listGuilds().stream()
+                .map(this::guildToMap).toList();
+        return ok(Map.of("guilds", guilds));
+    }
+
+    @GetMapping("/guild/members")
+    public ResponseEntity<Map<String, Object>> listGuildMembers(HttpSession session) {
+        long userId = requireLogin(session);
+        var guild = guildService.getGuildByPlayer(userId);
+        if (guild == null) return ok(Map.of("members", List.of()));
+        List<Map<String, Object>> members = guild.getMembers().stream().map(gm -> {
+            Map<String, Object> mm = new LinkedHashMap<>();
+            mm.put("playerId", gm.getPlayerId());
+            mm.put("playerName", gm.getPlayerName());
+            mm.put("position", gm.getPosition());
+            mm.put("contribution", gm.getContribution());
+            mm.put("construction", gm.getConstruction());
+            mm.put("honor", gm.getHonor());
+            mm.put("joinTime", gm.getJoinTime());
+            return mm;
+        }).toList();
+        return ok(Map.of("members", members));
+    }
+
+    @PostMapping("/guild/create")
+    public ResponseEntity<Map<String, Object>> createGuild(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String guildName = (String) body.get("name");
+        if (guildName == null || guildName.isBlank()) return err("盟会名不能为空");
+        if (guildService.getGuildByPlayer(userId) != null) return err("你已加入盟会");
+        Person person = personService.getPersonById(userId);
+        String playerName = person != null ? person.getName() : "玩家" + userId;
+        var guild = guildService.createGuild(userId, playerName, guildName);
+        return ok(Map.of("success", true, "guildId", guild.getId()));
+    }
+
+    @PostMapping("/guild/join")
+    public ResponseEntity<Map<String, Object>> joinGuild(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String guildId = (String) body.get("guildId");
+        Person person = personService.getPersonById(userId);
+        String playerName = person != null ? person.getName() : "玩家" + userId;
+        boolean success = guildService.joinGuild(guildId, userId, playerName);
+        return ok(Map.of("success", success));
+    }
+
+    @PostMapping("/guild/leave")
+    public ResponseEntity<Map<String, Object>> leaveGuild(HttpSession session) {
+        long userId = requireLogin(session);
+        boolean success = guildService.leaveGuild(userId);
+        return ok(Map.of("success", success));
+    }
+
+    @PostMapping("/guild/dissolve")
+    public ResponseEntity<Map<String, Object>> dissolveGuild(HttpSession session) {
+        long userId = requireLogin(session);
+        boolean success = guildService.dissolveGuild(userId);
+        return ok(Map.of("success", success));
+    }
+
+    @PostMapping("/guild/kick")
+    public ResponseEntity<Map<String, Object>> kickMember(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long targetId = ((Number) body.get("targetId")).longValue();
+        boolean success = guildService.kickMember(userId, targetId);
+        return ok(Map.of("success", success));
+    }
+
+    @PostMapping("/guild/donate-gold")
+    public ResponseEntity<Map<String, Object>> donateGold(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long amount = ((Number) body.get("amount")).longValue();
+        guildService.donateGold(userId, amount);
+        return ok(Map.of("success", true));
+    }
+
+    @PostMapping("/guild/donate-material")
+    public ResponseEntity<Map<String, Object>> donateMaterial(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long value = ((Number) body.get("value")).longValue();
+        guildService.donateMaterial(userId, value);
+        return ok(Map.of("success", true));
+    }
+
+    @PostMapping("/guild/set-position")
+    public ResponseEntity<Map<String, Object>> setGuildPosition(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long targetId = ((Number) body.get("targetId")).longValue();
+        String position = (String) body.get("position");
+        boolean success = guildService.setPosition(userId, targetId, position);
+        return ok(Map.of("success", success));
+    }
+
+    private Map<String, Object> guildToMap(com.iohao.mmo.guild.entity.Guild g) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("guildId", g.getId());
+        m.put("name", g.getName());
+        m.put("leaderId", g.getLeaderId());
+        m.put("leaderName", g.getLeaderName());
+        m.put("memberCount", g.getMembers().size());
+        m.put("maxMembers", g.getMaxMembers());
+        m.put("level", g.getLevel());
+        m.put("notice", g.getNotice());
+        m.put("totalConstruction", g.getTotalConstruction());
+        m.put("totalHonor", g.getTotalHonor());
+        return m;
+    }
+
     private Map<String, Object> dialogueToMap(String sessionId, DialogueMessage msg) {
         Map<String, Object> m = new HashMap<>();
         if (msg == null) return m;
@@ -2688,5 +2972,38 @@ public class GameApiController {
             m.put("sceneHint", msg.sceneHint);
         }
         return m;
+    }
+
+    // ── 宝山 ──────────────────────────────────────
+
+    @GetMapping("/treasure/list")
+    public ResponseEntity<Map<String, Object>> listMountains(HttpSession session) {
+        requireLogin(session);
+        return ok(Map.of("mountains", treasureMountainService.listMountains()));
+    }
+
+    @GetMapping("/treasure/status")
+    public ResponseEntity<Map<String, Object>> getMountainStatus(
+            @RequestParam String mountainType, HttpSession session) {
+        long userId = requireLogin(session);
+        var session2 = treasureMountainService.getSessionToday(userId, mountainType);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("mountainType", session2.getMountainType());
+        m.put("digCount", session2.getDigCount());
+        m.put("totalReward", session2.getTotalReward());
+        m.put("dateTag", session2.getDateTag());
+        return ok(m);
+    }
+
+    @PostMapping("/treasure/dig")
+    public ResponseEntity<Map<String, Object>> digMountain(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String mountainType = (String) body.get("mountainType");
+        // 获取玩家所在盟会
+        var guild = guildService.getGuildByPlayer(userId);
+        if (guild == null) return err("需加入盟会才能挖掘宝山");
+        var result = treasureMountainService.dig(userId, guild.getId(), mountainType);
+        if (!(boolean) result.get("success")) return err((String) result.get("message"));
+        return ok(result);
     }
 }

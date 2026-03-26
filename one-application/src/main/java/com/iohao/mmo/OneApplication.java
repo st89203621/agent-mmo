@@ -49,6 +49,9 @@ import com.iohao.mmo.rebirth.RebirthLogicServer;
 import com.iohao.mmo.fate.FateLogicServer;
 import com.iohao.mmo.story.StoryLogicServer;
 import com.iohao.mmo.memory.MemoryLogicServer;
+import com.iohao.mmo.title.TitleLogicServer;
+import com.iohao.mmo.guild.GuildLogicServer;
+import com.iohao.mmo.treasure.TreasureMountainLogicServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -139,6 +142,12 @@ public class OneApplication {
                 , new StoryLogicServer()
                 // 记忆碎片
                 , new MemoryLogicServer()
+                // 称号
+                , new TitleLogicServer()
+                // 盟会
+                , new GuildLogicServer()
+                // 宝山
+                , new TreasureMountainLogicServer()
         );
     }
 

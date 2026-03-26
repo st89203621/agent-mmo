@@ -61,7 +61,14 @@ export default function CharacterPage() {
         {/* 角色基础信息 */}
         {person?.exists && person.basicProperty && (
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>{person.name || '无名侠客'}</h3>
+            <h3 className={styles.sectionTitle}>
+              {person.name || '无名侠客'}
+              {person.profession && (
+                <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                  {({ ATTACK: '无坚不摧', DEFENSE: '金刚护体', AGILITY: '行动敏捷' } as Record<string, string>)[person.profession] || person.profession}
+                </span>
+              )}
+            </h3>
             <div className={styles.statsGrid}>
               <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{person.basicProperty.hp}</span></div>
               <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{person.basicProperty.mp}</span></div>
@@ -69,6 +76,12 @@ export default function CharacterPage() {
               <div className={styles.statItem}><span>物防</span><span className={styles.statVal}>{person.basicProperty.physicsDefense}</span></div>
               <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{person.basicProperty.magicAttack}</span></div>
               <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{person.basicProperty.speed}</span></div>
+            </div>
+            <div className={styles.statsGrid} style={{ marginTop: 8 }}>
+              <div className={styles.statItem}><span>附攻</span><span className={styles.statVal} style={{ color: '#e8a642' }}>{person.basicProperty.bonusAttack}</span></div>
+              <div className={styles.statItem}><span>附防</span><span className={styles.statVal} style={{ color: '#5ca0d3' }}>{person.basicProperty.bonusDefense}</span></div>
+              <div className={styles.statItem}><span>敏捷</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{person.basicProperty.agility}</span></div>
+              <div className={styles.statItem}><span>暴击</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{person.basicProperty.critRate}%</span></div>
             </div>
             <div className={styles.statsGrid} style={{ marginTop: 8 }}>
               <div className={styles.statItem}><span>金币</span><span className={styles.statVal} style={{ color: '#d4a84c' }}>{gold}</span></div>
@@ -157,6 +170,7 @@ export default function CharacterPage() {
               ['achievement', '因缘谱', { tab: 'fate' }],
               ['book-world', '书库'], ['codex', '图鉴'], ['dungeon', '副本'],
               ['quest', '任务'], ['shop', '商城'], ['companion', '灵侣'],
+              ['title', '称号'], ['guild', '盟会'], ['scene', '场景'],
               ['battle', '战斗'], ['achievement', '排行', { tab: 'rank' }],
             ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
               <button key={label} className={styles.quickLink}

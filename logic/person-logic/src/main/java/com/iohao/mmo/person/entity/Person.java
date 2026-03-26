@@ -39,6 +39,8 @@ public class Person {
     long id;
     /** 玩家名称 */
     String name;
+    /** 职业：ATTACK(无坚不摧) / DEFENSE(金刚护体) / AGILITY(行动敏捷) */
+    String profession;
     /** 基本属性 */
     BasicProperty basicProperty;
     /** 英雄列表 */

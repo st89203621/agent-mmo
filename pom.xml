@@ -79,6 +79,12 @@
         <module>logic/story-logic</module>
         <module>provide/memory-provide</module>
         <module>logic/memory-logic</module>
+        <module>provide/title-provide</module>
+        <module>logic/title-logic</module>
+        <module>provide/guild-provide</module>
+        <module>logic/guild-logic</module>
+        <module>provide/treasure-mountain-provide</module>
+        <module>logic/treasure-mountain-logic</module>
         <module>logic/skill-logic</module>
         <module>logic/battle-logic</module>
 

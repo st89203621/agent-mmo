@@ -7,11 +7,20 @@ import styles from './PageSkeleton.module.css';
 const HAIR_OPTIONS = ['长发', '短发', '束发', '披肩'];
 const OUTFIT_OPTIONS = ['素衣', '华裳', '铠甲', '道袍'];
 
+type Profession = 'ATTACK' | 'DEFENSE' | 'AGILITY';
+
+const PROFESSIONS: { id: Profession; name: string; desc: string }[] = [
+  { id: 'ATTACK', name: '无坚不摧', desc: '天生惊人攻击力，一招灰飞烟灭' },
+  { id: 'DEFENSE', name: '金刚护体', desc: '防高血厚，死亡边缘反败为胜' },
+  { id: 'AGILITY', name: '行动敏捷', desc: '超高敏捷，附加暴击，传闻真正的王者' },
+];
+
 export default function CharCreatePage() {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('female');
   const [hair, setHair] = useState(HAIR_OPTIONS[0]);
   const [outfit, setOutfit] = useState(OUTFIT_OPTIONS[0]);
+  const [profession, setProfession] = useState<Profession>('ATTACK');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const { navigateTo } = useGameStore();
@@ -23,7 +32,7 @@ export default function CharCreatePage() {
     setError('');
     try {
       const features = `${hair}，${outfit}`;
-      const res = await initPerson(finalName, gender, features);
+      const res = await initPerson(finalName, gender, features, profession);
       setPlayer(playerId, res.name, '');
       setPersonCreated(true);
       navigateTo('story');
@@ -31,7 +40,7 @@ export default function CharCreatePage() {
       setError(e instanceof Error ? e.message : '创建失败');
     }
     setCreating(false);
-  }, [name, gender, hair, outfit, playerId, setPlayer, setPersonCreated, navigateTo]);
+  }, [name, gender, hair, outfit, profession, playerId, setPlayer, setPersonCreated, navigateTo]);
 
   return (
     <div className={styles.page}>
@@ -60,6 +69,23 @@ export default function CharCreatePage() {
             placeholder="请输入角色名（可留空自动生成）"
             maxLength={12}
           />
+        </div>
+
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>职业</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {PROFESSIONS.map((p) => (
+              <button
+                key={p.id}
+                className={`${styles.optionBtn} ${profession === p.id ? styles.optionActive : ''}`}
+                onClick={() => setProfession(p.id)}
+                style={{ textAlign: 'left', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}
+              >
+                <span style={{ fontWeight: 600 }}>{p.name}</span>
+                <span style={{ fontSize: '12px', opacity: 0.7 }}>{p.desc}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.section}>

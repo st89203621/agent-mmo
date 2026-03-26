@@ -62,15 +62,22 @@ public class PersonService {
      * 创建新角色
      */
     private void createPerson(long userId) {
-        BasicProperty basicProperty = createInitialProperty();
+        createPerson(userId, "ATTACK");
+    }
+
+    /**
+     * 按职业创建新角色
+     */
+    public void createPerson(long userId, String profession) {
+        BasicProperty basicProperty = createInitialProperty(profession);
         Hero firstHero = heroService.getFirstHero();
 
-        // 合并角色和英雄属性
         firstHero.setBasicProperty(basicProperty.plus(firstHero.getBasicProperty()));
 
         Person person = new Person();
         person.setId(userId);
-        person.setName("玩家" + userId); // 设置默认角色名称
+        person.setName("玩家" + userId);
+        person.setProfession(profession);
         person.setBasicProperty(basicProperty);
         person.setHeroList(List.of(firstHero));
         person.setCurrentHero(firstHero);
@@ -101,21 +108,56 @@ public class PersonService {
     }
 
     /**
-     * 创建初始属性
+     * 根据职业创建初始属性
+     * ATTACK(无坚不摧): 高攻击，中防御，低敏捷
+     * DEFENSE(金刚护体): 高防御高血量，中攻击，低敏捷
+     * AGILITY(行动敏捷): 平庸攻防，超高敏捷，附加属性强
      */
-    private BasicProperty createInitialProperty() {
-        BasicProperty property = new BasicProperty();
-        property.setHp(100);
-        property.setMp(100);
-        property.setPhysicsAttack(20);
-        property.setPhysicsDefense(10);
-        property.setMagicAttack(20);
-        property.setMagicDefense(10);
-        property.setTreatAttack(20);
-        property.setSealAttack(20);
-        property.setSealDefense(10);
-        property.setSpeed(50);
-        property.setAnger(0);
-        return property;
+    public BasicProperty createInitialProperty(String profession) {
+        BasicProperty p = new BasicProperty();
+        p.setMp(100);
+        p.setAnger(0);
+
+        switch (profession != null ? profession : "ATTACK") {
+            case "DEFENSE" -> {
+                p.setHp(200);
+                p.setPhysicsAttack(12);
+                p.setPhysicsDefense(25);
+                p.setMagicAttack(10);
+                p.setMagicDefense(20);
+                p.setTreatAttack(15);
+                p.setSealAttack(10);
+                p.setSealDefense(20);
+                p.setSpeed(30);
+                p.setAgility(10);
+            }
+            case "AGILITY" -> {
+                p.setHp(100);
+                p.setPhysicsAttack(15);
+                p.setPhysicsDefense(10);
+                p.setMagicAttack(15);
+                p.setMagicDefense(10);
+                p.setTreatAttack(12);
+                p.setSealAttack(15);
+                p.setSealDefense(12);
+                p.setSpeed(80);
+                p.setAgility(50);
+            }
+            default -> { // ATTACK
+                p.setHp(120);
+                p.setPhysicsAttack(30);
+                p.setPhysicsDefense(10);
+                p.setMagicAttack(25);
+                p.setMagicDefense(8);
+                p.setTreatAttack(20);
+                p.setSealAttack(20);
+                p.setSealDefense(8);
+                p.setSpeed(50);
+                p.setAgility(15);
+            }
+        }
+
+        p.recalcBonus();
+        return p;
     }
 }

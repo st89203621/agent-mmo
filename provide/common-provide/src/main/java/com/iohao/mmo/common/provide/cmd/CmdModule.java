@@ -77,4 +77,10 @@ public interface CmdModule {
     int memoryCmd = 27;
     /** 排行榜 */
     int rankCmd = 28;
+    /** 称号 */
+    int titleCmd = 29;
+    /** 盟会 */
+    int guildCmd = 30;
+    /** 宝山 */
+    int treasureMountainCmd = 31;
 }

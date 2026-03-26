@@ -60,6 +60,10 @@ public class Equip {
     FixedEquipProperty fixedEquipProperty;
     /** 品质 1普通，2极品*/
     int quality;
+    /** 加品等级（0-21），35级后可加品，每级提升装备属性 */
+    int grade;
+    /** 鬼炉品质（0-30），21级以上装备可通过鬼炉提升 */
+    int furnaceGrade;
     /** 自定义属性随机范围最小值 */
     int totalAttrMin;
     /** 自定义属性随机范围最大值 */

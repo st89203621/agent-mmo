@@ -62,6 +62,14 @@ public class BasicProperty {
     int speed;
     /** 怒气 */
     int anger;
+    /** 附加攻击（由敏捷决定） */
+    int bonusAttack;
+    /** 附加防御（由敏捷决定） */
+    int bonusDefense;
+    /** 敏捷（决定附加攻防和暴击） */
+    int agility;
+    /** 暴击率（百分比，如15表示15%） */
+    int critRate;
 
     public BasicProperty plus(BasicProperty other) {
         BasicProperty result = new BasicProperty();
@@ -81,7 +89,18 @@ public class BasicProperty {
         result.sealDefense = this.sealDefense + other.sealDefense;
         result.speed = this.speed + other.speed;
         result.anger = this.anger + other.anger;
+        result.bonusAttack = this.bonusAttack + other.bonusAttack;
+        result.bonusDefense = this.bonusDefense + other.bonusDefense;
+        result.agility = this.agility + other.agility;
+        result.critRate = this.critRate + other.critRate;
 
         return result;
+    }
+
+    /** 根据敏捷计算附加属性 */
+    public void recalcBonus() {
+        this.bonusAttack = this.agility * 2;
+        this.bonusDefense = (int) (this.agility * 1.5);
+        this.critRate = Math.min(this.agility / 5, 80);
     }
 }
