@@ -999,3 +999,31 @@ export function fetchCompanionSkills(companionId: string): Promise<{
 }> {
   return request(`/companion/${companionId}/skills`);
 }
+
+// ── 聊天 ──────────────────────────────────────
+
+export interface ChatMessageData {
+  messageId: string;
+  senderId: number;
+  senderName: string;
+  receiverId: number;
+  content: string;
+  /** 1-世界 2-私聊 3-盟会 */
+  chatType: number;
+  timestamp: number;
+}
+
+export function fetchChatHistory(chatType: number, limit = 50): Promise<{ messages: ChatMessageData[] }> {
+  return request(`/chat/history?chatType=${chatType}&limit=${limit}`);
+}
+
+export function fetchPrivateChat(targetId: number, limit = 50): Promise<{ messages: ChatMessageData[] }> {
+  return request(`/chat/private/${targetId}?limit=${limit}`);
+}
+
+export function sendChatMessage(content: string, chatType: number, receiverId = 0): Promise<ChatMessageData> {
+  return request('/chat/send', {
+    method: 'POST',
+    body: JSON.stringify({ content, chatType, receiverId }),
+  });
+}

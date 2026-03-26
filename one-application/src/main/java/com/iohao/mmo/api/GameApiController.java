@@ -52,6 +52,8 @@ import com.iohao.mmo.rank.entity.RankEntry;
 import com.iohao.mmo.rank.service.RankService;
 import com.iohao.mmo.bookworld.explore.ExploreEvent;
 import com.iohao.mmo.bookworld.explore.ExploreService;
+import com.iohao.mmo.chat.entity.ChatRecord;
+import com.iohao.mmo.chat.service.ChatService;
 import com.iohao.mmo.companion.entity.CompanionBag;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
@@ -152,6 +154,9 @@ public class GameApiController {
 
     @Resource
     ExploreService exploreService;
+
+    @Resource
+    ChatService chatService;
 
     @Resource
     RelationRepository relationRepository;
@@ -2593,6 +2598,78 @@ public class GameApiController {
             }
         }
         m.put("choices", choices);
+        return m;
+    }
+
+    // ── 聊天 ─────────────────────────────────────────
+
+    @GetMapping("/chat/history")
+    public ResponseEntity<Map<String, Object>> chatHistory(
+            @RequestParam(defaultValue = "1") int chatType,
+            @RequestParam(defaultValue = "50") int limit,
+            HttpSession session) {
+        long userId = requireLogin(session);
+        List<ChatRecord> records;
+        if (chatType == 2) {
+            // 私聊需要指定对方ID，此处返回所有私聊
+            records = chatService.getPrivateChatRecords(userId, 0, limit);
+        } else {
+            records = chatService.getWorldChatRecords(limit);
+        }
+        List<Map<String, Object>> messages = records.stream().map(this::chatRecordToMap).toList();
+        // 按时间正序返回
+        List<Map<String, Object>> sorted = new ArrayList<>(messages);
+        sorted.sort(Comparator.comparingLong(m -> (long) m.get("timestamp")));
+        return ok(Map.of("messages", sorted));
+    }
+
+    @GetMapping("/chat/private/{targetId}")
+    public ResponseEntity<Map<String, Object>> privateChatHistory(
+            @PathVariable long targetId,
+            @RequestParam(defaultValue = "50") int limit,
+            HttpSession session) {
+        long userId = requireLogin(session);
+        List<ChatRecord> records = chatService.getPrivateChatRecords(userId, targetId, limit);
+        List<Map<String, Object>> messages = records.stream().map(this::chatRecordToMap).toList();
+        List<Map<String, Object>> sorted = new ArrayList<>(messages);
+        sorted.sort(Comparator.comparingLong(m -> (long) m.get("timestamp")));
+        return ok(Map.of("messages", sorted));
+    }
+
+    @PostMapping("/chat/send")
+    public ResponseEntity<Map<String, Object>> sendChatMessage(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String content = (String) body.get("content");
+        int chatType = body.get("chatType") != null ? ((Number) body.get("chatType")).intValue() : 1;
+        long receiverId = body.get("receiverId") != null ? ((Number) body.get("receiverId")).longValue() : 0;
+
+        if (content == null || content.trim().isEmpty()) {
+            return err("消息内容不能为空");
+        }
+
+        Person sender = personService.getPersonById(userId);
+        String senderName = sender != null ? sender.getName() : "无名侠客";
+
+        ChatRecord record = new ChatRecord();
+        record.setSenderId(userId);
+        record.setSenderName(senderName);
+        record.setReceiverId(receiverId);
+        record.setContent(content.trim());
+        record.setChatType(chatType);
+
+        ChatRecord saved = chatService.saveChatRecord(record);
+        return ok(chatRecordToMap(saved));
+    }
+
+    private Map<String, Object> chatRecordToMap(ChatRecord r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("messageId", r.getId());
+        m.put("senderId", r.getSenderId());
+        m.put("senderName", r.getSenderName());
+        m.put("receiverId", r.getReceiverId());
+        m.put("content", r.getContent());
+        m.put("chatType", r.getChatType());
+        m.put("timestamp", r.getTimestamp());
         return m;
     }
 

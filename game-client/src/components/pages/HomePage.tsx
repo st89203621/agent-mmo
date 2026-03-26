@@ -15,6 +15,7 @@ import {
 import type { ExploreStatus } from '../../types';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
 import { useParallax3D } from '../../hooks/useParallax3D';
+import ChatPanel from '../chat/ChatPanel';
 import styles from './HomePage.module.css';
 
 const ART_STYLES = [
@@ -415,6 +416,8 @@ export default function HomePage() {
               />
             )}
           </div>
+          {/* 聊天面板 — 悬浮在立绘上方，不干扰拖拽 */}
+          <ChatPanel />
 
           {/* 底部操作栏：主体切换 + 生成/编辑按钮 */}
           <div className={styles.bottomBar}>
