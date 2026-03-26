@@ -50,9 +50,9 @@ export function useParallax3D(
     const onUp = () => { dragging.current = false; };
 
     // Pointer events (mouse + touch unified)
-    const pointerDown = (e: PointerEvent) => { console.log('[Parallax] pointerDown', e.clientX); el.setPointerCapture(e.pointerId); onDown(e.clientX); };
-    const pointerMove = (e: PointerEvent) => { console.log('[Parallax] pointerMove', e.clientX); onMove(e.clientX); };
-    const pointerUp = (e: PointerEvent) => { console.log('[Parallax] pointerUp'); el.releasePointerCapture(e.pointerId); onUp(); };
+    const pointerDown = (e: PointerEvent) => { el.setPointerCapture(e.pointerId); onDown(e.clientX); };
+    const pointerMove = (e: PointerEvent) => onMove(e.clientX);
+    const pointerUp = (e: PointerEvent) => { el.releasePointerCapture(e.pointerId); onUp(); };
 
     el.addEventListener('pointerdown', pointerDown);
     el.addEventListener('pointermove', pointerMove);

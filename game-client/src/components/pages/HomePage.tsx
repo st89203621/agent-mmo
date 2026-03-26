@@ -366,8 +366,8 @@ export default function HomePage() {
         </div>
 
         {/* 立绘区域 — 3D拖拽旋转 */}
-        <section className={styles.portraitZone} ref={portraitZoneRef}>
-          <div className={styles.portraitDepthContainer}>
+        <section className={styles.portraitZone}>
+          <div className={styles.portraitDepthContainer} ref={portraitZoneRef}>
             {/* 底层投影 — 旋转时阴影向反方向偏移 */}
             {transparentPortrait && (
               <div
