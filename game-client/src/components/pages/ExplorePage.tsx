@@ -185,24 +185,6 @@ export default function ExplorePage() {
       .finally(() => { bgLoadingRef.current = false; setBgLoading(false); });
   }, [bookTitle, currentWorldIndex]);
 
-  useEffect(() => { generateBg(); }, [generateBg]);
-
-  // 未选书引导
-  if (!currentBookWorld) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.emptyGuide}>
-          <div className={styles.emptyIcon}>🗺️</div>
-          <p className={styles.emptyText}>尚未踏入任何书中世界</p>
-          <p className={styles.emptySubtext}>选择一部书籍，开启你的探索之旅</p>
-          <button className={styles.guideBtn} onClick={() => navigateTo('story')}>
-            前往选书
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const loadData = useCallback(async () => {
     try {
       const [s, h] = await Promise.all([fetchExploreStatus(), fetchExploreHistory()]);
@@ -221,33 +203,6 @@ export default function ExplorePage() {
     } catch { /* 静默 */ }
     finally { setLoading(false); }
   }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
-  useEffect(() => {
-    if (!loading && mapScrollRef.current) {
-      mapScrollRef.current.scrollTop = mapScrollRef.current.scrollHeight;
-    }
-  }, [loading, history.length]);
-
-  // 滚动监听（节流）
-  useEffect(() => {
-    const el = mapScrollRef.current;
-    if (!el) return;
-    setViewportH(el.clientHeight);
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(() => {
-          setScrollTop(el.scrollTop);
-          ticking = false;
-        });
-      }
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [loading]);
 
   const syncAfterReward = useCallback(async () => {
     try {
@@ -320,6 +275,41 @@ export default function ExplorePage() {
   }, [resolving, currentEvent, navigateTo, syncAfterReward]);
 
   const pendingResolveRef = useRef<string | null>(null);
+
+  const handleDismissReward = useCallback(() => {
+    setCurrentEvent(null);
+    setCurrentReward(null);
+  }, []);
+
+  useEffect(() => { generateBg(); }, [generateBg]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (!loading && mapScrollRef.current) {
+      mapScrollRef.current.scrollTop = mapScrollRef.current.scrollHeight;
+    }
+  }, [loading, history.length]);
+
+  // 滚动监听（节流）
+  useEffect(() => {
+    const el = mapScrollRef.current;
+    if (!el) return;
+    setViewportH(el.clientHeight);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          setScrollTop(el.scrollTop);
+          ticking = false;
+        });
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [loading]);
+
   useEffect(() => {
     const params = useGameStore.getState().pageParams;
     const resolvedEventId = params?.resolvedBattleEventId as string | undefined;
@@ -333,26 +323,7 @@ export default function ExplorePage() {
     }
   });
 
-  const handleDismissReward = useCallback(() => {
-    setCurrentEvent(null);
-    setCurrentReward(null);
-  }, []);
-
-  if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.loadingState}>
-          <div className={styles.loadingOrb} />
-          <span>步入书中世界...</span>
-        </div>
-      </div>
-    );
-  }
-
-  const ap = status?.actionPoints ?? 0;
-  const maxAp = status?.maxPoints ?? 100;
-
-  // ── 所有昂贵计算用 useMemo ──
+  // ── 所有昂贵计算用 useMemo（必须在条件返回之前）──
 
   const mapEvents = useMemo(() => [...history].reverse(), [history]);
 
@@ -381,15 +352,44 @@ export default function ExplorePage() {
     return d.join(' ');
   }, [waypoints]);
 
-  const journeyH = waypoints[waypoints.length - 1].y + 100;
-  const canExplore = ap > 0 && !exploring && (!currentEvent || !!currentReward);
-
-  // ── 虚拟化：只渲染可见区域的节点 ──
   const visibleRange = useMemo(() => {
     const top = scrollTop - VIEWPORT_BUFFER;
     const bottom = scrollTop + viewportH + VIEWPORT_BUFFER;
     return { top, bottom };
   }, [scrollTop, viewportH]);
+
+  // ── 条件返回 ──
+
+  if (!currentBookWorld) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.emptyGuide}>
+          <div className={styles.emptyIcon}>🗺️</div>
+          <p className={styles.emptyText}>尚未踏入任何书中世界</p>
+          <p className={styles.emptySubtext}>选择一部书籍，开启你的探索之旅</p>
+          <button className={styles.guideBtn} onClick={() => navigateTo('story')}>
+            前往选书
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loadingState}>
+          <div className={styles.loadingOrb} />
+          <span>步入书中世界...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const ap = status?.actionPoints ?? 0;
+  const maxAp = status?.maxPoints ?? 100;
+  const journeyH = waypoints[waypoints.length - 1].y + 100;
+  const canExplore = ap > 0 && !exploring && (!currentEvent || !!currentReward);
 
   return (
     <div className={styles.page}>
