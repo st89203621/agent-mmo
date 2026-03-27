@@ -119,9 +119,8 @@ export default function HomePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
   const { playerName, gold, diamond, clearPlayer } = usePlayerStore();
   const phaserRef = useRef<HTMLDivElement>(null);
-  const portraitZoneRef = useRef<HTMLDivElement>(null);
   usePhaserGame(phaserRef, [HomeScene]);
-  const parallax = useParallax3D(portraitZoneRef);
+  const [parallax, portraitZoneRef] = useParallax3D();
 
   const [data, setData] = useState<HomeData>({
     person: null, explore: null, rebirthInfo: null, checkin: null, pets: [], companions: [],
