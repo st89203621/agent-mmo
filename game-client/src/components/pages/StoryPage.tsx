@@ -89,7 +89,22 @@ export default function StoryPage() {
         setSelectedBook(sel);
         setArtStyle(sel.customArtStyle || sel.artStyle || '');
         fetchNpcs(wi, sel.title)
-          .then((res) => game.setNpcsInScene(res.npcs))
+          .then(async (res) => {
+            game.setNpcsInScene(res.npcs);
+            // 逐个为无立绘的NPC生成头像
+            const style = sel.customArtStyle || sel.artStyle || '';
+            for (const n of res.npcs) {
+              if (!n.portraitUrl) {
+                try {
+                  await generateSceneImage(n.npcId, wi, style || undefined);
+                } catch { /* ignore */ }
+              }
+            }
+            // 全部生成完毕后刷新列表
+            fetchNpcs(wi, sel.title)
+              .then((r) => game.setNpcsInScene(r.npcs))
+              .catch(() => {});
+          })
           .catch(() => {});
       }
     }).finally(() => setBookLoading(false));
@@ -652,13 +667,13 @@ export default function StoryPage() {
       {/* NPC角色列表 */}
       <div className={styles.npcScroll}>
         <div className={styles.npcSectionTitle}>书中人物</div>
-        {game.npcsInScene.map((npc) => {
+        {game.npcsInScene.map((npc, idx) => {
           const rel = player.relations.find((r) => r.npcId === npc.npcId);
           const portraitUrl = npc.portraitUrl;
           return (
             <button
               key={npc.npcId}
-              className={styles.npcCard}
+              className={`${styles.npcCard} ${styles['npcColor' + (idx % 6)]}`}
               onClick={() => handleStartDialogue(npc.npcId)}
               disabled={loading}
             >

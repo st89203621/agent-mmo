@@ -393,8 +393,14 @@
 .npcCard:active {
   transform: scale(0.98);
   border-color: var(--gold-dim);
-  background: var(--paper-darker);
 }
+
+.npcColor0 { border-left: 3px solid var(--gold); background: #f0e4cc; }
+.npcColor1 { border-left: 3px solid var(--red); background: #f2e0d8; }
+.npcColor2 { border-left: 3px solid var(--green); background: #dde8d8; }
+.npcColor3 { border-left: 3px solid var(--blue); background: #d8e2ee; }
+.npcColor4 { border-left: 3px solid var(--purple); background: #e6daea; }
+.npcColor5 { border-left: 3px solid var(--gold-dim); background: #ece2cc; }
 
 .npcAvatar {
   position: relative;
