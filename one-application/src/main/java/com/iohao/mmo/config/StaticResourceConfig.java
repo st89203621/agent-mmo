@@ -20,7 +20,6 @@ package com.iohao.mmo.config;
 
 import com.iohao.mmo.pet.util.VolcengineConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -38,19 +37,12 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
     private final VolcengineConfig volcengineConfig;
 
-    @Value("${game.frontend-path:C:/deye-6.4/agent-mmo/game-client/dist}")
-    private String gameFrontendPath;
-
     public StaticResourceConfig(VolcengineConfig volcengineConfig) {
         this.volcengineConfig = volcengineConfig;
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 前端游戏文件由 spring.web.resources.static-locations 直接托管，无需在此配置
-        log.info("🎮 游戏前端: http://<IP>:8090/ (由 spring.web.resources.static-locations 托管)");
-
-        // ── AI生成的宠物图片 ──────────────────────────────────────
         String assetsPath = volcengineConfig.getFrontendAssetsPath();
         String resourceLocation;
         if (assetsPath.matches("^[A-Za-z]:.*")) {
@@ -71,7 +63,6 @@ public class StaticResourceConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "HEAD")
                 .allowedHeaders("*")
                 .maxAge(3600);
-        // 允许前端跨域访问游戏 REST API
         registry.addMapping("/api/**")
                 .allowedOriginPatterns("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
@@ -80,4 +71,3 @@ public class StaticResourceConfig implements WebMvcConfigurer {
                 .maxAge(3600);
     }
 }
-
