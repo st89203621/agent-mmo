@@ -217,18 +217,21 @@
 
 .apRow { display: flex; align-items: center; gap: 8px; }
 
-.apDots { display: flex; gap: 3px; }
-
-.apDot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: rgba(200, 180, 120, 0.15);
-  transition: all 0.3s;
+.apBar {
+  flex: 1;
+  max-width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(200, 180, 120, 0.12);
+  overflow: hidden;
 }
 
-.apDotFilled {
-  background: var(--gold);
-  box-shadow: 0 0 8px rgba(200, 180, 100, 0.5), inset 0 0 2px rgba(255, 255, 255, 0.3);
+.apBarFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--gold), rgba(220, 200, 120, 0.8));
+  box-shadow: 0 0 6px rgba(200, 180, 100, 0.4);
+  transition: width 0.4s ease;
 }
 
 .apText {
@@ -267,6 +270,7 @@
   height: 100%;
   pointer-events: none;
   z-index: 1;
+  contain: strict;
 }
 
 /* ── 起点 ── */
@@ -439,6 +443,19 @@
 @keyframes detailUnfold {
   from { opacity: 0; transform: translateY(-50%) scale(0.9); }
   to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.detailImage {
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.detailImage img {
+  width: 100%;
+  display: block;
+  border-radius: 6px;
+  opacity: 0.85;
 }
 
 .detailHead {

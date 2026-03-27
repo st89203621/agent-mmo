@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef, memo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import {
@@ -36,6 +36,112 @@ const CENTER_X = JOURNEY_W / 2;
 const SPACING_Y = 80;
 const AMPLITUDE = 60;
 const PAD_TOP = 50;
+const VIEWPORT_BUFFER = 200; // 可视区外多渲染的像素
+
+// ── 倒计时独立组件，避免每秒重渲染整个页面 ──
+const RecoverTimer = memo(function RecoverTimer({
+  status, onStatusUpdate,
+}: {
+  status: ExploreStatus;
+  onStatusUpdate: (s: ExploreStatus) => void;
+}) {
+  const [countdown, setCountdown] = useState(status.nextRecoverSec);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => { setCountdown(status.nextRecoverSec); }, [status.nextRecoverSec]);
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (status.actionPoints >= status.maxPoints || countdown <= 0) return;
+    timerRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          fetchExploreStatus().then(onStatusUpdate).catch(() => {});
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [status.actionPoints, status.maxPoints, countdown, onStatusUpdate]);
+
+  if (status.actionPoints >= status.maxPoints || countdown <= 0) return null;
+  const m = Math.floor(countdown / 60);
+  const s = countdown % 60;
+  return <span className={styles.recoverText}>{m}:{s.toString().padStart(2, '0')}</span>;
+});
+
+// ── 单个事件节点 ──
+const EventNode = memo(function EventNode({
+  item, wp, isLeft, expanded, onToggle,
+}: {
+  item: ResolvedEvent;
+  wp: { x: number; y: number };
+  isLeft: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const desc = item.reward.message || item.event.description || '';
+  const brief = desc.length > 20 ? desc.slice(0, 20) + '…' : desc;
+
+  return (
+    <div
+      className={`${styles.node} ${expanded ? styles.nodeExpanded : ''}`}
+      data-type={item.event.type}
+      style={{ left: wp.x, top: wp.y }}
+      onClick={onToggle}
+    >
+      <div className={styles.nodeCircle} data-type={item.event.type} />
+      <div className={styles.nodeLabel} data-side={isLeft ? 'left' : 'right'}>
+        <span className={styles.labelType} data-type={item.event.type}>
+          {EVENT_LABELS[item.event.type] || item.event.type}
+        </span>
+        <span className={styles.labelTitle}>{item.event.title}</span>
+        {brief && !expanded && <span className={styles.labelBrief}>{brief}</span>}
+      </div>
+      {expanded && (
+        <div className={styles.detailCard} data-side={isLeft ? 'right' : 'left'} data-type={item.event.type}>
+          <div className={styles.detailAccent} data-type={item.event.type} />
+          <div className={styles.detailHead}>
+            <span className={styles.detailType} data-type={item.event.type}>
+              {EVENT_LABELS[item.event.type] || item.event.type}
+            </span>
+            <span className={styles.detailTitle}>{item.event.title}</span>
+          </div>
+          {item.reward.imageUrl && (
+            <div className={styles.detailImage}>
+              <img src={item.reward.imageUrl} alt={item.event.title} loading="lazy" />
+            </div>
+          )}
+          <p className={styles.detailMsg}>{desc}</p>
+          {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0 || item.reward.itemName) && (
+            <div className={styles.detailDivider} />
+          )}
+          {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0) && (
+            <div className={styles.detailStats}>
+              {item.reward.fateDelta !== 0 && (
+                <span className={styles.detailStat} data-positive={item.reward.fateDelta > 0 ? '' : undefined} data-negative={item.reward.fateDelta < 0 ? '' : undefined}>
+                  缘 {item.reward.fateDelta > 0 ? '+' : ''}{item.reward.fateDelta}
+                </span>
+              )}
+              {item.reward.trustDelta !== 0 && (
+                <span className={styles.detailStat} data-positive={item.reward.trustDelta > 0 ? '' : undefined} data-negative={item.reward.trustDelta < 0 ? '' : undefined}>
+                  信 {item.reward.trustDelta > 0 ? '+' : ''}{item.reward.trustDelta}
+                </span>
+              )}
+            </div>
+          )}
+          {item.reward.itemName && (
+            <div className={styles.detailReward}>
+              <span className={styles.rewardDot} />
+              {item.reward.itemName}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
 
 export default function ExplorePage() {
   const { currentBookWorld, navigateTo } = useGameStore();
@@ -51,10 +157,10 @@ export default function ExplorePage() {
   const [battleLoading, setBattleLoading] = useState(false);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
-  const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
-  const [recoverCountdown, setRecoverCountdown] = useState(0);
   const mapScrollRef = useRef<HTMLDivElement>(null);
   const [expandedNode, setExpandedNode] = useState<string | null>(null);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportH, setViewportH] = useState(800);
 
   const bookTitle = currentBookWorld?.title || '';
 
@@ -101,8 +207,7 @@ export default function ExplorePage() {
     try {
       const [s, h] = await Promise.all([fetchExploreStatus(), fetchExploreHistory()]);
       setStatus(s);
-      setRecoverCountdown(s.nextRecoverSec);
-      setHistory(h.events.map(e => ({
+      setHistory(h.events.map((e: ExploreEvent) => ({
         event: e,
         reward: {
           message: e.rewardMessage || '',
@@ -125,6 +230,25 @@ export default function ExplorePage() {
     }
   }, [loading, history.length]);
 
+  // 滚动监听（节流）
+  useEffect(() => {
+    const el = mapScrollRef.current;
+    if (!el) return;
+    setViewportH(el.clientHeight);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          setScrollTop(el.scrollTop);
+          ticking = false;
+        });
+      }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [loading]);
+
   const syncAfterReward = useCallback(async () => {
     try {
       const [cur, rel] = await Promise.all([
@@ -136,24 +260,7 @@ export default function ExplorePage() {
     } catch { /* 静默 */ }
   }, []);
 
-  useEffect(() => {
-    if (recoverTimerRef.current) clearInterval(recoverTimerRef.current);
-    if (status && status.actionPoints < status.maxPoints && recoverCountdown > 0) {
-      recoverTimerRef.current = setInterval(() => {
-        setRecoverCountdown(prev => {
-          if (prev <= 1) {
-            fetchExploreStatus().then(s => {
-              setStatus(s);
-              setRecoverCountdown(s.nextRecoverSec);
-            }).catch(() => {});
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => { if (recoverTimerRef.current) clearInterval(recoverTimerRef.current); };
-  }, [status, recoverCountdown]);
+  const handleStatusUpdate = useCallback((s: ExploreStatus) => setStatus(s), []);
 
   const handleExplore = useCallback(async () => {
     if (exploring || !status || status.actionPoints <= 0) return;
@@ -173,13 +280,15 @@ export default function ExplorePage() {
       }
       const s = await fetchExploreStatus();
       setStatus(s);
-      setRecoverCountdown(s.nextRecoverSec);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : '探索失败');
     } finally {
       setExploring(false);
     }
   }, [exploring, status, currentWorldIndex, bookTitle]);
+
+  const eventImageUrlRef = useRef(eventImageUrl);
+  eventImageUrlRef.current = eventImageUrl;
 
   const handleChoice = useCallback(async (choiceId: number) => {
     if (resolving || !currentEvent) return;
@@ -201,7 +310,7 @@ export default function ExplorePage() {
     try {
       const reward = await resolveExploreChoice(currentEvent.eventId, choiceId);
       setCurrentReward(reward);
-      setHistory(prev => [{ event: currentEvent, reward }, ...prev]);
+      setHistory(prev => [{ event: currentEvent, reward: { ...reward, imageUrl: eventImageUrlRef.current } }, ...prev]);
       syncAfterReward();
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : '操作失败');
@@ -241,18 +350,13 @@ export default function ExplorePage() {
   }
 
   const ap = status?.actionPoints ?? 0;
-  const maxAp = status?.maxPoints ?? 10;
+  const maxAp = status?.maxPoints ?? 100;
 
-  const formatTime = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  // ── 所有昂贵计算用 useMemo ──
 
-  const mapEvents = [...history].reverse();
+  const mapEvents = useMemo(() => [...history].reverse(), [history]);
 
-  // 纯数学计算路径点
-  const waypoints = (() => {
+  const waypoints = useMemo(() => {
     const pts: { x: number; y: number }[] = [];
     pts.push({ x: CENTER_X, y: PAD_TOP });
     mapEvents.forEach((_, i) => {
@@ -262,10 +366,9 @@ export default function ExplorePage() {
     });
     pts.push({ x: CENTER_X, y: PAD_TOP + (mapEvents.length + 1) * SPACING_Y });
     return pts;
-  })();
+  }, [mapEvents]);
 
-  // Catmull-Rom → cubic bezier
-  const journeyPath = (() => {
+  const journeyPath = useMemo(() => {
     if (waypoints.length < 2) return '';
     const d: string[] = [`M ${waypoints[0].x} ${waypoints[0].y}`];
     for (let i = 0; i < waypoints.length - 1; i++) {
@@ -276,10 +379,17 @@ export default function ExplorePage() {
       d.push(`C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`);
     }
     return d.join(' ');
-  })();
+  }, [waypoints]);
 
   const journeyH = waypoints[waypoints.length - 1].y + 100;
   const canExplore = ap > 0 && !exploring && (!currentEvent || !!currentReward);
+
+  // ── 虚拟化：只渲染可见区域的节点 ──
+  const visibleRange = useMemo(() => {
+    const top = scrollTop - VIEWPORT_BUFFER;
+    const bottom = scrollTop + viewportH + VIEWPORT_BUFFER;
+    return { top, bottom };
+  }, [scrollTop, viewportH]);
 
   return (
     <div className={styles.page}>
@@ -312,33 +422,24 @@ export default function ExplorePage() {
           </button>
         </div>
         <div className={styles.apRow}>
-          <div className={styles.apDots}>
-            {Array.from({ length: maxAp }, (_, i) => (
-              <span key={i} className={`${styles.apDot} ${i < ap ? styles.apDotFilled : ''}`} />
-            ))}
+          <div className={styles.apBar}>
+            <div className={styles.apBarFill} style={{ width: `${(ap / maxAp) * 100}%` }} />
           </div>
           <span className={styles.apText}>{ap}/{maxAp}</span>
-          {ap < maxAp && recoverCountdown > 0 && (
-            <span className={styles.recoverText}>{formatTime(recoverCountdown)}</span>
-          )}
+          {status && <RecoverTimer status={status} onStatusUpdate={handleStatusUpdate} />}
         </div>
       </div>
 
       {/* 行旅图主体 */}
       <div className={styles.mapBody} ref={mapScrollRef}>
         <div className={styles.journey} style={{ height: journeyH }}>
-          {/* 发光金色路径 */}
+          {/* 金色路径 — 不用 filter，用 opacity 分层代替昂贵的高斯模糊 */}
           <svg className={styles.journeySvg} viewBox={`0 0 ${JOURNEY_W} ${journeyH}`} preserveAspectRatio="none">
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="4" result="b" />
-                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-              </filter>
-            </defs>
             {journeyPath && (
               <>
-                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.12)" strokeWidth="10" strokeLinecap="round" filter="url(#glow)" />
-                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.5)" strokeWidth="2" strokeLinecap="round" filter="url(#glow)" />
+                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.08)" strokeWidth="12" strokeLinecap="round" />
+                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.18)" strokeWidth="5" strokeLinecap="round" />
+                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5" strokeLinecap="round" />
               </>
             )}
           </svg>
@@ -349,67 +450,23 @@ export default function ExplorePage() {
             <span className={styles.originText}>起点</span>
           </div>
 
-          {/* 事件节点 */}
+          {/* 事件节点 — 虚拟化 */}
           {mapEvents.map((item, i) => {
             const wp = waypoints[i + 1];
             if (!wp) return null;
+            // 可视区裁剪
+            if (wp.y < visibleRange.top || wp.y > visibleRange.bottom) return null;
             const isLeft = wp.x < CENTER_X;
             const nodeId = item.event.eventId + i;
-            const expanded = expandedNode === nodeId;
-            const desc = item.reward.message || item.event.description || '';
-            const brief = desc.length > 20 ? desc.slice(0, 20) + '…' : desc;
             return (
-              <div
+              <EventNode
                 key={nodeId}
-                className={`${styles.node} ${expanded ? styles.nodeExpanded : ''}`}
-                data-type={item.event.type}
-                style={{ left: wp.x, top: wp.y }}
-                onClick={() => setExpandedNode(expanded ? null : nodeId)}
-              >
-                <div className={styles.nodeCircle} data-type={item.event.type} />
-                <div className={styles.nodeLabel} data-side={isLeft ? 'left' : 'right'}>
-                  <span className={styles.labelType} data-type={item.event.type}>
-                    {EVENT_LABELS[item.event.type] || item.event.type}
-                  </span>
-                  <span className={styles.labelTitle}>{item.event.title}</span>
-                  {brief && !expanded && <span className={styles.labelBrief}>{brief}</span>}
-                </div>
-                {expanded && (
-                  <div className={styles.detailCard} data-side={isLeft ? 'right' : 'left'} data-type={item.event.type}>
-                    <div className={styles.detailAccent} data-type={item.event.type} />
-                    <div className={styles.detailHead}>
-                      <span className={styles.detailType} data-type={item.event.type}>
-                        {EVENT_LABELS[item.event.type] || item.event.type}
-                      </span>
-                      <span className={styles.detailTitle}>{item.event.title}</span>
-                    </div>
-                    <p className={styles.detailMsg}>{desc}</p>
-                    {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0 || item.reward.itemName) && (
-                      <div className={styles.detailDivider} />
-                    )}
-                    {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0) && (
-                      <div className={styles.detailStats}>
-                        {item.reward.fateDelta !== 0 && (
-                          <span className={styles.detailStat} data-positive={item.reward.fateDelta > 0 ? '' : undefined} data-negative={item.reward.fateDelta < 0 ? '' : undefined}>
-                            缘 {item.reward.fateDelta > 0 ? '+' : ''}{item.reward.fateDelta}
-                          </span>
-                        )}
-                        {item.reward.trustDelta !== 0 && (
-                          <span className={styles.detailStat} data-positive={item.reward.trustDelta > 0 ? '' : undefined} data-negative={item.reward.trustDelta < 0 ? '' : undefined}>
-                            信 {item.reward.trustDelta > 0 ? '+' : ''}{item.reward.trustDelta}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {item.reward.itemName && (
-                      <div className={styles.detailReward}>
-                        <span className={styles.rewardDot} />
-                        {item.reward.itemName}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                item={item}
+                wp={wp}
+                isLeft={isLeft}
+                expanded={expandedNode === nodeId}
+                onToggle={() => setExpandedNode(prev => prev === nodeId ? null : nodeId)}
+              />
             );
           })}
 

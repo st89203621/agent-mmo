@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ExploreService {
 
-    private static final int MAX_ACTION_POINTS = 10;
+    private static final int MAX_ACTION_POINTS = 100;
     private static final long RECOVER_INTERVAL_SEC = 1800; // 30分钟
 
     @Value("${volcengine.chat-api-key:}")
