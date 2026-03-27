@@ -1,13 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
-import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, logout, type EquipData, type PersonData } from '../../services/api';
+import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, allotPersonPoints, logout, type EquipData, type PersonData } from '../../services/api';
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import { POSITION_LABELS } from '../../constants/equipment';
 import page from '../../styles/page.module.css';
 import own from './CharacterPage.module.css';
 
 const styles = { ...page, ...own };
+
+const ALLOT_STATS: { key: string; label: string; per: number }[] = [
+  { key: 'hp', label: '生命', per: 20 },
+  { key: 'mp', label: '法力', per: 10 },
+  { key: 'physicsAttack', label: '物攻', per: 3 },
+  { key: 'physicsDefense', label: '物防', per: 2 },
+  { key: 'magicAttack', label: '法攻', per: 3 },
+  { key: 'speed', label: '速度', per: 1 },
+  { key: 'agility', label: '敏捷', per: 1 },
+];
 
 export default function CharacterPage() {
   const { playerWorld, gold, diamond, levelInfo } = usePlayerStore();
@@ -16,6 +26,8 @@ export default function CharacterPage() {
   const [worldIndex, setWorldIndex] = useState(0);
   const [rebirthInfo, setRebirthInfo] = useState<{ currentWorldIndex: number; currentBook: string } | null>(null);
   const [person, setPerson] = useState<PersonData | null>(null);
+  const [pending, setPending] = useState<Record<string, number>>({});
+  const [allocating, setAllocating] = useState(false);
 
   useEffect(() => {
     fetchEquipList().then((res) => setEquips(res.equips)).catch(() => {});
@@ -30,6 +42,20 @@ export default function CharacterPage() {
       })
       .catch(() => {});
   }, []);
+
+  const handleAllot = useCallback(async () => {
+    const filtered = Object.fromEntries(Object.entries(pending).filter(([, v]) => v > 0));
+    if (Object.keys(filtered).length === 0) return;
+    setAllocating(true);
+    try {
+      await allotPersonPoints(filtered);
+      const p = await fetchPersonInfo();
+      setPerson(p);
+      if (p.level) usePlayerStore.getState().setLevelInfo(p.level);
+      setPending({});
+    } catch { /* noop */ }
+    setAllocating(false);
+  }, [pending]);
 
   const getEquipForSlot = (position: number) =>
     equips.find((e) => e.position === position);
@@ -106,6 +132,43 @@ export default function CharacterPage() {
             </div>
           </section>
         )}
+
+        {/* 属性分配 */}
+        {person?.exists && (person.attributePoints ?? 0) > 0 && (() => {
+          const used = Object.values(pending).reduce((a, b) => a + b, 0);
+          const remaining = (person.attributePoints ?? 0) - used;
+          return (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                属性分配
+                <span className={styles.attrPointsBadge}>{remaining} 点可用</span>
+              </h3>
+              <div className={styles.allotGrid}>
+                {ALLOT_STATS.map(({ key, label, per }) => {
+                  const pts = pending[key] ?? 0;
+                  return (
+                    <div key={key} className={styles.allotRow}>
+                      <span className={styles.allotLabel}>{label}</span>
+                      <span className={styles.allotPer}>+{per}/点</span>
+                      <div className={styles.allotControls}>
+                        <button className={styles.allotBtn} disabled={pts <= 0}
+                          onClick={() => setPending(p => ({ ...p, [key]: Math.max(0, (p[key] ?? 0) - 1) }))}>−</button>
+                        <span className={styles.allotCount}>{pts}</span>
+                        <button className={styles.allotBtn} disabled={remaining <= 0}
+                          onClick={() => setPending(p => ({ ...p, [key]: (p[key] ?? 0) + 1 }))}>+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {used > 0 && (
+                <button className={styles.allotConfirmBtn} disabled={allocating} onClick={handleAllot}>
+                  {allocating ? '...' : `确认分配 (${used}点)`}
+                </button>
+              )}
+            </section>
+          );
+        })()}
 
         {/* 装备槽 */}
         <section className={styles.section}>

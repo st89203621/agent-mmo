@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { fetchBagItems, useBagItem, type BagItemData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import { QUALITY_COLOR_MAP } from '../../constants/quality';
 import styles from './PageSkeleton.module.css';
@@ -37,8 +38,19 @@ export default function InventoryPage() {
     if (!selected) return;
     setOperating(true);
     try {
-      await useBagItem(selected.id, selected.itemTypeId, 1);
-      toast.success('使用成功');
+      const res = await useBagItem(selected.id, selected.itemTypeId, 1);
+      if (res.expGained) {
+        toast.success(`获得经验 +${res.expGained}${res.levelsGained ? `，升级 +${res.levelsGained}！` : ''}`);
+        if (res.currentLevel != null) {
+          usePlayerStore.getState().setLevelInfo({
+            level: res.currentLevel,
+            exp: res.currentExp ?? 0,
+            maxExp: res.maxExp ?? 0,
+          });
+        }
+      } else {
+        toast.success('使用成功');
+      }
       setSelected(null);
       loadBag();
     } catch { /* noop */ }

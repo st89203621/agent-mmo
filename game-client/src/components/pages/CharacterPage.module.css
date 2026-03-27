@@ -203,6 +203,104 @@
   padding: 12px;
 }
 
+/* 属性分配 */
+.attrPointsBadge {
+  float: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e8a642;
+  background: rgba(232, 166, 66, 0.12);
+  border: 1px solid rgba(232, 166, 66, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 1px 8px;
+}
+
+.allotGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.allotRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--paper-dark);
+  border-radius: var(--radius-sm);
+}
+
+.allotLabel {
+  font-size: 13px;
+  color: var(--ink);
+  width: 36px;
+  flex-shrink: 0;
+}
+
+.allotPer {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  flex: 1;
+}
+
+.allotControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.allotBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-darker);
+  border: 1px solid var(--paper-darker);
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  transition: background var(--transition-fast);
+}
+
+.allotBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.allotBtn:not(:disabled):active {
+  background: var(--gold-dim);
+}
+
+.allotCount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.allotConfirmBtn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: opacity var(--transition-fast);
+}
+
+.allotConfirmBtn:disabled {
+  opacity: 0.5;
+}
+
 /* 快捷链接 */
 .quickLinks {
   display: grid;

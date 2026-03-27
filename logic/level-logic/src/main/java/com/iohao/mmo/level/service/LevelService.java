@@ -73,10 +73,11 @@ public class LevelService {
      *
      * @param userId 用户ID
      * @param exp    获得的经验值
-     * @return 更新后的等级信息
+     * @return 结果（更新后的等级 + 升了几级）
      */
-    public Level addExpWithAutoLevelUp(long userId, int exp) {
+    public LevelUpResult addExpWithAutoLevelUp(long userId, int exp) {
         Level level = ofLevel(userId);
+        int startLevel = level.getLevel();
         level.addExp(exp);
 
         PersonLevelConfig config;
@@ -87,6 +88,9 @@ public class LevelService {
         }
 
         save(level);
-        return level;
+        return new LevelUpResult(level, level.getLevel() - startLevel);
     }
+
+    /** 升级结果 */
+    public record LevelUpResult(Level level, int levelsGained) {}
 }

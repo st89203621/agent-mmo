@@ -818,6 +818,7 @@ public class GameApiController {
             props.put("critRate", bp.getCritRate());
             m.put("basicProperty", props);
         }
+        m.put("attributePoints", person.getAttributePoints());
         // 立绘URL
         if (person.getPortraitImageId() != null) {
             m.put("portraitUrl", "/api/story/scene-image/" + person.getPortraitImageId());
@@ -1174,12 +1175,73 @@ public class GameApiController {
         String itemId = (String) body.get("id");
         String itemTypeId = (String) body.get("itemTypeId");
         int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+
         BagItem decrement = new BagItem();
         decrement.setId(itemId);
         decrement.setItemTypeId(itemTypeId);
         decrement.setQuantity(quantity);
         bagService.decrementItem(decrement, userId);
-        return ok(Map.of("msg", "使用成功"));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("msg", "使用成功");
+
+        ShopItem shopItem = shopService.getItem(itemTypeId);
+        if (shopItem != null && shopItem.getEffect() != null) {
+            ShopItem.Effect effect = shopItem.getEffect();
+            int totalValue = effect.getValue() * quantity;
+            switch (effect.getType()) {
+                case "exp" -> {
+                    LevelService.LevelUpResult lr = levelService.addExpWithAutoLevelUp(userId, totalValue);
+                    grantAttributePoints(userId, lr.levelsGained());
+                    Level newLevel = lr.level();
+                    PersonLevelConfig nextConfig = levelService.getPersonLevelConfigByLevel(newLevel.getLevel());
+                    result.put("expGained", totalValue);
+                    result.put("levelsGained", lr.levelsGained());
+                    result.put("currentLevel", newLevel.getLevel());
+                    result.put("currentExp", newLevel.getExp());
+                    result.put("maxExp", nextConfig != null ? nextConfig.getExp() : 0);
+                }
+                case "reset_attr" -> result.put("resetAttr", true);
+            }
+        }
+
+        return ok(result);
+    }
+
+    @PostMapping("/person/allot-points")
+    public ResponseEntity<Map<String, Object>> allotPersonPoints(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        Person person = personService.getPersonById(userId);
+        if (person == null) return err("角色不存在");
+        if (person.getBasicProperty() == null) return err("角色属性未初始化");
+
+        int totalNeeded = 0;
+        Map<String, Integer> alloc = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : body.entrySet()) {
+            if (entry.getValue() instanceof Number n && n.intValue() > 0) {
+                alloc.put(entry.getKey(), n.intValue());
+                totalNeeded += n.intValue();
+            }
+        }
+        if (totalNeeded == 0) return err("未分配任何属性点");
+        if (person.getAttributePoints() < totalNeeded) return err("属性点不足");
+
+        var bp = person.getBasicProperty();
+        for (Map.Entry<String, Integer> e : alloc.entrySet()) {
+            int pts = e.getValue();
+            switch (e.getKey()) {
+                case "hp"             -> bp.setHp(bp.getHp() + pts * 20);
+                case "mp"             -> bp.setMp(bp.getMp() + pts * 10);
+                case "physicsAttack"  -> bp.setPhysicsAttack(bp.getPhysicsAttack() + pts * 3);
+                case "physicsDefense" -> bp.setPhysicsDefense(bp.getPhysicsDefense() + pts * 2);
+                case "magicAttack"    -> bp.setMagicAttack(bp.getMagicAttack() + pts * 3);
+                case "speed"          -> bp.setSpeed(bp.getSpeed() + pts);
+                case "agility"        -> { bp.setAgility(bp.getAgility() + pts); bp.recalcBonus(); }
+            }
+        }
+        person.setAttributePoints(person.getAttributePoints() - totalNeeded);
+        personService.savePerson(person);
+        return ok(Map.of("attributePoints", person.getAttributePoints(), "msg", "分配成功"));
     }
 
     // ── 任务 ──────────────────────────────────────
@@ -1808,7 +1870,9 @@ public class GameApiController {
         shopService.saveCurrency(currency);
 
         // 实际发放经验并自动检查升级
-        Level newLevel = levelService.addExpWithAutoLevelUp(userId, rewardExp);
+        LevelService.LevelUpResult levelResult = levelService.addExpWithAutoLevelUp(userId, rewardExp);
+        Level newLevel = levelResult.level();
+        grantAttributePoints(userId, levelResult.levelsGained());
         PersonLevelConfig nextConfig = levelService.getPersonLevelConfigByLevel(newLevel.getLevel());
 
         Map<String, Object> detail = new LinkedHashMap<>();
@@ -2191,7 +2255,7 @@ public class GameApiController {
         if (reward.getGold() > 0) currency.addGold(reward.getGold());
         shopService.saveCurrency(currency);
 
-        if (reward.getExp() > 0) levelService.addExpWithAutoLevelUp(userId, reward.getExp());
+        if (reward.getExp() > 0) grantAttributePoints(userId, levelService.addExpWithAutoLevelUp(userId, reward.getExp()).levelsGained());
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("gold", reward.getGold());
@@ -2232,7 +2296,7 @@ public class GameApiController {
         if (reward.getGold() > 0) currency.addGold(reward.getGold());
         shopService.saveCurrency(currency);
 
-        if (reward.getExp() > 0) levelService.addExpWithAutoLevelUp(userId, reward.getExp());
+        if (reward.getExp() > 0) grantAttributePoints(userId, levelService.addExpWithAutoLevelUp(userId, reward.getExp()).levelsGained());
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("gold", reward.getGold());
@@ -2486,7 +2550,7 @@ public class GameApiController {
             }
 
             // 5. 探索经验奖励（固定20经验）
-            levelService.addExpWithAutoLevelUp(userId, 20);
+            grantAttributePoints(userId, levelService.addExpWithAutoLevelUp(userId, 20).levelsGained());
         } catch (Exception e) {
             log.warn("探索奖励发放异常: userId={}, eventId={}, err={}", userId, eventId, e.getMessage());
         }
@@ -2699,6 +2763,15 @@ public class GameApiController {
     }
 
     // ── 工具方法 ──────────────────────────────────────
+
+    /** 升级时发放属性点（每级5点） */
+    private void grantAttributePoints(long userId, int levelsGained) {
+        if (levelsGained <= 0) return;
+        Person person = personService.getPersonById(userId);
+        if (person == null) return;
+        person.setAttributePoints(person.getAttributePoints() + levelsGained * 5);
+        personService.savePerson(person);
+    }
 
     private long requireLogin(HttpSession session) {
         Long userId = (Long) session.getAttribute("userId");

@@ -56,4 +56,6 @@ public class Person {
     String portraitImageId;
     /** AI生成的主页背景图片ID（对应SceneImage） */
     String bgImageId;
+    /** 未分配的属性点（每升一级获得5点） */
+    int attributePoints;
 }

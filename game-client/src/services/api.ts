@@ -377,7 +377,16 @@ export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
   return request('/bag/list');
 }
 
-export function useBagItem(id: string, itemTypeId: string, quantity = 1) {
+export interface BagUseResult {
+  msg: string;
+  expGained?: number;
+  levelsGained?: number;
+  currentLevel?: number;
+  currentExp?: number;
+  maxExp?: number;
+}
+
+export function useBagItem(id: string, itemTypeId: string, quantity = 1): Promise<BagUseResult> {
   return request('/bag/use', {
     method: 'POST',
     body: JSON.stringify({ id, itemTypeId, quantity }),
@@ -424,10 +433,18 @@ export interface PersonData {
     exp: number;
     maxExp: number;
   };
+  attributePoints?: number;
 }
 
 export function fetchPersonInfo(): Promise<PersonData> {
   return request('/person/me');
+}
+
+export function allotPersonPoints(attrs: Record<string, number>): Promise<{ attributePoints: number; msg: string }> {
+  return request('/person/allot-points', {
+    method: 'POST',
+    body: JSON.stringify(attrs),
+  });
 }
 
 

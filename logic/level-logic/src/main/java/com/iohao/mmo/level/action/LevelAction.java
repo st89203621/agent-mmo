@@ -53,7 +53,7 @@ public class LevelAction {
      */
     @ActionMethod(LevelCmd.personAddExp)
     public void internalAddExpPerson(ExpMessage expMessage, FlowContext flowContext) {
-        Level level = levelService.addExpWithAutoLevelUp(expMessage.id, expMessage.exp);
+        Level level = levelService.addExpWithAutoLevelUp(expMessage.id, expMessage.exp).level();
 
         // 广播最新等级信息给玩家
         LevelMessage levelMessage = LevelMapper.ME.convert(level);
