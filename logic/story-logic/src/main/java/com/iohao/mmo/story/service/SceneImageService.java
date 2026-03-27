@@ -112,8 +112,14 @@ public class SceneImageService {
         return sceneImageRepository.findById(id);
     }
 
-    public List<SceneImage> findByCacheKey(String cacheKey) {
-        return sceneImageRepository.findByCacheKey(cacheKey);
+    /**
+     * 按cacheKey前缀查找已缓存的图片（不触发生成）
+     */
+    public Optional<SceneImage> findCachedByPrefix(String prefix) {
+        List<SceneImage> list = sceneImageRepository.findByCacheKeyStartingWith(prefix);
+        return list.stream()
+                .filter(si -> si.getImageData() != null && si.getImageData().length > 0)
+                .findFirst();
     }
 
     /**

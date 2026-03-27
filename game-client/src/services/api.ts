@@ -208,7 +208,7 @@ export function generateSceneImage(npcId: string, worldIndex: number, artStyle?:
 // ── NPC ──────────────────────────────────────
 
 export function fetchNpcs(worldIndex = 0, bookTitle?: string): Promise<{ npcs: NpcInfo[] }> {
-  let url = `/npc/list?worldIndex=${worldIndex}`;
+  let url = `/npc/list?worldIndex=${worldIndex}&_t=${Date.now()}`;
   if (bookTitle) url += `&bookTitle=${encodeURIComponent(bookTitle)}`;
   return request(url);
 }

@@ -218,11 +218,19 @@ export default function StoryPage() {
     dialogue.setSceneImageLoading(true);
     generateSceneImage(npcId, player.currentWorldIndex, artStyle || undefined)
       .then((res) => {
+        console.log('[立绘] 生成成功:', npcId, res.imageUrl);
         dialogue.pushSceneImage(res.imageUrl);
-        // 立绘生成后刷新relations，获取更新后的imageUrl
-        fetchRelations().then((r) => player.setRelations(r.relations)).catch(() => {});
+        // 刷新NPC列表以获取portraitUrl
+        if (selectedBook?.title) {
+          fetchNpcs(player.currentWorldIndex, selectedBook.title)
+            .then((r) => { console.log('[立绘] NPC列表已刷新'); game.setNpcsInScene(r.npcs); })
+            .catch(() => {});
+        }
       })
-      .catch(() => dialogue.setSceneImageLoading(false));
+      .catch((e) => {
+        console.warn('[立绘] 生成失败:', npcId, e);
+        dialogue.setSceneImageLoading(false);
+      });
 
     abortRef.current = streamStartDialogue(
       { npcId, worldIndex: player.currentWorldIndex },
@@ -646,6 +654,7 @@ export default function StoryPage() {
         <div className={styles.npcSectionTitle}>书中人物</div>
         {game.npcsInScene.map((npc) => {
           const rel = player.relations.find((r) => r.npcId === npc.npcId);
+          const portraitUrl = npc.portraitUrl;
           return (
             <button
               key={npc.npcId}
@@ -654,8 +663,8 @@ export default function StoryPage() {
               disabled={loading}
             >
               <div className={styles.npcAvatar}>
-                {rel?.imageUrl?.startsWith('/api/')
-                  ? <img src={rel.imageUrl} alt={npc.npcName} className={styles.npcAvatarImg} />
+                {portraitUrl
+                  ? <img src={portraitUrl} alt={npc.npcName} className={styles.npcAvatarImg} />
                   : npc.npcName.charAt(0)}
               </div>
               <div className={styles.npcInfo}>

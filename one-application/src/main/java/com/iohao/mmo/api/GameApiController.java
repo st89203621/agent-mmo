@@ -1332,6 +1332,10 @@ public class GameApiController {
             m.put("gender", npc.getGender());
             m.put("age", npc.getAge());
             m.put("features", npc.getFeatures());
+            // 查找已缓存的立绘（不触发生成）
+            String prefix = npc.getNpcId() + "_" + worldIndex + "_";
+            sceneImageService.findCachedByPrefix(prefix)
+                    .ifPresent(si -> m.put("portraitUrl", "/api/story/scene-image/" + si.getId()));
             return m;
         }).toList();
         return ok(Map.of("npcs", list));
