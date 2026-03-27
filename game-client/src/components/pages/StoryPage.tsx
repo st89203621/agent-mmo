@@ -10,7 +10,6 @@ import {
   type DialogueData, type DialogueHistoryItem, type SelectedBookData,
 } from '../../services/api';
 import FateBar from '../common/FateBar';
-import { useNpcPortraits } from '../../hooks/useNpcPortraits';
 import type { BookWorld, DialogueChoice, DialogueMessage, Emotion } from '../../types';
 import { EMOTION_LABELS } from '../../constants/emotion';
 import styles from './StoryPage.module.css';
@@ -76,8 +75,6 @@ export default function StoryPage() {
   }, [galleryIndex, dialogue.sceneImages.length]);
 
   const currentRelation = player.relations.find((r) => r.npcId === dialogue.npcId);
-  const portraitUrls = useNpcPortraits(game.npcsInScene, player.currentWorldIndex, artStyle);
-
   // 初始化
   useEffect(() => {
     setBookLoading(true);
@@ -220,7 +217,11 @@ export default function StoryPage() {
     const npc = game.npcsInScene.find((n) => n.npcId === npcId);
     dialogue.setSceneImageLoading(true);
     generateSceneImage(npcId, player.currentWorldIndex, artStyle || undefined)
-      .then((res) => dialogue.pushSceneImage(res.imageUrl))
+      .then((res) => {
+        dialogue.pushSceneImage(res.imageUrl);
+        // 立绘生成后刷新relations，获取更新后的imageUrl
+        fetchRelations().then((r) => player.setRelations(r.relations)).catch(() => {});
+      })
       .catch(() => dialogue.setSceneImageLoading(false));
 
     abortRef.current = streamStartDialogue(
@@ -653,8 +654,8 @@ export default function StoryPage() {
               disabled={loading}
             >
               <div className={styles.npcAvatar}>
-                {portraitUrls[npc.npcId]
-                  ? <img src={portraitUrls[npc.npcId]} alt={npc.npcName} className={styles.npcAvatarImg} />
+                {rel?.imageUrl?.startsWith('/api/')
+                  ? <img src={rel.imageUrl} alt={npc.npcName} className={styles.npcAvatarImg} />
                   : npc.npcName.charAt(0)}
               </div>
               <div className={styles.npcInfo}>

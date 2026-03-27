@@ -72,6 +72,7 @@ public class SceneImageService {
             SceneImage existing = cached.get(0);
             // 校验缓存有效性：imageData 必须非空
             if (existing.getImageData() != null && existing.getImageData().length > 0) {
+                log.info("【文生图】命中缓存: cacheKey={}", cacheKey);
                 return Optional.of(existing);
             }
             // 无效缓存，清除后重新生成
@@ -79,7 +80,8 @@ public class SceneImageService {
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
-        // 调用文生图
+        // 调用文生图（收费API）
+        log.info("【文生图】发起请求: cacheKey={}", cacheKey);
         try {
             byte[] imageBytes = generateAndDownload(prompt);
             if (imageBytes == null || imageBytes.length == 0) {
@@ -108,6 +110,10 @@ public class SceneImageService {
      */
     public Optional<SceneImage> getById(String id) {
         return sceneImageRepository.findById(id);
+    }
+
+    public List<SceneImage> findByCacheKey(String cacheKey) {
+        return sceneImageRepository.findByCacheKey(cacheKey);
     }
 
     /**

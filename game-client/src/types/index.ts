@@ -37,6 +37,7 @@ export interface NpcInfo {
   gender: string;
   age: string;
   features: string;
+  portraitUrl?: string;
 }
 
 /** 缘分关系 */

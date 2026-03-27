@@ -511,7 +511,19 @@ public class GameApiController {
         if (result.isEmpty()) return err("图片生成失败");
 
         String imageId = result.get().getId();
-        return ok(Map.of("imageId", imageId, "imageUrl", "/api/story/scene-image/" + imageId));
+        String imageUrl = "/api/story/scene-image/" + imageId;
+
+        // 无场景提示时为NPC立绘，同步更新Relation的imageUrl
+        if (sceneHint == null || sceneHint.isBlank()) {
+            List<Relation> rels = relationRepository.findByPlayerIdAndNpcIdAndWorldIndex(userId, npcId, worldIndex);
+            if (!rels.isEmpty()) {
+                Relation rel = rels.get(0);
+                rel.setImageUrl(imageUrl);
+                relationRepository.save(rel);
+            }
+        }
+
+        return ok(Map.of("imageId", imageId, "imageUrl", imageUrl));
     }
 
     /** 决定图片风格优先级：请求参数 > 用户自定义 > 书籍默认 > 兜底 */
