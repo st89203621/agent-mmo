@@ -371,6 +371,7 @@ export interface BagItemData {
   quality?: string;
   equipId?: string;
   equipPosition?: number;
+  effectType?: string;
 }
 
 export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
@@ -445,6 +446,10 @@ export function allotPersonPoints(attrs: Record<string, number>): Promise<{ attr
     method: 'POST',
     body: JSON.stringify(attrs),
   });
+}
+
+export function resetPersonPoints(): Promise<{ attributePoints: number; refunded: number; msg: string }> {
+  return request('/person/reset-points', { method: 'POST' });
 }
 
 

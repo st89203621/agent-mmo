@@ -175,7 +175,7 @@ export default function InventoryPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  {selected.category === 'consumable' && (
+                  {(selected.effectType || selected.category === 'consumable') && selected.category !== 'equipment' && (
                     <button className={styles.actionBtn} onClick={handleUse} disabled={operating}>
                       {operating ? '使用中...' : '使用'}
                     </button>

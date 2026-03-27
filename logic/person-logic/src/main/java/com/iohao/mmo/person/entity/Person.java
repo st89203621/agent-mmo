@@ -25,7 +25,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.DocumentReference;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author 渔民小镇
@@ -56,6 +58,8 @@ public class Person {
     String portraitImageId;
     /** AI生成的主页背景图片ID（对应SceneImage） */
     String bgImageId;
-    /** 未分配的属性点（每升一级获得5点） */
+    /** 未分配的属性点（每升一级获得10点） */
     int attributePoints;
+    /** 已手动分配的属性点记录（用于重置还原），key=属性名，value=分配的点数 */
+    Map<String, Integer> allocatedPoints = new HashMap<>();
 }

@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
-import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, allotPersonPoints, logout, type EquipData, type PersonData } from '../../services/api';
+import { fetchEquipList, fetchRebirthStatus, fetchPersonInfo, allotPersonPoints, resetPersonPoints, logout, type EquipData, type PersonData } from '../../services/api';
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import { POSITION_LABELS } from '../../constants/equipment';
 import page from '../../styles/page.module.css';
@@ -28,12 +28,15 @@ export default function CharacterPage() {
   const [person, setPerson] = useState<PersonData | null>(null);
   const [pending, setPending] = useState<Record<string, number>>({});
   const [allocating, setAllocating] = useState(false);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    loadedRef.current = false;
     fetchEquipList().then((res) => setEquips(res.equips)).catch(() => {});
     fetchPersonInfo().then(p => {
       setPerson(p);
       if (p.level) usePlayerStore.getState().setLevelInfo(p.level);
+      loadedRef.current = true;
     }).catch(() => {});
     fetchRebirthStatus()
       .then((data) => {
@@ -42,6 +45,12 @@ export default function CharacterPage() {
       })
       .catch(() => {});
   }, []);
+
+  // 等级变化时重新拉取角色属性（实时同步升级后的加成）
+  useEffect(() => {
+    if (!loadedRef.current || !levelInfo?.level) return;
+    fetchPersonInfo().then(p => setPerson(p)).catch(() => {});
+  }, [levelInfo?.level]);
 
   const handleAllot = useCallback(async () => {
     const filtered = Object.fromEntries(Object.entries(pending).filter(([, v]) => v > 0));
@@ -56,6 +65,19 @@ export default function CharacterPage() {
     } catch { /* noop */ }
     setAllocating(false);
   }, [pending]);
+
+  const handleReset = useCallback(async () => {
+    if (!confirm('重置所有已分配的属性点？')) return;
+    setAllocating(true);
+    try {
+      await resetPersonPoints();
+      const p = await fetchPersonInfo();
+      setPerson(p);
+      if (p.level) usePlayerStore.getState().setLevelInfo(p.level);
+      setPending({});
+    } catch { /* noop */ }
+    setAllocating(false);
+  }, []);
 
   const getEquipForSlot = (position: number) =>
     equips.find((e) => e.position === position);
@@ -87,51 +109,67 @@ export default function CharacterPage() {
 
       <div className={styles.content}>
         {/* 角色基础信息 */}
-        {person?.exists && person.basicProperty && (
-          <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              {person.name || '无名侠客'}
-              {person.profession && (
-                <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
-                  {({ ATTACK: '无坚不摧', DEFENSE: '金刚护体', AGILITY: '行动敏捷' } as Record<string, string>)[person.profession] || person.profession}
-                </span>
-              )}
-            </h3>
+        {person?.exists && person.basicProperty && (() => {
+          const bp = person.basicProperty;
+          const eb = equips.reduce(
+            (acc, e) => {
+              if (e.fixedProps) {
+                acc.hp += e.fixedProps.hp ?? 0;
+                acc.mp += e.fixedProps.mp ?? 0;
+                acc.physicsAttack += e.fixedProps.physicsAttack ?? 0;
+                acc.physicsDefense += e.fixedProps.physicsDefense ?? 0;
+                acc.magicAttack += e.fixedProps.magicAttack ?? 0;
+                acc.speed += e.fixedProps.speed ?? 0;
+              }
+              return acc;
+            },
+            { hp: 0, mp: 0, physicsAttack: 0, physicsDefense: 0, magicAttack: 0, speed: 0 }
+          );
+          return (
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>
+                {person.name || '无名侠客'}
+                {person.profession && (
+                  <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                    {({ ATTACK: '无坚不摧', DEFENSE: '金刚护体', AGILITY: '行动敏捷' } as Record<string, string>)[person.profession] || person.profession}
+                  </span>
+                )}
+              </h3>
 
-            {/* 等级经验条（从全局 store 读取，确保跨页面同步） */}
-            {levelInfo && (
-              <div className={styles.levelRow}>
-                <span className={styles.levelBadge}>Lv.{levelInfo.level}</span>
-                <div className={styles.expBarWrap}>
-                  <div
-                    className={styles.expBarFill}
-                    style={{ width: `${levelInfo.maxExp > 0 ? Math.min(100, (levelInfo.exp / levelInfo.maxExp) * 100) : 0}%` }}
-                  />
+              {levelInfo && (
+                <div className={styles.levelRow}>
+                  <span className={styles.levelBadge}>Lv.{levelInfo.level}</span>
+                  <div className={styles.expBarWrap}>
+                    <div
+                      className={styles.expBarFill}
+                      style={{ width: `${levelInfo.maxExp > 0 ? Math.min(100, (levelInfo.exp / levelInfo.maxExp) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <span className={styles.expText}>{levelInfo.exp}/{levelInfo.maxExp}</span>
                 </div>
-                <span className={styles.expText}>{levelInfo.exp}/{levelInfo.maxExp}</span>
-              </div>
-            )}
+              )}
 
-            <div className={styles.statsGrid}>
-              <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{person.basicProperty.hp}</span></div>
-              <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{person.basicProperty.mp}</span></div>
-              <div className={styles.statItem}><span>物攻</span><span className={styles.statVal}>{person.basicProperty.physicsAttack}</span></div>
-              <div className={styles.statItem}><span>物防</span><span className={styles.statVal}>{person.basicProperty.physicsDefense}</span></div>
-              <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{person.basicProperty.magicAttack}</span></div>
-              <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{person.basicProperty.speed}</span></div>
-            </div>
-            <div className={styles.statsGrid} style={{ marginTop: 8 }}>
-              <div className={styles.statItem}><span>附攻</span><span className={styles.statVal} style={{ color: '#e8a642' }}>{person.basicProperty.bonusAttack}</span></div>
-              <div className={styles.statItem}><span>附防</span><span className={styles.statVal} style={{ color: '#5ca0d3' }}>{person.basicProperty.bonusDefense}</span></div>
-              <div className={styles.statItem}><span>敏捷</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{person.basicProperty.agility}</span></div>
-              <div className={styles.statItem}><span>暴击</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{person.basicProperty.critRate}%</span></div>
-            </div>
-            <div className={styles.statsGrid} style={{ marginTop: 8 }}>
-              <div className={styles.statItem}><span>金币</span><span className={styles.statVal} style={{ color: '#d4a84c' }}>{gold}</span></div>
-              <div className={styles.statItem}><span>钻石</span><span className={styles.statVal} style={{ color: '#7ec8e3' }}>{diamond}</span></div>
-            </div>
-          </section>
-        )}
+              <div className={styles.statsGrid}>
+                <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{bp.hp + eb.hp}</span></div>
+                <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{bp.mp + eb.mp}</span></div>
+                <div className={styles.statItem}><span>物攻</span><span className={styles.statVal}>{bp.physicsAttack + eb.physicsAttack}</span></div>
+                <div className={styles.statItem}><span>物防</span><span className={styles.statVal}>{bp.physicsDefense + eb.physicsDefense}</span></div>
+                <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{bp.magicAttack + eb.magicAttack}</span></div>
+                <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{bp.speed + eb.speed}</span></div>
+              </div>
+              <div className={styles.statsGrid} style={{ marginTop: 8 }}>
+                <div className={styles.statItem}><span>附攻</span><span className={styles.statVal} style={{ color: '#e8a642' }}>{bp.bonusAttack}</span></div>
+                <div className={styles.statItem}><span>附防</span><span className={styles.statVal} style={{ color: '#5ca0d3' }}>{bp.bonusDefense}</span></div>
+                <div className={styles.statItem}><span>敏捷</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{bp.agility}</span></div>
+                <div className={styles.statItem}><span>暴击</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{bp.critRate}%</span></div>
+              </div>
+              <div className={styles.statsGrid} style={{ marginTop: 8 }}>
+                <div className={styles.statItem}><span>金币</span><span className={styles.statVal} style={{ color: '#d4a84c' }}>{gold}</span></div>
+                <div className={styles.statItem}><span>钻石</span><span className={styles.statVal} style={{ color: '#7ec8e3' }}>{diamond}</span></div>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* 属性分配 */}
         {person?.exists && (person.attributePoints ?? 0) > 0 && (() => {
@@ -161,11 +199,21 @@ export default function CharacterPage() {
                   );
                 })}
               </div>
-              {used > 0 && (
-                <button className={styles.allotConfirmBtn} disabled={allocating} onClick={handleAllot}>
-                  {allocating ? '...' : `确认分配 (${used}点)`}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                {used > 0 && (
+                  <button className={styles.allotConfirmBtn} style={{ flex: 1 }} disabled={allocating} onClick={handleAllot}>
+                    {allocating ? '...' : `确认分配 (${used}点)`}
+                  </button>
+                )}
+                <button
+                  className={styles.allotConfirmBtn}
+                  style={{ flex: used > 0 ? '0 0 80px' : 1, background: 'var(--paper-darker)', color: 'var(--ink)' }}
+                  disabled={allocating}
+                  onClick={handleReset}
+                >
+                  重置
                 </button>
-              )}
+              </div>
             </section>
           );
         })()}
@@ -206,40 +254,6 @@ export default function CharacterPage() {
                 </button>
               );
             })}
-          </div>
-        </section>
-
-        {/* 属性总览 */}
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>属性</h3>
-          <div className={styles.statsGrid}>
-            {equips.length > 0 ? (
-              (() => {
-                const total = equips.reduce((acc, e) => {
-                  if (e.fixedProps) {
-                    acc.hp += e.fixedProps.hp;
-                    acc.mp += e.fixedProps.mp;
-                    acc.atk += e.fixedProps.physicsAttack;
-                    acc.def += e.fixedProps.physicsDefense;
-                    acc.matk += e.fixedProps.magicAttack;
-                    acc.spd += e.fixedProps.speed;
-                  }
-                  return acc;
-                }, { hp: 0, mp: 0, atk: 0, def: 0, matk: 0, spd: 0 });
-                return (
-                  <>
-                    <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{total.hp}</span></div>
-                    <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{total.mp}</span></div>
-                    <div className={styles.statItem}><span>物攻</span><span className={styles.statVal}>{total.atk}</span></div>
-                    <div className={styles.statItem}><span>物防</span><span className={styles.statVal}>{total.def}</span></div>
-                    <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{total.matk}</span></div>
-                    <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{total.spd}</span></div>
-                  </>
-                );
-              })()
-            ) : (
-              <p className={styles.emptyText}>暂无装备</p>
-            )}
           </div>
         </section>
 

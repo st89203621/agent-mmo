@@ -1134,6 +1134,9 @@ public class GameApiController {
                     m.put("description", shopItem.getDescription());
                     m.put("category", shopItem.getCategory());
                     m.put("quality", shopItem.getQuality());
+                    if (shopItem.getEffect() != null) {
+                        m.put("effectType", shopItem.getEffect().getType());
+                    }
                 } else {
                     m.put("name", item.getItemTypeId());
                     m.put("icon", "📦");
@@ -1227,6 +1230,7 @@ public class GameApiController {
         if (person.getAttributePoints() < totalNeeded) return err("属性点不足");
 
         var bp = person.getBasicProperty();
+        if (person.getAllocatedPoints() == null) person.setAllocatedPoints(new HashMap<>());
         for (Map.Entry<String, Integer> e : alloc.entrySet()) {
             int pts = e.getValue();
             switch (e.getKey()) {
@@ -1238,10 +1242,43 @@ public class GameApiController {
                 case "speed"          -> bp.setSpeed(bp.getSpeed() + pts);
                 case "agility"        -> { bp.setAgility(bp.getAgility() + pts); bp.recalcBonus(); }
             }
+            person.getAllocatedPoints().merge(e.getKey(), pts, Integer::sum);
         }
         person.setAttributePoints(person.getAttributePoints() - totalNeeded);
         personService.savePerson(person);
         return ok(Map.of("attributePoints", person.getAttributePoints(), "msg", "分配成功"));
+    }
+
+    @PostMapping("/person/reset-points")
+    public ResponseEntity<Map<String, Object>> resetPersonPoints(HttpSession session) {
+        long userId = requireLogin(session);
+        Person person = personService.getPersonById(userId);
+        if (person == null) return err("角色不存在");
+        if (person.getBasicProperty() == null) return err("角色属性未初始化");
+        if (person.getAllocatedPoints() == null || person.getAllocatedPoints().isEmpty()) {
+            return err("暂无已分配的属性点");
+        }
+
+        var bp = person.getBasicProperty();
+        int totalRefund = 0;
+        for (Map.Entry<String, Integer> e : person.getAllocatedPoints().entrySet()) {
+            int pts = e.getValue();
+            if (pts <= 0) continue;
+            totalRefund += pts;
+            switch (e.getKey()) {
+                case "hp"             -> bp.setHp(bp.getHp() - pts * 20);
+                case "mp"             -> bp.setMp(bp.getMp() - pts * 10);
+                case "physicsAttack"  -> bp.setPhysicsAttack(bp.getPhysicsAttack() - pts * 3);
+                case "physicsDefense" -> bp.setPhysicsDefense(bp.getPhysicsDefense() - pts * 2);
+                case "magicAttack"    -> bp.setMagicAttack(bp.getMagicAttack() - pts * 3);
+                case "speed"          -> bp.setSpeed(bp.getSpeed() - pts);
+                case "agility"        -> { bp.setAgility(bp.getAgility() - pts); bp.recalcBonus(); }
+            }
+        }
+        person.getAllocatedPoints().clear();
+        person.setAttributePoints(person.getAttributePoints() + totalRefund);
+        personService.savePerson(person);
+        return ok(Map.of("attributePoints", person.getAttributePoints(), "refunded", totalRefund, "msg", "属性点已重置"));
     }
 
     // ── 任务 ──────────────────────────────────────
@@ -2764,12 +2801,12 @@ public class GameApiController {
 
     // ── 工具方法 ──────────────────────────────────────
 
-    /** 升级时发放属性点（每级5点） */
+    /** 升级时发放属性点（每级10点） */
     private void grantAttributePoints(long userId, int levelsGained) {
         if (levelsGained <= 0) return;
         Person person = personService.getPersonById(userId);
         if (person == null) return;
-        person.setAttributePoints(person.getAttributePoints() + levelsGained * 5);
+        person.setAttributePoints(person.getAttributePoints() + levelsGained * 10);
         personService.savePerson(person);
     }
 
