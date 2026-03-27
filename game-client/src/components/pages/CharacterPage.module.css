@@ -124,6 +124,52 @@
   line-height: 1.2;
 }
 
+/* 等级经验条 */
+.levelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.levelBadge {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  min-width: 52px;
+  text-align: center;
+}
+
+.expBarWrap {
+  flex: 1;
+  height: 8px;
+  background: var(--paper-darker);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.expBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.expText {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+  text-align: right;
+}
+
 /* 属性网格 */
 .statsGrid {
   display: grid;

@@ -4,7 +4,7 @@ import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import {
   fetchDungeons, enterDungeon, challengeDungeonStage, settleDungeonStage,
-  failDungeonStage, exitDungeon, fetchPlayerCurrency,
+  failDungeonStage, exitDungeon, fetchPlayerCurrency, fetchPersonInfo,
   type DungeonData, type StageInfoData, type DungeonRewardResult,
 } from '../../services/api';
 import styles from './DungeonPage.module.css';
@@ -101,10 +101,10 @@ export default function DungeonPage() {
         isComplete: res.dungeon.status === 'COMPLETED',
       });
       await loadData();
-      try {
-        const c = await fetchPlayerCurrency();
-        usePlayerStore.getState().setCurrency(c.gold, c.diamond);
-      } catch { /* noop */ }
+      await Promise.allSettled([
+        fetchPlayerCurrency().then(c => usePlayerStore.getState().setCurrency(c.gold, c.diamond)),
+        fetchPersonInfo().then(p => { if (p.level) usePlayerStore.getState().setLevelInfo(p.level); }),
+      ]);
     } catch { /* noop */ }
     setOperating(false);
   }, [loadData]);

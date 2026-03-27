@@ -178,6 +178,40 @@
   cursor: pointer;
 }
 
+/* HUD 等级经验条 */
+.levelHud {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.levelHudBadge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+.levelHudBar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.levelHudFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
 .genStatus {
   font-size: 11px;
   color: var(--gold-dim);

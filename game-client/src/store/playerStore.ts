@@ -10,6 +10,12 @@ interface GlobalFate {
   worldIndex: number;
 }
 
+export interface LevelInfo {
+  level: number;
+  exp: number;
+  maxExp: number;
+}
+
 interface PlayerState {
   playerId: string;
   playerName: string;
@@ -23,6 +29,7 @@ interface PlayerState {
   gold: number;
   diamond: number;
   globalFate: GlobalFate | null;
+  levelInfo: LevelInfo | null;
 
   setPlayer: (id: string, name: string, token: string) => void;
   setCurrentWorld: (index: number) => void;
@@ -32,6 +39,7 @@ interface PlayerState {
   setPersonCreated: (created: boolean) => void;
   setCurrency: (gold: number, diamond: number) => void;
   setGlobalFate: (fate: GlobalFate) => void;
+  setLevelInfo: (info: LevelInfo | null) => void;
   clearPlayer: () => void;
 }
 
@@ -48,6 +56,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   gold: 0,
   diamond: 0,
   globalFate: null,
+  levelInfo: null,
 
   setPlayer: (id, name, token) => set({ playerId: id, playerName: name, token }),
   setCurrentWorld: (index) => set({ currentWorldIndex: index }),
@@ -56,10 +65,11 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setPersonCreated: (created) => set({ personCreated: created }),
   setCurrency: (gold, diamond) => set({ gold, diamond }),
   setGlobalFate: (fate) => set({ globalFate: fate }),
+  setLevelInfo: (info) => set({ levelInfo: info }),
   clearPlayer: () => set({
     playerId: '', playerName: '', token: '', currentWorldIndex: 0,
     playerWorld: null, relations: [], equipment: [], pets: [],
-    personCreated: false, gold: 0, diamond: 0, globalFate: null,
+    personCreated: false, gold: 0, diamond: 0, globalFate: null, levelInfo: null,
   }),
   updateRelation: (npcId, fateDelta, trustDelta) =>
     set((state) => ({

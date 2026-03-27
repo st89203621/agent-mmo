@@ -67,4 +67,26 @@ public class LevelService {
         Query query = new Query(Criteria.where("level").is(level));
         return mongoTemplate.findOne(query, PersonLevelConfig.class);
     }
+
+    /**
+     * 添加经验值并自动检查升级（可连升多级）
+     *
+     * @param userId 用户ID
+     * @param exp    获得的经验值
+     * @return 更新后的等级信息
+     */
+    public Level addExpWithAutoLevelUp(long userId, int exp) {
+        Level level = ofLevel(userId);
+        level.addExp(exp);
+
+        PersonLevelConfig config;
+        while ((config = getPersonLevelConfigByLevel(level.getLevel())) != null
+                && level.getExp() >= config.getExp()) {
+            level.addExp(-config.getExp());
+            level.incrementLevel();
+        }
+
+        save(level);
+        return level;
+    }
 }

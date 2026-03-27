@@ -45,12 +45,12 @@ public class LevelCommandLineRunner implements CommandLineRunner {
         mongoTemplate.dropCollection(PersonLevelConfig.class);
 
         List<PersonLevelConfig> configList = new ArrayList<>();
-        for (int i = 1; i < 100; i++) {
+        for (int i = 1; i <= 200; i++) {
             PersonLevelConfig config = new PersonLevelConfig();
             configList.add(config);
-
             config.setLevel(i);
-            config.setExp(i * 10);
+            // 升级所需经验：100 * level^1.8，随等级非线性递增
+            config.setExp((int) Math.round(100 * Math.pow(i, 1.8)));
         }
 
         mongoTemplate.insert(configList, PersonLevelConfig.class);

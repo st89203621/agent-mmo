@@ -662,13 +662,52 @@
 .resultTitle.victory { color: #c9a84c; text-shadow: 0 0 24px rgba(201, 168, 76, 0.5); }
 .resultTitle.defeat { color: #c44444; text-shadow: 0 0 24px rgba(196, 60, 60, 0.5); }
 
-.rewardList { display: flex; gap: 24px; margin-bottom: 22px; animation: slideUp 0.45s ease 0.25s both; }
+.rewardList { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 22px; animation: slideUp 0.45s ease 0.25s both; }
 @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 
 .rewardItem { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .rewardIcon { font-size: 24px; filter: drop-shadow(0 0 8px rgba(255,200,80,0.5)); }
 .rewardValue { font-size: 14px; font-weight: 700; color: rgba(255, 255, 255, 0.92); }
 .rewardLabel { font-size: 9px; color: rgba(255, 255, 255, 0.3); }
+
+/* 战斗奖励 - 等级经验进度条 */
+.levelProgress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0 2px;
+  animation: slideUp 0.45s ease 0.35s both;
+}
+.levelTag {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0c040;
+  min-width: 46px;
+  text-align: center;
+}
+.expTrack {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.expTrackFill {
+  height: 100%;
+  background: linear-gradient(90deg, #c9a84c, #f0e080);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.expTrackText {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: right;
+}
 
 .resultActions { display: flex; gap: 12px; animation: slideUp 0.45s ease 0.45s both; }
 

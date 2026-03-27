@@ -40,6 +40,9 @@ import com.iohao.mmo.battle.entity.BattleAction;
 import com.iohao.mmo.battle.entity.BattleState;
 import com.iohao.mmo.battle.entity.BattleUnit;
 import com.iohao.mmo.battle.service.BattleService;
+import com.iohao.mmo.level.entity.Level;
+import com.iohao.mmo.level.entity.PersonLevelConfig;
+import com.iohao.mmo.level.service.LevelService;
 import com.iohao.mmo.shop.entity.ShopItem;
 import com.iohao.mmo.shop.entity.PlayerCurrency;
 import com.iohao.mmo.shop.entity.PurchaseHistory;
@@ -131,6 +134,9 @@ public class GameApiController {
 
     @Resource
     BattleService battleService;
+
+    @Resource
+    LevelService levelService;
 
     @Resource
     ShopService shopService;
@@ -784,16 +790,28 @@ public class GameApiController {
         m.put("id", person.getId());
         m.put("name", person.getName());
         m.put("profession", person.getProfession());
+
+        // 等级信息
+        Level levelInfo = levelService.ofLevel(userId);
+        PersonLevelConfig nextLevelConfig = levelService.getPersonLevelConfigByLevel(levelInfo.getLevel());
+        m.put("level", Map.of(
+                "level", levelInfo.getLevel(),
+                "exp", levelInfo.getExp(),
+                "maxExp", nextLevelConfig != null ? nextLevelConfig.getExp() : 0
+        ));
+
         if (person.getBasicProperty() != null) {
             var bp = person.getBasicProperty();
+            int bonus = levelInfo.getLevel() - 1;
             Map<String, Object> props = new LinkedHashMap<>();
-            props.put("hp", bp.getHp());
-            props.put("mp", bp.getMp());
-            props.put("physicsAttack", bp.getPhysicsAttack());
-            props.put("physicsDefense", bp.getPhysicsDefense());
-            props.put("magicAttack", bp.getMagicAttack());
-            props.put("magicDefense", bp.getMagicDefense());
-            props.put("speed", bp.getSpeed());
+            // 属性含等级加成：每级 HP+50, MP+20, 物攻+5, 物防+3, 法攻+4, 法防+3, 速度+1
+            props.put("hp", bp.getHp() + bonus * 50);
+            props.put("mp", bp.getMp() + bonus * 20);
+            props.put("physicsAttack", bp.getPhysicsAttack() + bonus * 5);
+            props.put("physicsDefense", bp.getPhysicsDefense() + bonus * 3);
+            props.put("magicAttack", bp.getMagicAttack() + bonus * 4);
+            props.put("magicDefense", bp.getMagicDefense() + bonus * 3);
+            props.put("speed", bp.getSpeed() + bonus);
             props.put("bonusAttack", bp.getBonusAttack());
             props.put("bonusDefense", bp.getBonusDefense());
             props.put("agility", bp.getAgility());
@@ -1680,21 +1698,36 @@ public class GameApiController {
     // ── 战斗 ──────────────────────────────────────
 
     @PostMapping("/battle/start")
-    public ResponseEntity<Map<String, Object>> startBattle(@RequestBody Map<String, Object> body, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> startBattle(@RequestBody(required = false) Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
-        int hp = ((Number) body.getOrDefault("hp", 100)).intValue();
-        int mp = ((Number) body.getOrDefault("mp", 50)).intValue();
-        int pAtk = ((Number) body.getOrDefault("physicsAttack", 10)).intValue();
-        int pDef = ((Number) body.getOrDefault("physicsDefense", 5)).intValue();
-        int mAtk = ((Number) body.getOrDefault("magicAttack", 8)).intValue();
-        int mDef = ((Number) body.getOrDefault("magicDefense", 5)).intValue();
-        int speed = ((Number) body.getOrDefault("speed", 10)).intValue();
-        // 查询玩家已学的COMBAT主动技能，构建BattleSkill列表
+        int[] stats = buildPlayerStats(userId);
         List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
-        BattleState state = battleService.startBattle(userId, hp, mp, pAtk, pDef, mAtk, mDef, speed, battleSkills);
-        // 设置立绘：玩家使用已有立绘，怪物异步生成
+        BattleState state = battleService.startBattle(userId, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], battleSkills);
         attachBattlePortraits(userId, state);
         return ok(Map.of("battle", battleToMap(state)));
+    }
+
+    /**
+     * 计算玩家最终战斗属性（基础属性 + 等级加成）
+     * 返回 [hp, mp, physicsAttack, physicsDefense, magicAttack, magicDefense, speed]
+     */
+    private int[] buildPlayerStats(long userId) {
+        Person person = personService.getPersonById(userId);
+        Level level = levelService.ofLevel(userId);
+        int bonus = level != null ? Math.max(0, level.getLevel() - 1) : 0;
+        if (person != null && person.getBasicProperty() != null) {
+            var bp = person.getBasicProperty();
+            return new int[]{
+                    bp.getHp() + bonus * 50,
+                    bp.getMp() + bonus * 20,
+                    bp.getPhysicsAttack() + bonus * 5,
+                    bp.getPhysicsDefense() + bonus * 3,
+                    bp.getMagicAttack() + bonus * 4,
+                    bp.getMagicDefense() + bonus * 3,
+                    bp.getSpeed() + bonus
+            };
+        }
+        return new int[]{100 + bonus * 50, 50 + bonus * 20, 10 + bonus * 5, 5 + bonus * 3, 8 + bonus * 4, 5 + bonus * 3, 10 + bonus};
     }
 
     /** 从玩家已学技能中提取战斗技能 */
@@ -1769,13 +1802,21 @@ public class GameApiController {
         int rewardGold = 80 + rng.nextInt(41); // 80~120
         int rewardExp = 40 + rng.nextInt(21);   // 40~60
 
+        // 发放金币
         PlayerCurrency currency = shopService.getPlayerCurrency(userId);
         currency.addGold(rewardGold);
         shopService.saveCurrency(currency);
 
+        // 实际发放经验并自动检查升级
+        Level newLevel = levelService.addExpWithAutoLevelUp(userId, rewardExp);
+        PersonLevelConfig nextConfig = levelService.getPersonLevelConfigByLevel(newLevel.getLevel());
+
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("gold", rewardGold);
         detail.put("exp", rewardExp);
+        detail.put("currentLevel", newLevel.getLevel());
+        detail.put("currentExp", newLevel.getExp());
+        detail.put("maxExp", nextConfig != null ? nextConfig.getExp() : 0);
 
         // 25% 掉落消耗品
         String[] consumablePool = {"consumable_001", "consumable_002", "consumable_003"};
@@ -2074,27 +2115,17 @@ public class GameApiController {
         Dungeon.StageInfo stageInfo = adventureService.getCurrentStageInfo(userId, dungeonId);
         if (stageInfo == null) return err("当前无可挑战的关卡");
 
-        // 获取玩家属性
-        Person person = personService.getPersonById(userId);
-        int hp = 100, mp = 50, pAtk = 15, pDef = 8, mAtk = 12, mDef = 8, spd = 10;
-        if (person != null && person.getBasicProperty() != null) {
-            var bp = person.getBasicProperty();
-            hp = bp.getHp(); mp = bp.getMp();
-            pAtk = bp.getPhysicsAttack(); pDef = bp.getPhysicsDefense();
-            mAtk = bp.getMagicAttack(); mDef = bp.getMagicDefense();
-            spd = bp.getSpeed();
-        }
-
         // 获取副本难度
         Dungeon dungeon = adventureService.listDungeons(userId).stream()
             .filter(d -> dungeonId.equals(d.getDungeonId())).findFirst().orElse(null);
         int difficulty = dungeon != null ? dungeon.getDifficulty() : 1;
 
+        int[] stats = buildPlayerStats(userId);
         List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
         BattleState state = battleService.startDungeonBattle(userId,
             stageInfo.getEnemyName(), stageInfo.getEnemyLevel(),
             stageInfo.isBoss(), difficulty,
-            hp, mp, pAtk, pDef, mAtk, mDef, spd, battleSkills);
+            stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], battleSkills);
         attachBattlePortraits(userId, state);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -2160,6 +2191,8 @@ public class GameApiController {
         if (reward.getGold() > 0) currency.addGold(reward.getGold());
         shopService.saveCurrency(currency);
 
+        if (reward.getExp() > 0) levelService.addExpWithAutoLevelUp(userId, reward.getExp());
+
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("gold", reward.getGold());
         detail.put("exp", reward.getExp());
@@ -2196,10 +2229,10 @@ public class GameApiController {
     /** 发放副本通关奖励 */
     private Map<String, Object> distributeDungeonRewards(long userId, Dungeon.DungeonReward reward) {
         PlayerCurrency currency = shopService.getPlayerCurrency(userId);
-        if (reward.getGold() > 0) {
-            currency.addGold(reward.getGold());
-        }
+        if (reward.getGold() > 0) currency.addGold(reward.getGold());
         shopService.saveCurrency(currency);
+
+        if (reward.getExp() > 0) levelService.addExpWithAutoLevelUp(userId, reward.getExp());
 
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("gold", reward.getGold());
@@ -2378,17 +2411,13 @@ public class GameApiController {
     public ResponseEntity<Map<String, Object>> exploreStartCombat(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String eventId = (String) body.get("eventId");
-        Person person = personService.getPersonById(userId);
-        if (person == null || person.getBasicProperty() == null) {
+        if (personService.getPersonById(userId) == null) {
             return err("角色未初始化，请先创建角色");
         }
-        var bp = person.getBasicProperty();
         String enemyName = (String) body.getOrDefault("enemyName", "妖兽");
+        int[] stats = buildPlayerStats(userId);
         BattleState state = battleService.startBattleWithEnemy(userId, enemyName,
-                bp.getHp(), bp.getMp(),
-                bp.getPhysicsAttack(), bp.getPhysicsDefense(),
-                bp.getMagicAttack(), bp.getMagicDefense(),
-                bp.getSpeed());
+                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6]);
         exploreService.linkBattle(eventId, state.getId());
         attachBattlePortraits(userId, state);
         return ok(Map.of("battle", battleToMap(state)));
@@ -2455,6 +2484,9 @@ public class GameApiController {
                 currency.addGold(goldReward);
                 shopService.saveCurrency(currency);
             }
+
+            // 5. 探索经验奖励（固定20经验）
+            levelService.addExpWithAutoLevelUp(userId, 20);
         } catch (Exception e) {
             log.warn("探索奖励发放异常: userId={}, eventId={}, err={}", userId, eventId, e.getMessage());
         }

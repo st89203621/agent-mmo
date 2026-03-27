@@ -117,7 +117,7 @@ interface HomeData {
 
 export default function HomePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
-  const { playerName, gold, diamond, clearPlayer } = usePlayerStore();
+  const { playerName, gold, diamond, clearPlayer, levelInfo } = usePlayerStore();
   const phaserRef = useRef<HTMLDivElement>(null);
   usePhaserGame(phaserRef, [HomeScene]);
   const [parallax, portraitZoneRef] = useParallax3D();
@@ -205,6 +205,7 @@ export default function HomePage() {
       companions.forEach((c) => { if (c.portraitUrl) urls[`comp_${c.id}`] = c.portraitUrl; });
       setPortraitUrls(urls);
       if (p?.bgUrl) setBgUrl(p.bgUrl);
+      if (p?.level) usePlayerStore.getState().setLevelInfo(p.level);
       setLoading(false);
     });
   }, []);
@@ -330,7 +331,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 第二行：角色名 */}
+        {/* 第二行：角色名 + 等级 */}
         <div className={styles.row2}>
           <h1
             className={styles.charName}
@@ -341,6 +342,21 @@ export default function HomePage() {
           >
             {activeLabel}
           </h1>
+          {levelInfo && (
+            <div className={styles.levelHud}>
+              <span className={styles.levelHudBadge}>Lv.{levelInfo.level}</span>
+              <div className={styles.levelHudBar}>
+                <div
+                  className={styles.levelHudFill}
+                  style={{
+                    width: `${levelInfo.maxExp > 0
+                      ? Math.min(100, (levelInfo.exp / levelInfo.maxExp) * 100)
+                      : 0}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 第三行：属性 + 行动力 */}

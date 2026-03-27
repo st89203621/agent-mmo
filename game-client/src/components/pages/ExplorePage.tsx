@@ -4,7 +4,7 @@ import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchExploreStatus, exploreAction, resolveExploreChoice, fetchExploreHistory,
   startExploreCombat, resolveExploreCombat,
-  fetchPlayerCurrency, fetchRelations, generateSceneImage,
+  fetchPlayerCurrency, fetchRelations, generateSceneImage, fetchPersonInfo,
 } from '../../services/api';
 import type { ExploreStatus, ExploreEvent, ExploreReward } from '../../types';
 import styles from './ExplorePage.module.css';
@@ -206,12 +206,14 @@ export default function ExplorePage() {
 
   const syncAfterReward = useCallback(async () => {
     try {
-      const [cur, rel] = await Promise.all([
+      const [cur, rel, person] = await Promise.all([
         fetchPlayerCurrency().catch(() => null),
         fetchRelations().catch(() => null),
+        fetchPersonInfo().catch(() => null),
       ]);
       if (cur) usePlayerStore.getState().setCurrency(cur.gold, cur.diamond);
       if (rel) usePlayerStore.getState().setRelations(rel.relations);
+      if (person?.level) usePlayerStore.getState().setLevelInfo(person.level);
     } catch { /* 静默 */ }
   }, []);
 

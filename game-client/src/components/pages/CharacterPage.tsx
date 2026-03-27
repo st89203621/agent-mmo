@@ -10,17 +10,19 @@ import own from './CharacterPage.module.css';
 const styles = { ...page, ...own };
 
 export default function CharacterPage() {
-  const { playerWorld } = usePlayerStore();
+  const { playerWorld, gold, diamond, levelInfo } = usePlayerStore();
   const { navigateTo } = useGameStore();
   const [equips, setEquips] = useState<EquipData[]>([]);
   const [worldIndex, setWorldIndex] = useState(0);
   const [rebirthInfo, setRebirthInfo] = useState<{ currentWorldIndex: number; currentBook: string } | null>(null);
   const [person, setPerson] = useState<PersonData | null>(null);
-  const { gold, diamond } = usePlayerStore();
 
   useEffect(() => {
     fetchEquipList().then((res) => setEquips(res.equips)).catch(() => {});
-    fetchPersonInfo().then(setPerson).catch(() => {});
+    fetchPersonInfo().then(p => {
+      setPerson(p);
+      if (p.level) usePlayerStore.getState().setLevelInfo(p.level);
+    }).catch(() => {});
     fetchRebirthStatus()
       .then((data) => {
         setRebirthInfo(data);
@@ -69,6 +71,21 @@ export default function CharacterPage() {
                 </span>
               )}
             </h3>
+
+            {/* 等级经验条（从全局 store 读取，确保跨页面同步） */}
+            {levelInfo && (
+              <div className={styles.levelRow}>
+                <span className={styles.levelBadge}>Lv.{levelInfo.level}</span>
+                <div className={styles.expBarWrap}>
+                  <div
+                    className={styles.expBarFill}
+                    style={{ width: `${levelInfo.maxExp > 0 ? Math.min(100, (levelInfo.exp / levelInfo.maxExp) * 100) : 0}%` }}
+                  />
+                </div>
+                <span className={styles.expText}>{levelInfo.exp}/{levelInfo.maxExp}</span>
+              </div>
+            )}
+
             <div className={styles.statsGrid}>
               <div className={styles.statItem}><span>生命</span><span className={styles.statVal}>{person.basicProperty.hp}</span></div>
               <div className={styles.statItem}><span>法力</span><span className={styles.statVal}>{person.basicProperty.mp}</span></div>

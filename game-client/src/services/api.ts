@@ -419,11 +419,17 @@ export interface PersonData {
     bonusAttack: number; bonusDefense: number;
     agility: number; critRate: number;
   };
+  level?: {
+    level: number;
+    exp: number;
+    maxExp: number;
+  };
 }
 
 export function fetchPersonInfo(): Promise<PersonData> {
   return request('/person/me');
 }
+
 
 export function initPerson(name?: string, gender?: string, features?: string, profession?: string): Promise<{ id: number; name: string; profession: string }> {
   return request('/person/init', {
@@ -664,6 +670,9 @@ export interface BattleSkillData {
 export interface BattleRewardDetail {
   gold?: number;
   exp?: number;
+  currentLevel?: number;
+  currentExp?: number;
+  maxExp?: number;
   dropItem?: string;
   dropIcon?: string;
   equipDrop?: string;
@@ -683,11 +692,8 @@ export interface BattleData {
   rewardDetail?: BattleRewardDetail;
 }
 
-export function startBattle(stats: Record<string, number>): Promise<{ battle: BattleData }> {
-  return request('/battle/start', {
-    method: 'POST',
-    body: JSON.stringify(stats),
-  });
+export function startBattle(): Promise<{ battle: BattleData }> {
+  return request('/battle/start', { method: 'POST' });
 }
 
 export function getBattleState(): Promise<{ battle: BattleData }> {

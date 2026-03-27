@@ -208,12 +208,7 @@ export default function BattlePage() {
   const handleStart = useCallback(async () => {
     setLoading(true);
     try {
-      const person = await fetchPersonInfo();
-      const bp = person.basicProperty || {
-        hp: 100, mp: 50, physicsAttack: 15, physicsDefense: 8,
-        magicAttack: 12, magicDefense: 8, speed: 10,
-      };
-      const res = await startBattle(bp);
+      const res = await startBattle();
       setBattle(res.battle);
       setFloats([]);
       setAutoMode(false);
@@ -343,6 +338,14 @@ export default function BattlePage() {
         fetchPlayerCurrency().then(c => {
           usePlayerStore.getState().setCurrency(c.gold, c.diamond);
         }).catch(() => {});
+        // 从 rewardDetail 立即更新等级（无需额外请求）
+        if (newBattle.rewardDetail?.currentLevel != null) {
+          usePlayerStore.getState().setLevelInfo({
+            level: newBattle.rewardDetail.currentLevel,
+            exp: newBattle.rewardDetail.currentExp ?? 0,
+            maxExp: newBattle.rewardDetail.maxExp ?? 0,
+          });
+        }
       } else if (newBattle.status === 'DEFEAT') {
         toast.error('战斗失败...');
         setAutoMode(false);
@@ -637,6 +640,24 @@ export default function BattlePage() {
                       <span className={styles.rewardIcon}>{battle.rewardDetail.equipDropIcon || '⚔️'}</span>
                       <span className={styles.rewardValue}>{battle.rewardDetail.equipDrop}</span>
                       <span className={styles.rewardLabel}>装备掉落</span>
+                    </div>
+                  )}
+                  {battle.rewardDetail.currentLevel != null && (
+                    <div className={styles.levelProgress}>
+                      <span className={styles.levelTag}>Lv.{battle.rewardDetail.currentLevel}</span>
+                      <div className={styles.expTrack}>
+                        <div
+                          className={styles.expTrackFill}
+                          style={{
+                            width: `${battle.rewardDetail.maxExp && battle.rewardDetail.maxExp > 0
+                              ? Math.min(100, (battle.rewardDetail.currentExp! / battle.rewardDetail.maxExp) * 100)
+                              : 0}%`
+                          }}
+                        />
+                      </div>
+                      <span className={styles.expTrackText}>
+                        {battle.rewardDetail.currentExp}/{battle.rewardDetail.maxExp}
+                      </span>
                     </div>
                   )}
                 </div>
