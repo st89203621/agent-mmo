@@ -12,6 +12,10 @@ public interface FateCmd {
     int getNpcRelation = 4;
     int getTopRelations = 5;
     int decayFateScores = 6;
+    /** 获取全局缘值/信值 */
+    int getGlobalFate = 7;
+    /** 缘值/信值变更广播 */
+    int broadcastFateChange = 8;
 
     static CmdInfo of(int subCmd) {
         return CmdInfo.of(cmd, subCmd);

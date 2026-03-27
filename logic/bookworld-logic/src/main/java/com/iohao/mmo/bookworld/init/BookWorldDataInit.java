@@ -54,7 +54,8 @@ public class BookWorldDataInit {
     private boolean needsUpdate(BookWorld existing) {
         return existing.getLoreSummary() == null || existing.getLoreSummary().isBlank()
                 || existing.getArtStyle() == null || existing.getArtStyle().isBlank()
-                || existing.getLanguageStyle() == null || existing.getLanguageStyle().isBlank();
+                || existing.getLanguageStyle() == null || existing.getLanguageStyle().isBlank()
+                || existing.getThemeTag() == null || existing.getThemeTag().isBlank();
     }
 
     private List<BookWorld> allBooks() {
@@ -187,6 +188,16 @@ public class BookWorldDataInit {
         b.setPreprocessed(true);
         b.setUploadedBy(0L);
         b.setCreateTime(System.currentTimeMillis());
+
+        // 根据类别设置缘值/信值效率和主题标签
+        switch (category) {
+            case XIANXIA -> { b.setFateMultiplier(1.2); b.setTrustMultiplier(1.0); b.setThemeTag("情"); }
+            case WUXIA -> { b.setFateMultiplier(1.0); b.setTrustMultiplier(1.3); b.setThemeTag("义"); }
+            case XUANHUAN -> { b.setFateMultiplier(1.1); b.setTrustMultiplier(1.1); b.setThemeTag("争"); }
+            case HISTORY -> { b.setFateMultiplier(0.9); b.setTrustMultiplier(1.4); b.setThemeTag("悟"); }
+            case SCIFI -> { b.setFateMultiplier(1.3); b.setTrustMultiplier(0.8); b.setThemeTag("道"); }
+            case CUSTOM -> { b.setFateMultiplier(1.0); b.setTrustMultiplier(1.0); b.setThemeTag("缘"); }
+        }
         return b;
     }
 }

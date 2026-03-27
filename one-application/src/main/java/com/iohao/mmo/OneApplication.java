@@ -52,6 +52,9 @@ import com.iohao.mmo.memory.MemoryLogicServer;
 import com.iohao.mmo.title.TitleLogicServer;
 import com.iohao.mmo.guild.GuildLogicServer;
 import com.iohao.mmo.treasure.TreasureMountainLogicServer;
+import com.iohao.mmo.flower.FlowerLogicServer;
+import com.iohao.mmo.trade.TradeLogicServer;
+import com.iohao.mmo.teambattle.TeamBattleLogicServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -148,6 +151,12 @@ public class OneApplication {
                 , new GuildLogicServer()
                 // 宝山
                 , new TreasureMountainLogicServer()
+                // 情花
+                , new FlowerLogicServer()
+                // 玩家交易
+                , new TradeLogicServer()
+                // 组队PvP
+                , new TeamBattleLogicServer()
         );
     }
 

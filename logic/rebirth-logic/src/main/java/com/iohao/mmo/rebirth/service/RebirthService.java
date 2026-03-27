@@ -109,7 +109,6 @@ public class RebirthService {
         if (Objects.nonNull(currentRecord)) {
             currentRecord.setExitTime(System.currentTimeMillis());
             currentRecord.setStatus(WorldStatus.COMPLETED);
-            // 生成轮回诗句
             String poem = generateRebirthPoem(currentIndex,
                     currentRecord.getBookTitle() != null ? currentRecord.getBookTitle() : "",
                     "");
@@ -142,6 +141,24 @@ public class RebirthService {
         log.info("用户 {} 完成轮回，从第{}世进入第{}世", userId, currentIndex, nextIndex);
         return playerWorld;
     }
+
+    /** 收集当世高缘值NPC，写入印记（在doRebirth前调用） */
+    public void collectNpcImprints(long userId, List<NpcImprintInfo> npcInfos) {
+        PlayerWorld playerWorld = ofPlayerWorld(userId);
+        int currentIndex = playerWorld.getCurrentWorldIndex();
+        for (NpcImprintInfo info : npcInfos) {
+            playerWorld.addNpcImprint(info.npcId(), info.npcName(), info.fateScore(), currentIndex);
+        }
+        playerWorldRepository.save(playerWorld);
+    }
+
+    /** 查询前世NPC印记（新世开始时用于触发"似曾相识"剧情） */
+    public List<PlayerWorld.NpcImprint> getNpcImprints(long userId) {
+        PlayerWorld playerWorld = ofPlayerWorld(userId);
+        return playerWorld.getNpcImprints() != null ? playerWorld.getNpcImprints() : List.of();
+    }
+
+    public record NpcImprintInfo(String npcId, String npcName, int fateScore) {}
 
     public String generateRebirthPoem(int worldIndex, String fromBook, String toBook) {
         if (worldIndex >= 1 && worldIndex <= 6) {

@@ -87,6 +87,12 @@
         <module>logic/treasure-mountain-logic</module>
         <module>logic/skill-logic</module>
         <module>logic/battle-logic</module>
+        <module>provide/flower-provide</module>
+        <module>logic/flower-logic</module>
+        <module>provide/trade-provide</module>
+        <module>logic/trade-logic</module>
+        <module>provide/team-battle-provide</module>
+        <module>logic/team-battle-logic</module>
 
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>

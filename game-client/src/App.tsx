@@ -30,6 +30,9 @@ import TitlePage from './components/pages/TitlePage';
 import GuildPage from './components/pages/GuildPage';
 import ScenePage from './components/pages/ScenePage';
 import TreasureMountainPage from './components/pages/TreasureMountainPage';
+import FlowerPage from './components/pages/FlowerPage';
+import TradePage from './components/pages/TradePage';
+import TeamBattlePage from './components/pages/TeamBattlePage';
 import type { PageId } from './types';
 
 /** 错误边界：防止子组件崩溃导致整个页面黑屏 */
@@ -130,6 +133,9 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'guild': GuildPage,
   'scene': ScenePage,
   'treasure-mountain': TreasureMountainPage,
+  'flower': FlowerPage,
+  'trade': TradePage,
+  'team-battle': TeamBattlePage,
 };
 
 export default function App() {

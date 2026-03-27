@@ -80,6 +80,9 @@ public class BookWorldAction {
         msg.languageStyle = book.getLanguageStyle();
         msg.coverUrl = book.getCoverUrl() != null ? book.getCoverUrl() : "";
         msg.isPreprocessed = book.isPreprocessed();
+        msg.fateMultiplier = book.getFateMultiplier();
+        msg.trustMultiplier = book.getTrustMultiplier();
+        msg.themeTag = book.getThemeTag() != null ? book.getThemeTag() : "";
         return msg;
     }
 }

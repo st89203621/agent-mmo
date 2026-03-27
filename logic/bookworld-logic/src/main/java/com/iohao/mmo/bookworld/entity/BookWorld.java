@@ -26,6 +26,21 @@ public class BookWorld {
     long uploadedBy;
     long createTime;
 
+    /** 缘值获取效率倍率（默认1.0） */
+    double fateMultiplier;
+    /** 信值获取效率倍率（默认1.0） */
+    double trustMultiplier;
+    /** 书世界的核心主题标签：情/义/道/争/悟 */
+    String themeTag;
+
+    public double getFateMultiplier() {
+        return fateMultiplier > 0 ? fateMultiplier : 1.0;
+    }
+
+    public double getTrustMultiplier() {
+        return trustMultiplier > 0 ? trustMultiplier : 1.0;
+    }
+
     public enum Category {
         XIANXIA,
         WUXIA,

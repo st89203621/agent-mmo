@@ -1,0 +1,24 @@
+package com.iohao.mmo.trade.proto;
+
+import com.baidu.bjf.remoting.protobuf.annotation.Protobuf;
+import com.baidu.bjf.remoting.protobuf.annotation.ProtobufClass;
+import com.iohao.game.widget.light.protobuf.ProtoFileMerge;
+import com.iohao.mmo.FileMerge;
+import lombok.AccessLevel;
+import lombok.ToString;
+import lombok.experimental.FieldDefaults;
+
+@ToString
+@ProtobufClass
+@FieldDefaults(level = AccessLevel.PUBLIC)
+@ProtoFileMerge(fileName = FileMerge.fileName, filePackage = FileMerge.filePackage)
+public class CreateTradeRequest {
+    @Protobuf(order = 1)
+    String itemId;
+    @Protobuf(order = 2)
+    int quantity;
+    @Protobuf(order = 3)
+    int price;
+    @Protobuf(order = 4)
+    String currency;
+}

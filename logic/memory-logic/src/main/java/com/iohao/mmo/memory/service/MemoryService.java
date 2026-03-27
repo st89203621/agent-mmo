@@ -91,6 +91,9 @@ public class MemoryService {
             fragment.setUnlockCondition("缘分达到60解锁完整内容");
         }
 
+        // 计算激活成本和加成
+        fragment.calculateActivation();
+
         fragment = memoryFragmentRepository.save(fragment);
 
         // 更新记忆馆
@@ -144,6 +147,30 @@ public class MemoryService {
 
         log.info("玩家 {} 解锁记忆碎片：{}", fragment.getPlayerId(), fragment.getTitle());
         return fragment;
+    }
+
+    /** 用缘值激活记忆碎片，获得属性加成 */
+    public MemoryFragment activateMemory(String fragmentId) {
+        MemoryFragment fragment = memoryFragmentRepository.findById(fragmentId).orElse(null);
+        if (fragment == null || fragment.isActivated() || fragment.isLocked()) return null;
+
+        fragment.setActivated(true);
+        fragment = memoryFragmentRepository.save(fragment);
+        log.info("玩家 {} 激活记忆碎片：{}，获得 {} +{}", fragment.getPlayerId(),
+                fragment.getTitle(), fragment.getBonusType(), fragment.getBonusValue());
+        return fragment;
+    }
+
+    /** 获取玩家所有已激活记忆的总属性加成 */
+    public java.util.Map<String, Integer> getActivatedBonuses(long userId) {
+        List<MemoryFragment> memories = memoryFragmentRepository.findByPlayerId(userId);
+        java.util.Map<String, Integer> bonuses = new java.util.HashMap<>();
+        for (MemoryFragment m : memories) {
+            if (m.isActivated() && m.getBonusType() != null) {
+                bonuses.merge(m.getBonusType(), m.getBonusValue(), Integer::sum);
+            }
+        }
+        return bonuses;
     }
 
     public String buildMemoryTitle(String npcName, int fateScore) {

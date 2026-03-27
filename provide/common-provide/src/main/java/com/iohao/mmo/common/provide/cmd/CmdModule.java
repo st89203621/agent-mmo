@@ -83,4 +83,10 @@ public interface CmdModule {
     int guildCmd = 30;
     /** 宝山 */
     int treasureMountainCmd = 31;
+    /** 情花 */
+    int flowerCmd = 32;
+    /** 玩家交易 */
+    int tradeCmd = 33;
+    /** 组队PvP */
+    int teamBattleCmd = 34;
 }

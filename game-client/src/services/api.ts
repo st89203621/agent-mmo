@@ -1259,3 +1259,144 @@ export function kickGuildMember(targetId: number): Promise<{ success: boolean }>
     body: JSON.stringify({ targetId }),
   });
 }
+
+// ── 全局缘值/信值 ──────────────────────────────────────
+
+export interface GlobalFateData {
+  totalFate: number;
+  totalTrust: number;
+  currentFate: number;
+  currentTrust: number;
+  fateGrade: string;
+  worldIndex: number;
+}
+
+export function fetchGlobalFate(): Promise<GlobalFateData> {
+  return request('/fate/global');
+}
+
+// ── 情花系统 ──────────────────────────────────────
+
+export interface FlowerData {
+  playerId: number;
+  flowerName: string;
+  stage: string;
+  color: string;
+  totalFateWatered: number;
+  totalTrustInfused: number;
+  flowerVerse: string;
+  worldCount: number;
+  bloomed: boolean;
+}
+
+export function fetchFlower(): Promise<FlowerData> {
+  return request('/flower/get');
+}
+
+export function waterFlower(fateAmount: number, trustAmount: number): Promise<FlowerData> {
+  return request('/flower/water', {
+    method: 'POST',
+    body: JSON.stringify({ fateAmount, trustAmount }),
+  });
+}
+
+// ── 玩家交易 ──────────────────────────────────────
+
+export interface TradeData {
+  tradeId: string;
+  sellerId: number;
+  sellerName: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  price: number;
+  currency: string;
+  createTime: number;
+  status: string;
+}
+
+export function fetchOpenTrades(): Promise<{ trades: TradeData[] }> {
+  return request('/trade/list');
+}
+
+export function createTrade(itemId: string, quantity: number, price: number, currency: string): Promise<TradeData> {
+  return request('/trade/create', {
+    method: 'POST',
+    body: JSON.stringify({ itemId, quantity, price, currency }),
+  });
+}
+
+export function acceptTrade(tradeId: string): Promise<TradeData> {
+  return request('/trade/accept', {
+    method: 'POST',
+    body: JSON.stringify({ tradeId }),
+  });
+}
+
+export function cancelTrade(tradeId: string): Promise<TradeData> {
+  return request('/trade/cancel', {
+    method: 'POST',
+    body: JSON.stringify({ tradeId }),
+  });
+}
+
+export function fetchMyTrades(): Promise<{ trades: TradeData[] }> {
+  return request('/trade/my');
+}
+
+// ── 组队PvP ──────────────────────────────────────
+
+export interface TeamData {
+  teamId: string;
+  leaderId: number;
+  leaderName: string;
+  memberIds: string;
+  memberNames: string;
+  teamSize: number;
+  status: string;
+  totalPower: number;
+}
+
+export interface TeamBattleResultData {
+  battleId: string;
+  victory: boolean;
+  fateReward: number;
+  trustReward: number;
+  mvpPlayerName: string;
+  ratingChange: number;
+}
+
+export function createTeam(): Promise<TeamData> {
+  return request('/team-battle/create', { method: 'POST' });
+}
+
+export function joinTeam(teamId: string): Promise<TeamData> {
+  return request('/team-battle/join', {
+    method: 'POST',
+    body: JSON.stringify({ teamId }),
+  });
+}
+
+export function leaveTeam(teamId: string): Promise<TeamData> {
+  return request('/team-battle/leave', {
+    method: 'POST',
+    body: JSON.stringify({ teamId }),
+  });
+}
+
+export function getTeamInfo(teamId: string): Promise<TeamData> {
+  return request(`/team-battle/info?teamId=${teamId}`);
+}
+
+// ── 记忆激活 ──────────────────────────────────────
+
+export function activateMemory(fragmentId: string): Promise<MemoryFragment> {
+  return request('/memory/activate', {
+    method: 'POST',
+    body: JSON.stringify({ fragmentId }),
+  });
+}
+
+export function fetchActivatedBonuses(): Promise<Record<string, number>> {
+  return request('/memory/bonuses');
+}

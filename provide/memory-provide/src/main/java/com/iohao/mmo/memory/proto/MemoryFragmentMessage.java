@@ -37,4 +37,12 @@ public class MemoryFragmentMessage {
     boolean locked;
     @Protobuf(order = 12)
     String unlockCondition;
+    @Protobuf(order = 13)
+    boolean activated;
+    @Protobuf(order = 14)
+    int activateFateCost;
+    @Protobuf(order = 15)
+    String bonusType;
+    @Protobuf(order = 16)
+    int bonusValue;
 }

@@ -198,4 +198,5 @@ export type PageId =
   | 'character' | 'equip-detail' | 'enchant' | 'skill-tree'
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'
-  | 'companion' | 'title' | 'guild' | 'scene' | 'treasure-mountain';
+  | 'companion' | 'title' | 'guild' | 'scene' | 'treasure-mountain'
+  | 'flower' | 'trade' | 'team-battle';

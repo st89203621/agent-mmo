@@ -1,20 +1,16 @@
 package com.iohao.mmo.fate.service;
 
+import com.iohao.mmo.fate.entity.GlobalFate;
 import com.iohao.mmo.fate.entity.NpcTemplate;
 import com.iohao.mmo.fate.entity.Relation;
+import com.iohao.mmo.fate.repository.GlobalFateRepository;
 import com.iohao.mmo.fate.repository.NpcTemplateRepository;
 import com.iohao.mmo.fate.repository.RelationRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -25,6 +21,9 @@ public class FateService {
 
     @Resource
     NpcTemplateRepository npcTemplateRepository;
+
+    @Resource
+    GlobalFateRepository globalFateRepository;
 
     public Relation getOrCreate(long playerId, String npcId, int worldIndex) {
         List<Relation> existing = relationRepository
@@ -119,5 +118,64 @@ public class FateService {
 
     public Optional<NpcTemplate> getNpcTemplate(String npcId) {
         return npcTemplateRepository.findByNpcId(npcId).stream().findFirst();
+    }
+
+    // ============ 全局缘值/信值 ============
+
+    public GlobalFate getOrCreateGlobalFate(long playerId) {
+        return globalFateRepository.findById(playerId).orElseGet(() -> {
+            GlobalFate gf = new GlobalFate();
+            gf.setPlayerId(playerId);
+            return globalFateRepository.save(gf);
+        });
+    }
+
+    public GlobalFate getGlobalFate(long playerId) {
+        return getOrCreateGlobalFate(playerId);
+    }
+
+    /** 增加全局缘值（来源：对话、交易、探索、组队等） */
+    public GlobalFate addGlobalFate(long playerId, int fateDelta, int trustDelta) {
+        GlobalFate gf = getOrCreateGlobalFate(playerId);
+        gf.addCurrentFate(fateDelta);
+        gf.addCurrentTrust(trustDelta);
+        return globalFateRepository.save(gf);
+    }
+
+    /** 消耗缘值（浇花、解锁记忆等） */
+    public boolean consumeFate(long playerId, int amount) {
+        GlobalFate gf = getOrCreateGlobalFate(playerId);
+        if (gf.getCurrentFate() < amount) return false;
+        gf.addCurrentFate(-amount);
+        return globalFateRepository.save(gf) != null;
+    }
+
+    /** 消耗信值（锻造信物等） */
+    public boolean consumeTrust(long playerId, int amount) {
+        GlobalFate gf = getOrCreateGlobalFate(playerId);
+        if (gf.getCurrentTrust() < amount) return false;
+        gf.addCurrentTrust(-amount);
+        return globalFateRepository.save(gf) != null;
+    }
+
+    /** 轮回结算 */
+    public GlobalFate archiveWorld(long playerId) {
+        GlobalFate gf = getOrCreateGlobalFate(playerId);
+        gf.archiveAndReset();
+        return globalFateRepository.save(gf);
+    }
+
+    /**
+     * 联动：NPC关系变化时同步增加全局缘值
+     */
+    public Relation applyChoiceWithGlobal(long playerId, String npcId, int worldIndex, int fateDelta, int trustDelta) {
+        Relation relation = applyChoice(playerId, npcId, worldIndex, fateDelta, trustDelta);
+        // NPC互动同步到全局（折算：NPC缘值变动的一半注入全局池）
+        int globalFateDelta = Math.max(0, fateDelta / 2);
+        int globalTrustDelta = Math.max(0, trustDelta / 2);
+        if (globalFateDelta > 0 || globalTrustDelta > 0) {
+            addGlobalFate(playerId, globalFateDelta, globalTrustDelta);
+        }
+        return relation;
     }
 }

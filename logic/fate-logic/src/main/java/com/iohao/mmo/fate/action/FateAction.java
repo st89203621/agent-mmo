@@ -5,8 +5,10 @@ import com.iohao.game.action.skeleton.annotation.ActionController;
 import com.iohao.game.action.skeleton.annotation.ActionMethod;
 import com.iohao.game.action.skeleton.core.flow.FlowContext;
 import com.iohao.mmo.fate.cmd.FateCmd;
+import com.iohao.mmo.fate.entity.GlobalFate;
 import com.iohao.mmo.fate.entity.Relation;
 import com.iohao.mmo.fate.proto.FateChoiceRequest;
+import com.iohao.mmo.fate.proto.GlobalFateMessage;
 import com.iohao.mmo.fate.proto.RelationMessage;
 import com.iohao.mmo.fate.service.FateService;
 import jakarta.annotation.Resource;
@@ -47,9 +49,23 @@ public class FateAction {
     @ActionMethod(FateCmd.applyChoice)
     public RelationMessage applyChoice(FateChoiceRequest request, FlowContext flowContext) {
         long userId = flowContext.getUserId();
-        Relation relation = fateService.applyChoice(userId, request.npcId,
+        Relation relation = fateService.applyChoiceWithGlobal(userId, request.npcId,
                 request.worldIndex, request.fateDelta, request.trustDelta);
         return toMessage(relation);
+    }
+
+    @ActionMethod(FateCmd.getGlobalFate)
+    public GlobalFateMessage getGlobalFate(FlowContext flowContext) {
+        long userId = flowContext.getUserId();
+        GlobalFate gf = fateService.getGlobalFate(userId);
+        GlobalFateMessage msg = new GlobalFateMessage();
+        msg.totalFate = gf.getTotalFate();
+        msg.totalTrust = gf.getTotalTrust();
+        msg.currentFate = gf.getCurrentFate();
+        msg.currentTrust = gf.getCurrentTrust();
+        msg.fateGrade = gf.getFateGrade();
+        msg.worldIndex = gf.getWorldFateHistory() != null ? gf.getWorldFateHistory().size() + 1 : 1;
+        return msg;
     }
 
     @ActionMethod(FateCmd.getNpcRelation)

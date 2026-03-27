@@ -78,6 +78,20 @@ public class MemoryAction {
         return JSON.toJSONString(hallData);
     }
 
+    @ActionMethod(MemoryCmd.activateMemory)
+    public MemoryFragmentMessage activateMemory(String fragmentId, FlowContext flowContext) {
+        MemoryFragment fragment = memoryService.activateMemory(fragmentId);
+        if (fragment == null) return new MemoryFragmentMessage();
+        return toMessage(fragment);
+    }
+
+    @ActionMethod(MemoryCmd.getActivatedBonuses)
+    public String getActivatedBonuses(FlowContext flowContext) {
+        long userId = flowContext.getUserId();
+        Map<String, Integer> bonuses = memoryService.getActivatedBonuses(userId);
+        return JSON.toJSONString(bonuses);
+    }
+
     @ActionMethod(MemoryCmd.createMemory)
     public MemoryFragmentMessage createMemory(CreateMemoryRequest request, FlowContext flowContext) {
         long userId = flowContext.getUserId();
@@ -101,6 +115,10 @@ public class MemoryAction {
         msg.createTime = fragment.getCreateTime();
         msg.locked = fragment.isLocked();
         msg.unlockCondition = fragment.getUnlockCondition() != null ? fragment.getUnlockCondition() : "";
+        msg.activated = fragment.isActivated();
+        msg.activateFateCost = fragment.getActivateFateCost();
+        msg.bonusType = fragment.getBonusType() != null ? fragment.getBonusType() : "";
+        msg.bonusValue = fragment.getBonusValue();
         return msg;
     }
 }

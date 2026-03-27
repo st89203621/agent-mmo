@@ -171,6 +171,15 @@ public class GameApiController {
     @Resource
     com.iohao.mmo.treasure.service.TreasureMountainService treasureMountainService;
 
+    @Resource
+    com.iohao.mmo.flower.service.FlowerService flowerService;
+
+    @Resource
+    com.iohao.mmo.trade.service.TradeService tradeService;
+
+    @Resource
+    com.iohao.mmo.teambattle.service.TeamBattleService teamBattleService;
+
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
     // ── 认证 ─────────────────────────────────────────
@@ -3207,11 +3216,223 @@ public class GameApiController {
     public ResponseEntity<Map<String, Object>> digMountain(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String mountainType = (String) body.get("mountainType");
-        // 获取玩家所在盟会
         var guild = guildService.getGuildByPlayer(userId);
         if (guild == null) return err("需加入盟会才能挖掘宝山");
         var result = treasureMountainService.dig(userId, guild.getId(), mountainType);
         if (!(boolean) result.get("success")) return err((String) result.get("message"));
         return ok(result);
+    }
+
+    // ── 全局缘值/信值 ──────────────────────────────────────
+
+    @GetMapping("/fate/global")
+    public ResponseEntity<Map<String, Object>> getGlobalFate(HttpSession session) {
+        long userId = requireLogin(session);
+        var gf = fateService.getGlobalFate(userId);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("totalFate", gf.getTotalFate());
+        m.put("totalTrust", gf.getTotalTrust());
+        m.put("currentFate", gf.getCurrentFate());
+        m.put("currentTrust", gf.getCurrentTrust());
+        m.put("fateGrade", gf.getFateGrade());
+        m.put("worldIndex", gf.getWorldFateHistory() != null ? gf.getWorldFateHistory().size() + 1 : 1);
+        return ok(m);
+    }
+
+    // ── 情花系统 ──────────────────────────────────────
+
+    @GetMapping("/flower/get")
+    public ResponseEntity<Map<String, Object>> getFlower(HttpSession session) {
+        long userId = requireLogin(session);
+        var flower = flowerService.getOrCreate(userId);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("playerId", flower.getPlayerId());
+        m.put("flowerName", flower.getFlowerName());
+        m.put("stage", flower.getStage());
+        m.put("color", flower.getColor());
+        m.put("totalFateWatered", flower.getTotalFateWatered());
+        m.put("totalTrustInfused", flower.getTotalTrustInfused());
+        m.put("flowerVerse", flower.getFlowerVerse() != null ? flower.getFlowerVerse() : "");
+        m.put("worldCount", flower.getWorldCount());
+        m.put("bloomed", flower.isBloomed());
+        return ok(m);
+    }
+
+    @PostMapping("/flower/water")
+    public ResponseEntity<Map<String, Object>> waterFlower(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        int fateAmount = ((Number) body.getOrDefault("fateAmount", 0)).intValue();
+        int trustAmount = ((Number) body.getOrDefault("trustAmount", 0)).intValue();
+
+        // 消耗全局缘值和信值
+        if (!fateService.consumeFate(userId, fateAmount)) return err("缘值不足");
+        if (trustAmount > 0 && !fateService.consumeTrust(userId, trustAmount)) return err("信值不足");
+
+        var flower = flowerService.water(userId, fateAmount, trustAmount);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("playerId", flower.getPlayerId());
+        m.put("flowerName", flower.getFlowerName());
+        m.put("stage", flower.getStage());
+        m.put("color", flower.getColor());
+        m.put("totalFateWatered", flower.getTotalFateWatered());
+        m.put("totalTrustInfused", flower.getTotalTrustInfused());
+        m.put("flowerVerse", flower.getFlowerVerse() != null ? flower.getFlowerVerse() : "");
+        m.put("worldCount", flower.getWorldCount());
+        m.put("bloomed", flower.isBloomed());
+        return ok(m);
+    }
+
+    // ── 玩家交易 ──────────────────────────────────────
+
+    @GetMapping("/trade/list")
+    public ResponseEntity<Map<String, Object>> listTrades(HttpSession session) {
+        requireLogin(session);
+        var trades = tradeService.listOpenTrades();
+        List<Map<String, Object>> list = trades.stream().map(this::tradeToMap).toList();
+        return ok(Map.of("trades", list));
+    }
+
+    @PostMapping("/trade/create")
+    public ResponseEntity<Map<String, Object>> createTrade(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String itemId = (String) body.get("itemId");
+        int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+        int price = ((Number) body.getOrDefault("price", 0)).intValue();
+        String currency = (String) body.getOrDefault("currency", "gold");
+
+        // 获取物品名称
+        String itemName = itemId;
+        var order = tradeService.createTrade(userId, "", itemId, itemName, quantity, price, currency);
+        return ok(tradeToMap(order));
+    }
+
+    @PostMapping("/trade/accept")
+    public ResponseEntity<Map<String, Object>> acceptTrade(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String tradeId = (String) body.get("tradeId");
+        var order = tradeService.acceptTrade(tradeId, userId);
+        if (order == null) return err("交易失败");
+
+        // 交易产生缘值奖励
+        fateService.addGlobalFate(userId, order.getFateReward(), 0);
+        fateService.addGlobalFate(order.getSellerId(), order.getFateReward(), 0);
+
+        return ok(tradeToMap(order));
+    }
+
+    @PostMapping("/trade/cancel")
+    public ResponseEntity<Map<String, Object>> cancelTrade(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String tradeId = (String) body.get("tradeId");
+        var order = tradeService.cancelTrade(tradeId, userId);
+        if (order == null) return err("取消失败");
+        return ok(tradeToMap(order));
+    }
+
+    @GetMapping("/trade/my")
+    public ResponseEntity<Map<String, Object>> getMyTrades(HttpSession session) {
+        long userId = requireLogin(session);
+        var trades = tradeService.getMyTrades(userId);
+        List<Map<String, Object>> list = trades.stream().map(this::tradeToMap).toList();
+        return ok(Map.of("trades", list));
+    }
+
+    private Map<String, Object> tradeToMap(com.iohao.mmo.trade.entity.TradeOrder o) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("tradeId", o.getId());
+        m.put("sellerId", o.getSellerId());
+        m.put("sellerName", o.getSellerName() != null ? o.getSellerName() : "");
+        m.put("itemId", o.getItemId());
+        m.put("itemName", o.getItemName() != null ? o.getItemName() : "");
+        m.put("quantity", o.getQuantity());
+        m.put("price", o.getPrice());
+        m.put("currency", o.getCurrency());
+        m.put("createTime", o.getCreateTime());
+        m.put("status", o.getStatus());
+        return m;
+    }
+
+    // ── 组队PvP ──────────────────────────────────────
+
+    @PostMapping("/team-battle/create")
+    public ResponseEntity<Map<String, Object>> createTeam(HttpSession session) {
+        long userId = requireLogin(session);
+        var team = teamBattleService.createTeam(userId, "");
+        return ok(teamToMap(team));
+    }
+
+    @PostMapping("/team-battle/join")
+    public ResponseEntity<Map<String, Object>> joinTeam(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String teamId = (String) body.get("teamId");
+        var team = teamBattleService.joinTeam(teamId, userId, "");
+        if (team == null) return err("加入失败");
+        return ok(teamToMap(team));
+    }
+
+    @PostMapping("/team-battle/leave")
+    public ResponseEntity<Map<String, Object>> leaveTeam(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String teamId = (String) body.get("teamId");
+        var team = teamBattleService.leaveTeam(teamId, userId);
+        if (team == null) return err("离开失败");
+        return ok(teamToMap(team));
+    }
+
+    @GetMapping("/team-battle/info")
+    public ResponseEntity<Map<String, Object>> getTeamInfo(@RequestParam String teamId, HttpSession session) {
+        requireLogin(session);
+        var team = teamBattleService.getTeam(teamId);
+        if (team == null) return err("队伍不存在");
+        return ok(teamToMap(team));
+    }
+
+    private Map<String, Object> teamToMap(com.iohao.mmo.teambattle.entity.Team t) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("teamId", t.getId());
+        m.put("leaderId", t.getLeaderId());
+        m.put("leaderName", t.getLeaderName() != null ? t.getLeaderName() : "");
+        m.put("memberIds", t.getMemberIds() != null ? JSON.toJSONString(t.getMemberIds()) : "[]");
+        m.put("memberNames", t.getMemberNames() != null ? JSON.toJSONString(t.getMemberNames()) : "[]");
+        m.put("teamSize", t.getTeamSize());
+        m.put("status", t.getStatus());
+        m.put("totalPower", t.getTotalPower());
+        return m;
+    }
+
+    // ── 记忆激活 ──────────────────────────────────────
+
+    @PostMapping("/memory/activate")
+    public ResponseEntity<Map<String, Object>> activateMemory(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String fragmentId = (String) body.get("fragmentId");
+
+        // 获取碎片检查激活成本
+        var fragOpt = memoryService.getMemory(fragmentId);
+        if (fragOpt.isEmpty()) return err("记忆碎片不存在");
+        var frag = fragOpt.get();
+        if (frag.isActivated()) return err("已激活");
+        if (frag.isLocked()) return err("记忆尚未解锁");
+
+        // 消耗缘值激活
+        if (!fateService.consumeFate(userId, frag.getActivateFateCost())) return err("缘值不足");
+
+        var activated = memoryService.activateMemory(fragmentId);
+        if (activated == null) return err("激活失败");
+
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("fragmentId", activated.getId());
+        m.put("title", activated.getTitle());
+        m.put("activated", true);
+        m.put("bonusType", activated.getBonusType());
+        m.put("bonusValue", activated.getBonusValue());
+        return ok(m);
+    }
+
+    @GetMapping("/memory/bonuses")
+    public ResponseEntity<Map<String, Object>> getActivatedBonuses(HttpSession session) {
+        long userId = requireLogin(session);
+        var bonuses = memoryService.getActivatedBonuses(userId);
+        return ok(Map.of("bonuses", bonuses));
     }
 }
