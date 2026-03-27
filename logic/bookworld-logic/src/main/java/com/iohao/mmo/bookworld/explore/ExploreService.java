@@ -114,7 +114,7 @@ public class ExploreService {
         stateRepository.save(state);
 
         // AI生成事件
-        ExploreEvent event = generateEvent(userId, bookTitle, dejaVuChance);
+        ExploreEvent event = generateEvent(userId, worldIndex, bookTitle, dejaVuChance);
         event.setWorldIndex(worldIndex);
         event.setBookTitle(bookTitle);
         eventRepository.save(event);
@@ -247,7 +247,7 @@ public class ExploreService {
         return reward;
     }
 
-    private ExploreEvent generateEvent(long userId, String bookTitle, double dejaVuChance) {
+    private ExploreEvent generateEvent(long userId, int worldIndex, String bookTitle, double dejaVuChance) {
         // 前世记忆回响（约15%触发率，需要轮回技能）
         if (dejaVuChance > ThreadLocalRandom.current().nextDouble()) {
             return buildDejaVuEvent(userId, bookTitle);
@@ -257,9 +257,16 @@ public class ExploreService {
         String[] types = {"encounter", "discovery", "lore", "dilemma", "vista", "combat", "combat"};
         String randomType = types[ThreadLocalRandom.current().nextInt(types.length)];
 
+        // 查最近5条已完成事件，构建前情提要
+        String storySoFar = buildStorySoFar(userId, worldIndex);
+
         String prompt = String.format("""
                 你是「%s」世界的命运织者。玩家正在书中漫步探索。
-                根据这部作品的世界观和氛围，生成一个探索事件。
+                你需要编织一段连贯的旅途故事，每个事件都是这段故事的新篇章。
+                %s
+                根据前情和这部作品的世界观，生成旅途中自然发展的下一个事件。
+                新事件要与之前的经历产生关联——可以是伏笔的回收、人物的再现、线索的串联，或情感的递进。
+                保持叙事连贯，让玩家感到自己在经历一段完整的故事，而不是零散的随机事件。
 
                 要求生成类型为: %s
                 事件类型说明：
@@ -274,7 +281,7 @@ public class ExploreService {
                 {
                   "type": "%s",
                   "title": "≤8字标题",
-                  "description": "40-80字场景描述，用该书的语言风格",
+                  "description": "40-80字场景描述，用该书的语言风格，自然衔接前情",
                   "choices": [
                     {"id": 0, "text": "≤12字选项", "risk": "low或medium或high"},
                     {"id": 1, "text": "≤12字选项", "risk": "low或medium或high"}
@@ -282,13 +289,13 @@ public class ExploreService {
                   "npcId": null,
                   "sceneHint": "≤10字画面描述（仅vista类型需要，其他为null）",
                   "enemyName": "≤6字敌人名称（仅combat类型需要，其他为null）"
-                }""", bookTitle, randomType, randomType);
+                }""", bookTitle, storySoFar, randomType, randomType);
 
         try {
             List<ChatMessage> messages = List.of(
                     ChatMessage.builder()
                             .role(ChatMessageRole.SYSTEM)
-                            .content("你是一个中文小说世界的叙事大师，擅长根据小说世界观生成沉浸式探索事件。只输出JSON。")
+                            .content("你是一个中文小说世界的叙事大师，擅长编织连贯动人的探索故事线。每个事件都是同一段旅途故事的新篇章，前后要有因果和情感递进。只输出JSON。")
                             .build(),
                     ChatMessage.builder()
                             .role(ChatMessageRole.USER)
@@ -315,6 +322,40 @@ public class ExploreService {
             return buildFallbackEvent(userId, randomType, bookTitle);
         }
     }
+
+    /**
+     * 构建前情提要：最近5条事件的标题+描述+结果，按时间正序
+     */
+    private String buildStorySoFar(long userId, int worldIndex) {
+        List<ExploreEvent> recent = eventRepository
+                .findTop5ByUserIdAndWorldIndexAndResolvedTrueOrderByCreateTimeDesc(userId, worldIndex);
+        if (recent.isEmpty()) {
+            return "这是玩家在此书中世界的第一次探索，请开启一段引人入胜的旅途篇章。";
+        }
+
+        // 反转为时间正序
+        List<ExploreEvent> ordered = new ArrayList<>(recent);
+        Collections.reverse(ordered);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("【前情提要——玩家已经历的旅途片段（按时间顺序）】\n");
+        for (int i = 0; i < ordered.size(); i++) {
+            ExploreEvent e = ordered.get(i);
+            sb.append(String.format("第%d幕「%s」（%s）：%s",
+                    i + 1, e.getTitle(), EVENT_TYPE_CN.getOrDefault(e.getType(), e.getType()), e.getDescription()));
+            if (e.getRewardMessage() != null && !e.getRewardMessage().isBlank()) {
+                sb.append("→结果：").append(e.getRewardMessage());
+            }
+            sb.append("\n");
+        }
+        sb.append("请续写第").append(ordered.size() + 1).append("幕，让故事自然发展。");
+        return sb.toString();
+    }
+
+    private static final Map<String, String> EVENT_TYPE_CN = Map.of(
+            "encounter", "奇遇", "discovery", "拾遗", "lore", "秘闻",
+            "dilemma", "抉择", "vista", "奇景", "combat", "遭遇战", "deja_vu", "前世回响"
+    );
 
     private ExploreEvent parseEvent(long userId, String responseText) {
         int start = responseText.indexOf('{');

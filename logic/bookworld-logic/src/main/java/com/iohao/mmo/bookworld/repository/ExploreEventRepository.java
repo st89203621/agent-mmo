@@ -10,4 +10,6 @@ public interface ExploreEventRepository extends MongoRepository<ExploreEvent, St
     Optional<ExploreEvent> findByEventId(String eventId);
 
     List<ExploreEvent> findByUserIdAndResolvedTrueOrderByCreateTimeDesc(long userId);
+
+    List<ExploreEvent> findTop5ByUserIdAndWorldIndexAndResolvedTrueOrderByCreateTimeDesc(long userId, int worldIndex);
 }
