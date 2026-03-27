@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import {
@@ -30,6 +30,13 @@ interface ResolvedEvent {
   reward: ExploreReward;
 }
 
+// 路径常量
+const JOURNEY_W = 390;
+const CENTER_X = JOURNEY_W / 2;
+const SPACING_Y = 80;
+const AMPLITUDE = 60;
+const PAD_TOP = 50;
+
 export default function ExplorePage() {
   const { currentBookWorld, navigateTo } = useGameStore();
   const { currentWorldIndex } = usePlayerStore();
@@ -47,51 +54,11 @@ export default function ExplorePage() {
   const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
   const [recoverCountdown, setRecoverCountdown] = useState(0);
   const mapScrollRef = useRef<HTMLDivElement>(null);
+  const [expandedNode, setExpandedNode] = useState<string | null>(null);
 
   const bookTitle = currentBookWorld?.title || '';
 
-  // 曲线路径：测量所有节点位置，生成一条完整 SVG path
-  const trailRef = useRef<HTMLDivElement>(null);
-  const originDotRef = useRef<HTMLDivElement>(null);
-  const currentDotRef = useRef<HTMLDivElement>(null);
-  const nodeCardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [trailPath, setTrailPath] = useState('');
-
-  useLayoutEffect(() => {
-    const trail = trailRef.current;
-    if (!trail) return;
-    const rect = trail.getBoundingClientRect();
-    const points: { x: number; y: number }[] = [];
-
-    // 收集所有锚点：起点 → 各节点 → 当前位置
-    const addPoint = (el: HTMLElement | null) => {
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      points.push({ x: r.left + r.width / 2 - rect.left, y: r.top + r.height / 2 - rect.top });
-    };
-    addPoint(originDotRef.current);
-    nodeCardRefs.current.forEach(addPoint);
-    addPoint(currentDotRef.current);
-
-    if (points.length < 2) { setTrailPath(''); return; }
-
-    // 用 Catmull-Rom → cubic bezier 生成平滑曲线
-    const d: string[] = [`M ${points[0].x} ${points[0].y}`];
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[Math.max(i - 1, 0)];
-      const p1 = points[i];
-      const p2 = points[i + 1];
-      const p3 = points[Math.min(i + 2, points.length - 1)];
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
-      d.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`);
-    }
-    setTrailPath(d.join(' '));
-  }, [loading, history.length, exploring]);
-
-  // 背景图：按书缓存到 localStorage
+  // 背景图
   const [bgLoading, setBgLoading] = useState(false);
   const bgLoadingRef = useRef(false);
 
@@ -152,7 +119,6 @@ export default function ExplorePage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // 滚动到底部（当前位置）
   useEffect(() => {
     if (!loading && mapScrollRef.current) {
       mapScrollRef.current.scrollTop = mapScrollRef.current.scrollHeight;
@@ -170,7 +136,6 @@ export default function ExplorePage() {
     } catch { /* 静默 */ }
   }, []);
 
-  // 恢复倒计时
   useEffect(() => {
     if (recoverTimerRef.current) clearInterval(recoverTimerRef.current);
     if (status && status.actionPoints < status.maxPoints && recoverCountdown > 0) {
@@ -198,7 +163,6 @@ export default function ExplorePage() {
     try {
       const { event } = await exploreAction(currentWorldIndex, bookTitle);
       setCurrentEvent(event);
-      // 为有视觉内容的事件生成场景图
       const hint = event.sceneHint
         || (event.type === 'encounter' && event.npcId ? `偶遇${event.title}` : null)
         || (event.type === 'combat' && event.enemyName ? `遭遇${event.enemyName}` : null);
@@ -246,7 +210,6 @@ export default function ExplorePage() {
     }
   }, [resolving, currentEvent, navigateTo, syncAfterReward]);
 
-  // 战斗返回结算
   const pendingResolveRef = useRef<string | null>(null);
   useEffect(() => {
     const params = useGameStore.getState().pageParams;
@@ -286,8 +249,37 @@ export default function ExplorePage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // 反转历史用于地图显示（最旧的在上，最新的在下）
   const mapEvents = [...history].reverse();
+
+  // 纯数学计算路径点
+  const waypoints = (() => {
+    const pts: { x: number; y: number }[] = [];
+    pts.push({ x: CENTER_X, y: PAD_TOP });
+    mapEvents.forEach((_, i) => {
+      const y = PAD_TOP + (i + 1) * SPACING_Y;
+      const x = CENTER_X + Math.sin((i + 1) * 0.8) * AMPLITUDE;
+      pts.push({ x, y });
+    });
+    pts.push({ x: CENTER_X, y: PAD_TOP + (mapEvents.length + 1) * SPACING_Y });
+    return pts;
+  })();
+
+  // Catmull-Rom → cubic bezier
+  const journeyPath = (() => {
+    if (waypoints.length < 2) return '';
+    const d: string[] = [`M ${waypoints[0].x} ${waypoints[0].y}`];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const p0 = waypoints[Math.max(i - 1, 0)];
+      const p1 = waypoints[i];
+      const p2 = waypoints[i + 1];
+      const p3 = waypoints[Math.min(i + 2, waypoints.length - 1)];
+      d.push(`C ${p1.x + (p2.x - p0.x) / 6} ${p1.y + (p2.y - p0.y) / 6}, ${p2.x - (p3.x - p1.x) / 6} ${p2.y - (p3.y - p1.y) / 6}, ${p2.x} ${p2.y}`);
+    }
+    return d.join(' ');
+  })();
+
+  const journeyH = waypoints[waypoints.length - 1].y + 100;
+  const canExplore = ap > 0 && !exploring && (!currentEvent || !!currentReward);
 
   return (
     <div className={styles.page}>
@@ -310,17 +302,12 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {/* 地图头部 */}
+      {/* 头部 */}
       <div className={styles.mapHeader}>
         <div className={styles.mapTitleRow}>
           <span className={styles.mapTitle}>{bookTitle}</span>
           <span className={styles.mapSubtitle}>书中漫步</span>
-          <button
-            className={styles.bgRefreshBtn}
-            disabled={bgLoading}
-            onClick={() => generateBg(true)}
-            title="换背景"
-          >
+          <button className={styles.bgRefreshBtn} disabled={bgLoading} onClick={() => generateBg(true)} title="换背景">
             {bgLoading ? '...' : '🎨'}
           </button>
         </div>
@@ -337,70 +324,111 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {/* 地图主体 */}
+      {/* 行旅图主体 */}
       <div className={styles.mapBody} ref={mapScrollRef}>
-        <div className={styles.mapTrail} ref={trailRef}>
-          {/* 整体曲线 */}
-          {trailPath && (
-            <svg className={styles.trailSvg}>
-              <path className={styles.trailLine} d={trailPath} />
-            </svg>
-          )}
+        <div className={styles.journey} style={{ height: journeyH }}>
+          {/* 发光金色路径 */}
+          <svg className={styles.journeySvg} viewBox={`0 0 ${JOURNEY_W} ${journeyH}`} preserveAspectRatio="none">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="4" result="b" />
+                <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+            </defs>
+            {journeyPath && (
+              <>
+                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.12)" strokeWidth="10" strokeLinecap="round" filter="url(#glow)" />
+                <path d={journeyPath} fill="none" stroke="rgba(201,168,76,0.5)" strokeWidth="2" strokeLinecap="round" filter="url(#glow)" />
+              </>
+            )}
+          </svg>
 
           {/* 起点 */}
-          <div className={styles.trailOrigin}>
-            <div className={styles.originDot} ref={originDotRef} />
-            <span className={styles.originLabel}>起点</span>
+          <div className={styles.originMark} style={{ left: waypoints[0].x, top: waypoints[0].y }}>
+            <div className={styles.originCircle} />
+            <span className={styles.originText}>起点</span>
           </div>
 
-          {/* 历史节点 */}
-          {mapEvents.map((item, i) => (
-            <div
-              key={item.event.eventId + i}
-              className={styles.mapNode}
-              data-type={item.event.type}
-              style={{ '--n': i } as React.CSSProperties}
-            >
-              <div className={styles.nodeDot} data-type={item.event.type} />
+          {/* 事件节点 */}
+          {mapEvents.map((item, i) => {
+            const wp = waypoints[i + 1];
+            if (!wp) return null;
+            const isLeft = wp.x < CENTER_X;
+            const nodeId = item.event.eventId + i;
+            const expanded = expandedNode === nodeId;
+            const desc = item.reward.message || item.event.description || '';
+            const brief = desc.length > 20 ? desc.slice(0, 20) + '…' : desc;
+            return (
               <div
-                className={styles.nodeCard}
-                ref={el => { nodeCardRefs.current[i] = el; }}
+                key={nodeId}
+                className={`${styles.node} ${expanded ? styles.nodeExpanded : ''}`}
+                data-type={item.event.type}
+                style={{ left: wp.x, top: wp.y }}
+                onClick={() => setExpandedNode(expanded ? null : nodeId)}
               >
-                <div className={styles.cardAccent} data-type={item.event.type} />
-                <div className={styles.nodeHead}>
-                  <span className={styles.nodeType} data-type={item.event.type}>
+                <div className={styles.nodeCircle} data-type={item.event.type} />
+                <div className={styles.nodeLabel} data-side={isLeft ? 'left' : 'right'}>
+                  <span className={styles.labelType} data-type={item.event.type}>
                     {EVENT_LABELS[item.event.type] || item.event.type}
                   </span>
-                  <span className={styles.nodeTitle}>{item.event.title}</span>
+                  <span className={styles.labelTitle}>{item.event.title}</span>
+                  {brief && !expanded && <span className={styles.labelBrief}>{brief}</span>}
                 </div>
-                {item.reward.message && (
-                  <span className={styles.nodeReward}>{item.reward.message}</span>
+                {expanded && (
+                  <div className={styles.detailCard} data-side={isLeft ? 'right' : 'left'} data-type={item.event.type}>
+                    <div className={styles.detailAccent} data-type={item.event.type} />
+                    <div className={styles.detailHead}>
+                      <span className={styles.detailType} data-type={item.event.type}>
+                        {EVENT_LABELS[item.event.type] || item.event.type}
+                      </span>
+                      <span className={styles.detailTitle}>{item.event.title}</span>
+                    </div>
+                    <p className={styles.detailMsg}>{desc}</p>
+                    {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0 || item.reward.itemName) && (
+                      <div className={styles.detailDivider} />
+                    )}
+                    {(item.reward.fateDelta !== 0 || item.reward.trustDelta !== 0) && (
+                      <div className={styles.detailStats}>
+                        {item.reward.fateDelta !== 0 && (
+                          <span className={styles.detailStat} data-positive={item.reward.fateDelta > 0 ? '' : undefined} data-negative={item.reward.fateDelta < 0 ? '' : undefined}>
+                            缘 {item.reward.fateDelta > 0 ? '+' : ''}{item.reward.fateDelta}
+                          </span>
+                        )}
+                        {item.reward.trustDelta !== 0 && (
+                          <span className={styles.detailStat} data-positive={item.reward.trustDelta > 0 ? '' : undefined} data-negative={item.reward.trustDelta < 0 ? '' : undefined}>
+                            信 {item.reward.trustDelta > 0 ? '+' : ''}{item.reward.trustDelta}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {item.reward.itemName && (
+                      <div className={styles.detailReward}>
+                        <span className={styles.rewardDot} />
+                        {item.reward.itemName}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {/* 当前位置 — 可点击探索 */}
+          {/* 当前位置 — 探索触发 */}
           <div
-            className={`${styles.currentPos} ${ap > 0 && !exploring && (!currentEvent || !!currentReward) ? styles.currentClickable : ''}`}
-            onClick={handleExplore}
+            className={`${styles.currentMark} ${canExplore ? styles.currentActive : ''}`}
+            style={{ left: waypoints[waypoints.length - 1].x, top: waypoints[waypoints.length - 1].y }}
+            onClick={canExplore ? handleExplore : undefined}
           >
-            <div className={styles.currentPulse} />
-            <div className={styles.currentDot} ref={currentDotRef} />
-            <span className={styles.currentLabel}>
+            <div className={styles.currentRing} />
+            <div className={styles.currentCircle} />
+            <span className={styles.currentText}>
               {exploring ? '命运织就中...' : ap <= 0 ? '行动力不足' : currentEvent && !currentReward ? '事件进行中' : '点击探索'}
             </span>
-            <span className={styles.currentAp}>{ap}/{maxAp}{ap < maxAp && recoverCountdown > 0 ? ` · ${formatTime(recoverCountdown)}` : ''}</span>
-          </div>
-
-          {/* 未探索迷雾 */}
-          <div className={styles.unexplored}>
-            <span className={styles.mistText}>未知领域</span>
           </div>
         </div>
       </div>
 
-      {/* 事件浮层 — 当前事件卡片 */}
+      {/* 事件浮层 */}
       {currentEvent && !currentReward && (
         <div className={styles.eventOverlay} data-type={currentEvent.type}>
           <div className={styles.eventCard}>
@@ -418,18 +446,10 @@ export default function ExplorePage() {
             {!battleLoading && (
               <div className={styles.cardChoices}>
                 {currentEvent.choices.map(c => (
-                  <button
-                    key={c.id}
-                    className={styles.choiceBtn}
-                    data-risk={c.risk}
-                    disabled={resolving}
-                    onClick={() => handleChoice(c.id)}
-                  >
+                  <button key={c.id} className={styles.choiceBtn} data-risk={c.risk} disabled={resolving} onClick={() => handleChoice(c.id)}>
                     <span className={styles.choiceText}>{c.text}</span>
                     {c.risk !== 'low' && (
-                      <span className={styles.riskTag} data-risk={c.risk}>
-                        {RISK_LABELS[c.risk] || c.risk}
-                      </span>
+                      <span className={styles.riskTag} data-risk={c.risk}>{RISK_LABELS[c.risk] || c.risk}</span>
                     )}
                   </button>
                 ))}
@@ -448,9 +468,7 @@ export default function ExplorePage() {
                 )}
               </div>
             )}
-            {battleLoading && (
-              <div className={styles.battleHint}>拔剑出鞘...</div>
-            )}
+            {battleLoading && <div className={styles.battleHint}>拔剑出鞘...</div>}
           </div>
         </div>
       )}
@@ -469,18 +487,14 @@ export default function ExplorePage() {
                 {currentReward.trustDelta < 0 && <span className={styles.statTrustNeg}>信任 {currentReward.trustDelta}</span>}
               </div>
             )}
-            {currentReward.itemName && (
-              <div className={styles.rewardItem}>获得物品：{currentReward.itemName}</div>
-            )}
-            {currentReward.memoryTitle && (
-              <div className={styles.rewardItem}>获得记忆：{currentReward.memoryTitle}</div>
-            )}
+            {currentReward.itemName && <div className={styles.rewardItem}>获得物品：{currentReward.itemName}</div>}
+            {currentReward.memoryTitle && <div className={styles.rewardItem}>获得记忆：{currentReward.memoryTitle}</div>}
             <span className={styles.rewardDismiss}>点击继续</span>
           </div>
         </div>
       )}
 
-      {/* 底部信息 */}
+      {/* 底部 */}
       <div className={styles.bottomBar}>
         <span className={styles.todayHint}>今日探索 {status?.todayCount ?? 0} 次</span>
       </div>
