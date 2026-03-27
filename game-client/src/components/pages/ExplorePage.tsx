@@ -53,11 +53,35 @@ export default function ExplorePage() {
   const [resolving, setResolving] = useState(false);
   const [battleLoading, setBattleLoading] = useState(false);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
   const recoverTimerRef = useRef<ReturnType<typeof setInterval>>();
   const [recoverCountdown, setRecoverCountdown] = useState(0);
   const mapScrollRef = useRef<HTMLDivElement>(null);
 
   const bookTitle = currentBookWorld?.title || '';
+
+  // 背景图：按书缓存到 localStorage
+  const [bgLoading, setBgLoading] = useState(false);
+  const bgLoadingRef = useRef(false);
+
+  const generateBg = useCallback((force = false) => {
+    if (!bookTitle || bgLoadingRef.current) return;
+    const cacheKey = `explore_bg_${currentWorldIndex}`;
+    if (!force) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) { setBgUrl(cached); return; }
+    }
+    bgLoadingRef.current = true;
+    setBgLoading(true);
+    setBgUrl(null);
+    const uid = force ? `explore_bg_${Date.now()}` : 'explore_bg';
+    generateSceneImage(uid, currentWorldIndex, '唯美风景插画', `${bookTitle}的纯风景全景，无人物，清新唯美，远山云海花田溪流，柔和光影，空灵意境`)
+      .then(res => { localStorage.setItem(cacheKey, res.imageUrl); setBgUrl(res.imageUrl); })
+      .catch(() => {})
+      .finally(() => { bgLoadingRef.current = false; setBgLoading(false); });
+  }, [bookTitle, currentWorldIndex]);
+
+  useEffect(() => { generateBg(); }, [generateBg]);
 
   // 未选书引导
   if (!currentBookWorld) {
@@ -238,11 +262,19 @@ export default function ExplorePage() {
     <div className={styles.page}>
       {/* 大气层 */}
       <div className={styles.atmosphere}>
+        {bgUrl && <div className={styles.bgImage} style={{ backgroundImage: `url(${bgUrl})` }} />}
+        <div className={styles.mountains} />
         <div className={styles.fogTop} />
         <div className={styles.fogBottom} />
         <div className={styles.particles}>
           {Array.from({ length: 6 }, (_, i) => (
-            <span key={i} className={styles.particle} style={{ '--i': i } as React.CSSProperties} />
+            <span key={i} className={styles.particle} data-kind="firefly" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+          {Array.from({ length: 4 }, (_, i) => (
+            <span key={`p${i}`} className={styles.particle} data-kind="petal" style={{ '--i': i } as React.CSSProperties} />
+          ))}
+          {Array.from({ length: 2 }, (_, i) => (
+            <span key={`d${i}`} className={styles.particle} data-kind="dust" style={{ '--i': i } as React.CSSProperties} />
           ))}
         </div>
       </div>
@@ -252,6 +284,14 @@ export default function ExplorePage() {
         <div className={styles.mapTitleRow}>
           <span className={styles.mapTitle}>{bookTitle}</span>
           <span className={styles.mapSubtitle}>书中漫步</span>
+          <button
+            className={styles.bgRefreshBtn}
+            disabled={bgLoading}
+            onClick={() => generateBg(true)}
+            title="换背景"
+          >
+            {bgLoading ? '...' : '🎨'}
+          </button>
         </div>
         <div className={styles.apRow}>
           <div className={styles.apDots}>
@@ -284,13 +324,13 @@ export default function ExplorePage() {
               key={item.event.eventId + i}
               className={styles.mapNode}
               data-type={item.event.type}
-              data-side={i % 2 === 0 ? 'left' : 'right'}
+              style={{ '--n': i } as React.CSSProperties}
             >
-              <div className={styles.nodeConnector} />
               <div className={styles.nodeDot} data-type={item.event.type}>
                 <span className={styles.nodeIcon}>{EVENT_ICONS[item.event.type] || '?'}</span>
               </div>
               <div className={styles.nodeCard}>
+                <div className={styles.cardAccent} data-type={item.event.type} />
                 <span className={styles.nodeType} data-type={item.event.type}>
                   {EVENT_LABELS[item.event.type] || item.event.type}
                 </span>
@@ -321,7 +361,7 @@ export default function ExplorePage() {
 
       {/* 事件浮层 — 当前事件卡片 */}
       {currentEvent && !currentReward && (
-        <div className={styles.eventOverlay}>
+        <div className={styles.eventOverlay} data-type={currentEvent.type}>
           <div className={styles.eventCard}>
             <div className={styles.cardBadge} data-type={currentEvent.type}>
               <span>{EVENT_ICONS[currentEvent.type] || '?'}</span>
@@ -402,16 +442,19 @@ export default function ExplorePage() {
 
       {/* 底部探索按钮 */}
       <div className={styles.bottomBar}>
-        <button
-          className={styles.exploreBtn}
-          disabled={ap <= 0 || exploring || (!!currentEvent && !currentReward)}
-          onClick={handleExplore}
-        >
-          <span className={styles.exploreBtnInner}>
-            {ap <= 0 ? '行动力不足' : exploring ? '命运织就中...' : '踏入书页'}
-          </span>
-        </button>
-        <span className={styles.todayHint}>今日探索 {status?.todayCount ?? 0} 次</span>
+        <div className={styles.bottomRow}>
+          <span className={styles.todayHint}>今日 {status?.todayCount ?? 0} 次</span>
+          <button
+            className={styles.exploreBtn}
+            disabled={ap <= 0 || exploring || (!!currentEvent && !currentReward)}
+            onClick={handleExplore}
+          >
+            <span className={styles.exploreBtnInner}>
+              {ap <= 0 ? '行动力不足' : exploring ? '命运织就中...' : '踏入书页'}
+            </span>
+          </button>
+          <span className={styles.todayHint} style={{ visibility: 'hidden' }}>今日 {status?.todayCount ?? 0} 次</span>
+        </div>
       </div>
     </div>
   );

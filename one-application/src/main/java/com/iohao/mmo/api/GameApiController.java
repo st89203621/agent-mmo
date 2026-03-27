@@ -505,7 +505,12 @@ public class GameApiController {
         String cacheKey = (sceneHint != null && !sceneHint.isBlank())
                 ? npcId + "_" + worldIndex + "_" + sceneHint.hashCode() + "_" + artStyle.hashCode()
                 : npcId + "_" + worldIndex + "_" + artStyle.hashCode();
-        String prompt = buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint, gender, features);
+
+        // 纯风景背景请求：不拼人物描述
+        boolean landscapeOnly = npcId != null && npcId.startsWith("explore_bg");
+        String prompt = landscapeOnly
+                ? buildLandscapePrompt(bookTitle, artStyle, sceneHint)
+                : buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint, gender, features);
 
         Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
         if (result.isEmpty()) return err("图片生成失败");
@@ -580,6 +585,17 @@ public class GameApiController {
         }
         sb.append("，人物气质").append(personality).append("，");
         sb.append("高清，16:9宽幅构图，展现角色全身或上半身，人物居中");
+        return sb.toString();
+    }
+
+    private String buildLandscapePrompt(String bookTitle, String artStyle, String sceneHint) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(artStyle).append("纯风景插画，").append(bookTitle).append("世界观，");
+        sb.append("绝对没有人物、没有角色、没有人影，纯自然风景，");
+        if (sceneHint != null && !sceneHint.isBlank()) {
+            sb.append(sceneHint).append("，");
+        }
+        sb.append("高清，16:9宽幅构图，唯美清新，空灵意境");
         return sb.toString();
     }
 
