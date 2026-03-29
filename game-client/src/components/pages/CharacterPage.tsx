@@ -269,7 +269,7 @@ export default function CharacterPage() {
               ['book-world', '书库'], ['codex', '图鉴'],
               ['title', '称号'], ['guild', '盟会'], ['scene', '场景'],
               ['treasure-mountain', '聚宝山'], ['flower', '情花'],
-              ['trade', '交易'], ['team-battle', '组队PvP'],
+              ['trade', '交易'], ['team-battle', '组队PvP'], ['coexplore', '共探书境'],
               ['achievement', '排行', { tab: 'rank' }],
             ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
               <button key={label} className={styles.quickLink}

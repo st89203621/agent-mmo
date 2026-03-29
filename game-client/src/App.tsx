@@ -33,6 +33,7 @@ import TreasureMountainPage from './components/pages/TreasureMountainPage';
 import FlowerPage from './components/pages/FlowerPage';
 import TradePage from './components/pages/TradePage';
 import TeamBattlePage from './components/pages/TeamBattlePage';
+import CoexplorePage from './components/pages/CoexplorePage';
 import FateMapPage from './components/pages/FateMapPage';
 import type { PageId } from './types';
 
@@ -137,6 +138,7 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'flower': FlowerPage,
   'trade': TradePage,
   'team-battle': TeamBattlePage,
+  'coexplore': CoexplorePage,
   'fate-map': FateMapPage,
 };
 

@@ -58,6 +58,9 @@ import com.iohao.mmo.bookworld.explore.ExploreEvent;
 import com.iohao.mmo.bookworld.explore.ExploreService;
 import com.iohao.mmo.chat.entity.ChatRecord;
 import com.iohao.mmo.chat.service.ChatService;
+import com.iohao.mmo.coexplore.entity.CoexploreSession;
+import com.iohao.mmo.coexplore.entity.CoexploreRound;
+import com.iohao.mmo.coexplore.service.CoexploreService;
 import com.iohao.mmo.companion.entity.CompanionBag;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
@@ -185,6 +188,9 @@ public class GameApiController {
 
     @Resource
     com.iohao.mmo.teambattle.service.TeamBattleService teamBattleService;
+
+    @Resource
+    CoexploreService coexploreService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -3576,5 +3582,141 @@ public class GameApiController {
         long userId = requireLogin(session);
         var bonuses = memoryService.getActivatedBonuses(userId);
         return ok(Map.of("bonuses", bonuses));
+    }
+
+    // ── 共探书境 ──────────────────────────────────────
+
+    @PostMapping("/coexplore/create")
+    public ResponseEntity<Map<String, Object>> createCoexplore(HttpSession session) {
+        long userId = requireLogin(session);
+        String name = (String) session.getAttribute("username");
+        var s = coexploreService.createSession(userId, name != null ? name : "");
+        return ok(coexploreToMap(s));
+    }
+
+    @PostMapping("/coexplore/join")
+    public ResponseEntity<Map<String, Object>> joinCoexplore(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sessionId = (String) body.get("sessionId");
+        String name = (String) session.getAttribute("username");
+        var s = coexploreService.joinSession(sessionId, userId, name != null ? name : "");
+        if (s == null) return err("加入失败，房间不存在或已满");
+        return ok(coexploreToMap(s));
+    }
+
+    @GetMapping("/coexplore/session")
+    public ResponseEntity<Map<String, Object>> getCoexplore(@RequestParam String sessionId, HttpSession session) {
+        requireLogin(session);
+        var s = coexploreService.getSession(sessionId);
+        if (s == null) return err("会话不存在");
+        return ok(coexploreToMap(s));
+    }
+
+    @GetMapping("/coexplore/list")
+    public ResponseEntity<Map<String, Object>> listCoexplore(HttpSession session) {
+        requireLogin(session);
+        var list = coexploreService.listWaiting();
+        List<Map<String, Object>> result = list.stream().map(this::coexploreToMap).toList();
+        return ok(Map.of("sessions", result));
+    }
+
+    @PostMapping("/coexplore/explore")
+    public ResponseEntity<Map<String, Object>> coexploreExplore(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sessionId = (String) body.get("sessionId");
+        String locationId = (String) body.get("locationId");
+        var s = coexploreService.explore(sessionId, userId, locationId);
+        if (s == null) return err("操作失败");
+        return ok(coexploreToMap(s));
+    }
+
+    @PostMapping("/coexplore/vote")
+    public ResponseEntity<Map<String, Object>> coexploreVote(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sessionId = (String) body.get("sessionId");
+        String voteId = (String) body.get("voteId");
+        var s = coexploreService.vote(sessionId, userId, voteId);
+        if (s == null) return err("投票失败");
+        return ok(coexploreToMap(s));
+    }
+
+    @PostMapping("/coexplore/boss")
+    public ResponseEntity<Map<String, Object>> coexploreBoss(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sessionId = (String) body.get("sessionId");
+        var s = coexploreService.bossBattle(sessionId, userId);
+        if (s == null) return err("战斗失败");
+        return ok(coexploreToMap(s));
+    }
+
+    @PostMapping("/coexplore/leave")
+    public ResponseEntity<Map<String, Object>> leaveCoexplore(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String sessionId = (String) body.get("sessionId");
+        var s = coexploreService.leaveSession(sessionId, userId);
+        if (s == null) return err("离开失败");
+        return ok(coexploreToMap(s));
+    }
+
+    private Map<String, Object> coexploreToMap(CoexploreSession s) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("sessionId", s.getId());
+        m.put("hostId", s.getHostId());
+        m.put("hostName", s.getHostName() != null ? s.getHostName() : "");
+        m.put("guestId", s.getGuestId());
+        m.put("guestName", s.getGuestName() != null ? s.getGuestName() : "");
+        m.put("status", s.getStatus());
+        m.put("currentRound", s.getCurrentRound());
+        m.put("currentPhase", s.getCurrentPhase());
+        m.put("hostFateValue", s.getHostFateValue());
+        m.put("guestFateValue", s.getGuestFateValue());
+        m.put("bossHp", s.getBossHp());
+        m.put("bossDamageHost", s.getBossDamageHost());
+        m.put("bossDamageGuest", s.getBossDamageGuest());
+
+        // 地点列表
+        List<Map<String, Object>> locs = new ArrayList<>();
+        if (s.getLocations() != null) {
+            for (var loc : s.getLocations()) {
+                Map<String, Object> lm = new LinkedHashMap<>();
+                lm.put("id", loc.getId());
+                lm.put("name", loc.getName());
+                lm.put("description", loc.getDescription());
+                lm.put("fateReward", loc.getFateReward());
+                locs.add(lm);
+            }
+        }
+        m.put("locations", locs);
+
+        // 轮次记录
+        List<Map<String, Object>> rounds = new ArrayList<>();
+        if (s.getRounds() != null) {
+            for (var r : s.getRounds()) {
+                Map<String, Object> rm = new LinkedHashMap<>();
+                rm.put("round", r.getRound());
+                rm.put("hostLocationId", r.getHostLocationId());
+                rm.put("guestLocationId", r.getGuestLocationId());
+                rm.put("hostDiscovery", r.getHostDiscovery());
+                rm.put("guestDiscovery", r.getGuestDiscovery());
+                rm.put("hostTrace", r.getHostTrace());
+                rm.put("guestTrace", r.getGuestTrace());
+                rm.put("hostVote", r.getHostVote());
+                rm.put("guestVote", r.getGuestVote());
+                rm.put("voteResult", r.getVoteResult());
+                rm.put("hostFateGain", r.getHostFateGain());
+                rm.put("guestFateGain", r.getGuestFateGain());
+
+                List<Map<String, Object>> opts = new ArrayList<>();
+                if (r.getVoteOptions() != null) {
+                    for (var o : r.getVoteOptions()) {
+                        opts.add(Map.of("id", o.getId(), "text", o.getText(), "description", o.getDescription()));
+                    }
+                }
+                rm.put("voteOptions", opts);
+                rounds.add(rm);
+            }
+        }
+        m.put("rounds", rounds);
+        return m;
     }
 }

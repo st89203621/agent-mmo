@@ -192,6 +192,57 @@ export interface ExploreReward {
   imageUrl: string | null;
 }
 
+/** 共探书境 - 地点 */
+export interface CoexploreLocation {
+  id: string;
+  name: string;
+  description: string;
+  fateReward: number;
+}
+
+/** 共探书境 - 投票选项 */
+export interface CoexploreVoteOption {
+  id: string;
+  text: string;
+  description: string;
+}
+
+/** 共探书境 - 轮次记录 */
+export interface CoexploreRoundData {
+  round: number;
+  hostLocationId: string | null;
+  guestLocationId: string | null;
+  hostDiscovery: string | null;
+  guestDiscovery: string | null;
+  hostTrace: string | null;
+  guestTrace: string | null;
+  hostVote: string | null;
+  guestVote: string | null;
+  voteResult: string | null;
+  hostFateGain: number;
+  guestFateGain: number;
+  voteOptions: CoexploreVoteOption[];
+}
+
+/** 共探书境 - 会话 */
+export interface CoexploreSessionData {
+  sessionId: string;
+  hostId: number;
+  hostName: string;
+  guestId: number;
+  guestName: string;
+  status: string;
+  currentRound: number;
+  currentPhase: string;
+  hostFateValue: number;
+  guestFateValue: number;
+  bossHp: number;
+  bossDamageHost: number;
+  bossDamageGuest: number;
+  locations: CoexploreLocation[];
+  rounds: CoexploreRoundData[];
+}
+
 /** 页面ID枚举 */
 export type PageId =
   | 'home' | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
@@ -199,4 +250,4 @@ export type PageId =
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'
   | 'companion' | 'title' | 'guild' | 'scene' | 'treasure-mountain'
-  | 'flower' | 'trade' | 'team-battle' | 'fate-map';
+  | 'flower' | 'trade' | 'team-battle' | 'fate-map' | 'coexplore';

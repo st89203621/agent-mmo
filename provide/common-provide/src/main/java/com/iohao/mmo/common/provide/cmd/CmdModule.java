@@ -89,4 +89,6 @@ public interface CmdModule {
     int tradeCmd = 33;
     /** 组队PvP */
     int teamBattleCmd = 34;
+    /** 共探书境 */
+    int coexploreCmd = 35;
 }

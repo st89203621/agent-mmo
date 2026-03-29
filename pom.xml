@@ -93,6 +93,8 @@
         <module>logic/trade-logic</module>
         <module>provide/team-battle-provide</module>
         <module>logic/team-battle-logic</module>
+        <module>provide/coexplore-provide</module>
+        <module>logic/coexplore-logic</module>
 
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>

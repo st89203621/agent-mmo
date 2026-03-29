@@ -1428,3 +1428,54 @@ export function activateMemory(fragmentId: string): Promise<MemoryFragment> {
 export function fetchActivatedBonuses(): Promise<Record<string, number>> {
   return request('/memory/bonuses');
 }
+
+// ── 共探书境 ──────────────────────────────────────
+
+import type { CoexploreSessionData } from '../types';
+
+export function createCoexplore(): Promise<CoexploreSessionData> {
+  return request('/coexplore/create', { method: 'POST' });
+}
+
+export function joinCoexplore(sessionId: string): Promise<CoexploreSessionData> {
+  return request('/coexplore/join', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  });
+}
+
+export function getCoexploreSession(sessionId: string): Promise<CoexploreSessionData> {
+  return request(`/coexplore/session?sessionId=${sessionId}`);
+}
+
+export function listCoexploreWaiting(): Promise<{ sessions: CoexploreSessionData[] }> {
+  return request('/coexplore/list');
+}
+
+export function coexploreExplore(sessionId: string, locationId: string): Promise<CoexploreSessionData> {
+  return request('/coexplore/explore', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, locationId }),
+  });
+}
+
+export function coexploreVote(sessionId: string, voteId: string): Promise<CoexploreSessionData> {
+  return request('/coexplore/vote', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId, voteId }),
+  });
+}
+
+export function coexploreBoss(sessionId: string): Promise<CoexploreSessionData> {
+  return request('/coexplore/boss', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  });
+}
+
+export function leaveCoexplore(sessionId: string): Promise<CoexploreSessionData> {
+  return request('/coexplore/leave', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  });
+}

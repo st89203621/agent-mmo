@@ -40,6 +40,7 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'scene': { label: '场景', back: 'character' },
   'treasure-mountain': { label: '宝山', back: 'guild' },
   'fate-map': { label: '命运织机', back: 'achievement' },
+  'coexplore': { label: '共探书境', back: 'home' },
 };
 
 interface Props {
