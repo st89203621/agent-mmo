@@ -10,9 +10,7 @@
   overflow: hidden;
 }
 
-/* 主页全屏背景：去掉宽度限制 */
 .layout[data-page="home"] {
-  max-width: none;
   background: transparent;
 }
 
