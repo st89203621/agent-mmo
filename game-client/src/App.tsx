@@ -33,6 +33,7 @@ import TreasureMountainPage from './components/pages/TreasureMountainPage';
 import FlowerPage from './components/pages/FlowerPage';
 import TradePage from './components/pages/TradePage';
 import TeamBattlePage from './components/pages/TeamBattlePage';
+import FateMapPage from './components/pages/FateMapPage';
 import type { PageId } from './types';
 
 /** 错误边界：防止子组件崩溃导致整个页面黑屏 */
@@ -136,6 +137,7 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'flower': FlowerPage,
   'trade': TradePage,
   'team-battle': TeamBattlePage,
+  'fate-map': FateMapPage,
 };
 
 export default function App() {

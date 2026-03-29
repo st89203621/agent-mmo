@@ -237,6 +237,9 @@ export default function AchievementPage() {
         {/* ── 缘分谱 ── */}
         {tab === 'fate' && (
           <>
+            <button className={own.starMapBtn} onClick={() => navigateTo('fate-map')}>
+              ✦ 命运星图
+            </button>
             {/* 关系详情弹窗 */}
             {selectedRelation && (
               <div className={styles.fateDetail}>
