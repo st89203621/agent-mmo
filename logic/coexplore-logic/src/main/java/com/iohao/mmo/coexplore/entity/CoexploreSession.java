@@ -31,10 +31,18 @@ public class CoexploreSession {
     /** 当前轮次：1-2 为探索轮，3 为推理轮 */
     int currentRound;
 
+    // ── 书籍上下文 ──
+
+    String bookTitle;
+    String bookLoreSummary;
+    String bookArtStyle;
+
     // ── 谜局剧本（加入时 AI 一次性生成） ──
 
     /** 谜题背景描述 */
     String mysteryBackground;
+    /** 谜题场景图 */
+    String mysteryImageId;
     /** 三个嫌疑答案 */
     List<String> suspects;
     /** 正确答案索引 (0-2) */
@@ -82,5 +90,7 @@ public class CoexploreSession {
         String clueText;
         /** 对方可见的模糊痕迹 */
         String trace;
+        /** 地点场景图 */
+        String imageId;
     }
 }

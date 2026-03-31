@@ -3595,10 +3595,15 @@ public class GameApiController {
     // ── 共探书境 ──────────────────────────────────────
 
     @PostMapping("/coexplore/create")
-    public ResponseEntity<Map<String, Object>> createCoexplore(HttpSession session) {
+    public ResponseEntity<Map<String, Object>> createCoexplore(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String name = (String) session.getAttribute("username");
-        var s = coexploreService.createSession(userId, name != null ? name : "");
+        String bookTitle = body != null ? (String) body.get("bookTitle") : null;
+        String bookLoreSummary = body != null ? (String) body.get("bookLoreSummary") : null;
+        String bookArtStyle = body != null ? (String) body.get("bookArtStyle") : null;
+        if (bookTitle == null || bookTitle.isBlank()) return err("请先选择一本书");
+        var s = coexploreService.createSession(userId, name != null ? name : "",
+                bookTitle, bookLoreSummary, bookArtStyle);
         broadcastCoexploreLobby();
         return ok(coexploreToMap(s, userId));
     }
@@ -3612,6 +3617,8 @@ public class GameApiController {
         if (s == null) return err("加入失败，房间不存在或已满");
         broadcastCoexplore(s);
         broadcastCoexploreLobby();
+        // 异步生成谜局场景图和地点图
+        sseExecutor.submit(() -> generateCoexploreImages(s.getId()));
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3764,6 +3771,51 @@ public class GameApiController {
         });
     }
 
+    /** 异步生成共探谜局的所有场景图，完成后通过 SSE 推送 */
+    private void generateCoexploreImages(String sessionId) {
+        try {
+            var session = coexploreService.getSession(sessionId);
+            if (session == null) return;
+
+            String bg = session.getMysteryBackground() != null ? session.getMysteryBackground() : "";
+            String artStyle = session.getBookArtStyle() != null && !session.getBookArtStyle().isBlank()
+                    ? session.getBookArtStyle() : "古风悬疑";
+            String bookTitle = session.getBookTitle() != null ? session.getBookTitle() : "";
+            String styleTag = artStyle + "场景插画，" + (bookTitle.isBlank() ? "" : "「" + bookTitle + "」世界观，");
+
+            // 1. 谜局主场景图
+            String mysteryPrompt = styleTag + bg
+                    + "，暗色调，氛围神秘，全景构图，无人物，无文字，无水印";
+            sceneImageService.getOrGenerate("coex_mystery_" + sessionId, mysteryPrompt)
+                    .ifPresent(img -> {
+                        session.setMysteryImageId(img.getId());
+                        coexploreService.saveSession(session);
+                        broadcastCoexplore(session);
+                    });
+
+            // 2. 所有地点图（并行生成）
+            List<java.util.concurrent.CompletableFuture<Void>> futures = new ArrayList<>();
+            for (var locs : List.of(session.getRound1Locations(), session.getRound2Locations())) {
+                if (locs == null) continue;
+                for (var loc : locs) {
+                    futures.add(java.util.concurrent.CompletableFuture.runAsync(() -> {
+                        String prompt = styleTag + loc.getName() + "，" + loc.getDescription()
+                                + "，暗色调，氛围感，全景构图，无人物，无文字，无水印";
+                        sceneImageService.getOrGenerate("coex_loc_" + sessionId + "_" + loc.getId(), prompt)
+                                .ifPresent(img -> loc.setImageId(img.getId()));
+                    }, sseExecutor));
+                }
+            }
+            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
+                    .get(300, java.util.concurrent.TimeUnit.SECONDS);
+
+            coexploreService.saveSession(session);
+            broadcastCoexplore(session);
+        } catch (Exception e) {
+            log.warn("共探图片生成失败: sessionId={}, error={}", sessionId, e.getMessage());
+        }
+    }
+
     /**
      * 会话序列化 — 根据请求者身份过滤敏感数据
      * <p>
@@ -3781,6 +3833,7 @@ public class GameApiController {
         m.put("guestName", s.getGuestName() != null ? s.getGuestName() : "");
         m.put("status", s.getStatus());
         m.put("currentRound", s.getCurrentRound());
+        m.put("bookTitle", s.getBookTitle());
         m.put("hostFateValue", s.getHostFateValue());
         m.put("guestFateValue", s.getGuestFateValue());
         m.put("bossHp", s.getBossHp());
@@ -3789,6 +3842,7 @@ public class GameApiController {
 
         // 谜局信息
         m.put("mysteryBackground", s.getMysteryBackground());
+        m.put("mysteryImageUrl", s.getMysteryImageId() != null ? "/api/story/scene-image/" + s.getMysteryImageId() : null);
         m.put("suspects", s.getSuspects());
         // correctAnswer 仅结算后可见
         m.put("correctAnswer", "COMPLETED".equals(s.getStatus()) ? s.getCorrectAnswer() : -1);
@@ -3808,6 +3862,7 @@ public class GameApiController {
                 lm.put("id", loc.getId());
                 lm.put("name", loc.getName());
                 lm.put("description", loc.getDescription());
+                lm.put("imageUrl", loc.getImageId() != null ? "/api/story/scene-image/" + loc.getImageId() : null);
                 locs.add(lm);
             }
         }

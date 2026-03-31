@@ -199,6 +199,7 @@ export interface CoexploreLocation {
   id: string;
   name: string;
   description: string;
+  imageUrl: string | null;
 }
 
 /** 共探书境 - 轮次记录 */
@@ -224,8 +225,10 @@ export interface CoexploreSessionData {
   guestName: string;
   status: string; // WAITING | EXPLORING | REASONING | BOSS | COMPLETED
   currentRound: number;
+  bookTitle: string | null;
   // 谜局
   mysteryBackground: string;
+  mysteryImageUrl: string | null;
   suspects: string[];
   correctAnswer: number; // -1 = 未揭晓
   // 推理

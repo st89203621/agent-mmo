@@ -23,7 +23,7 @@ public class CoexploreAction {
     @ActionMethod(CoexploreCmd.createSession)
     public CoexploreSessionMessage createSession(FlowContext flowContext) {
         long userId = flowContext.getUserId();
-        CoexploreSession session = coexploreService.createSession(userId, "");
+        CoexploreSession session = coexploreService.createSession(userId, "", null, null, null);
         return toMessage(session);
     }
 

@@ -6,6 +6,7 @@ import {
   subscribeCoexplore, subscribeCoexploreLobby,
 } from '../../services/api';
 import { usePlayerStore } from '../../store/playerStore';
+import { useGameStore } from '../../store/gameStore';
 import type { CoexploreSessionData, CoexploreRoundData } from '../../types';
 
 const C = {
@@ -14,6 +15,11 @@ const C = {
   green: '#4caf50', red: '#f44336', blue: '#5c9ce6',
   white: '#e0e0e0', gray: '#888', darkGray: '#333',
 } as const;
+
+/** 所有阶段共用的根容器样式 — 可滚动 */
+const PAGE: React.CSSProperties = {
+  padding: '16px 20px', height: '100%', overflowY: 'auto', background: C.bg,
+};
 
 const RESULT_LABEL: Record<string, { text: string; color: string; mult: number }> = {
   PERFECT:   { text: '完美破案', color: C.gold, mult: 1.5 },
@@ -24,6 +30,7 @@ const RESULT_LABEL: Record<string, { text: string; color: string; mult: number }
 
 export default function CoexplorePage() {
   const playerId = Number(usePlayerStore(s => s.playerId));
+  const bookWorld = useGameStore(s => s.currentBookWorld);
 
   const [session, setSession] = useState<CoexploreSessionData | null>(null);
   const [waitingList, setWaitingList] = useState<CoexploreSessionData[]>([]);
@@ -61,8 +68,15 @@ export default function CoexplorePage() {
   // ── 操作 ──
 
   const handleCreate = async () => {
+    if (!bookWorld) return;
     setLoading(true);
-    try { setSession(await createCoexplore()); } finally { setLoading(false); }
+    try {
+      setSession(await createCoexplore({
+        bookTitle: bookWorld.title,
+        bookLoreSummary: bookWorld.loreSummary,
+        bookArtStyle: bookWorld.artStyle,
+      }));
+    } finally { setLoading(false); }
   };
 
   const handleJoin = async (id: string) => {
@@ -105,36 +119,66 @@ export default function CoexplorePage() {
   const partnerTrace = isHost ? currentRound?.guestTrace : currentRound?.hostTrace;
   const myAnswer = isHost ? session?.hostAnswer ?? -1 : session?.guestAnswer ?? -1;
   const partnerAnswered = isHost ? (session?.guestAnswer ?? -1) >= 0 : (session?.hostAnswer ?? -1) >= 0;
-
-  // 已完成轮次的所有线索
   const allClues = (session?.rounds ?? []).filter(r => r.hostClue && r.guestClue);
 
   // ── 渲染 ──
 
   // 大厅
   if (!session) {
+    const navigateTo = useGameStore.getState().navigateTo;
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title="共探书境" />
-        <p style={{ color: C.gray, fontSize: 13, marginBottom: 20 }}>
-          两人同入书境，分头收集线索，合力推理真相。选择不同地点获得互补线索，默契越高奖励越丰。
+
+        {/* 当前选中的书 */}
+        {bookWorld ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+            padding: 12, background: C.goldDim, borderRadius: 10,
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.gold, fontSize: 14, fontWeight: 600 }}>{bookWorld.title}</div>
+              <div style={{ color: C.gray, fontSize: 12, marginTop: 2 }}>{bookWorld.author} · {bookWorld.category}</div>
+            </div>
+            <button onClick={() => navigateTo('book-world')}
+              style={{ background: 'none', border: `1px solid ${C.gray}`, color: C.gray, borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>
+              换书
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            padding: 20, marginBottom: 16, background: C.card, borderRadius: 10,
+            textAlign: 'center',
+          }}>
+            <div style={{ color: C.gray, fontSize: 14, marginBottom: 10 }}>请先选择一本书进入书境</div>
+            <Btn text="前往书库" color={C.gold} onClick={() => navigateTo('book-world')} />
+          </div>
+        )}
+
+        <p style={{ color: C.gray, fontSize: 13, marginBottom: 16 }}>
+          两人同入书境，分头收集线索，合力推理真相。
         </p>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Btn text={loading ? '创建中...' : '创建房间'} color={C.gold} onClick={handleCreate} disabled={loading} />
+          <Btn text={loading ? '创建中...' : '创建房间'} color={C.gold} onClick={handleCreate} disabled={loading || !bookWorld} />
           <div style={{ display: 'flex', gap: 8 }}>
             <input value={joinId} onChange={e => setJoinId(e.target.value)} placeholder="输入房间ID加入"
               style={{ flex: 1, padding: 12, borderRadius: 8, border: `1px solid ${C.darkGray}`, background: '#111', color: '#fff', fontSize: 14 }} />
             <Btn text="加入" color={C.green} onClick={() => handleJoin(joinId)} disabled={loading} style={{ padding: '12px 20px' }} />
           </div>
         </div>
+
         {waitingList.length > 0 && (
           <div style={{ marginTop: 24 }}>
             <div style={{ color: C.gray, fontSize: 12, marginBottom: 8 }}>等待中的房间</div>
             {waitingList.map(s => (
               <div key={s.sessionId} onClick={() => handleJoin(s.sessionId)}
-                style={{ padding: 12, marginBottom: 8, background: C.goldDim, borderRadius: 8, cursor: 'pointer' }}>
-                <span style={{ color: C.gold, fontSize: 14 }}>{s.hostName || '未知'}</span>
-                <span style={{ color: C.gray, fontSize: 12, marginLeft: 8 }}>#{s.sessionId}</span>
+                style={{ padding: 12, marginBottom: 8, background: C.goldDim, borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ color: C.gold, fontSize: 14 }}>{s.hostName || '未知'}</span>
+                  <span style={{ color: C.gray, fontSize: 12, marginLeft: 8 }}>#{s.sessionId}</span>
+                </div>
+                {s.bookTitle && <span style={{ color: C.gray, fontSize: 11 }}>{s.bookTitle}</span>}
               </div>
             ))}
           </div>
@@ -146,8 +190,13 @@ export default function CoexplorePage() {
   // 等待
   if (session.status === 'WAITING') {
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title="等待同伴" onBack={handleLeave} />
+        {session.bookTitle && (
+          <div style={{ color: C.gray, fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+            书境：<span style={{ color: C.gold }}>{session.bookTitle}</span>
+          </div>
+        )}
         <Card>
           <div style={{ textAlign: 'center' }}>
             <div style={{ color: C.gold, fontSize: 18, marginBottom: 12 }}>房间号</div>
@@ -155,7 +204,7 @@ export default function CoexplorePage() {
               {session.sessionId}
             </div>
             <div style={{ color: C.gray, fontSize: 13 }}>将此房间号分享给好友，等待加入...</div>
-            <div style={{ marginTop: 20, color: C.gold, fontSize: 20, letterSpacing: 4 }}>···</div>
+            <Pulse />
           </div>
         </Card>
       </div>
@@ -166,19 +215,14 @@ export default function CoexplorePage() {
   if (session.status === 'EXPLORING') {
     const alreadyChosen = !!myChoice;
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title={`第${session.currentRound}轮 · 探索`} onBack={handleLeave} />
         <FateBar myFate={myFate} partnerFate={partnerFate} myName={myName} partnerName={partnerName} />
 
-        {/* 谜题背景 */}
-        {session.mysteryBackground && (
-          <Card style={{ marginBottom: 12, borderLeft: `3px solid ${C.gold}` }}>
-            <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>谜题</div>
-            <div style={{ color: C.white, fontSize: 14, lineHeight: 1.6 }}>{session.mysteryBackground}</div>
-          </Card>
-        )}
+        {/* 谜题场景图 + 文字 */}
+        <MysteryBanner imageUrl={session.mysteryImageUrl} text={session.mysteryBackground} />
 
-        {/* 已收集线索回顾 */}
+        {/* 已收集线索 */}
         {allClues.length > 0 && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ color: C.gray, fontSize: 12, marginBottom: 6 }}>已收集线索</div>
@@ -196,30 +240,41 @@ export default function CoexplorePage() {
             <div style={{ textAlign: 'center', color: C.gray }}>
               <div style={{ fontSize: 16, marginBottom: 8 }}>你已选择探索地点</div>
               <div style={{ fontSize: 13 }}>等待 <span style={{ color: C.gold }}>{partnerName}</span> 选择...</div>
-              <div style={{ marginTop: 12, color: C.gray, fontSize: 12 }}>选择不同地点可获得互补线索（缘分 +15）</div>
-              <div style={{ marginTop: 16, color: C.gold, fontSize: 20, letterSpacing: 4 }}>···</div>
+              <div style={{ color: C.gray, fontSize: 12, marginTop: 8 }}>选不同地点 = 互补线索 + 缘分 +15</div>
+              <Pulse />
             </div>
           </Card>
         ) : (
           <>
-            <div style={{ color: C.gray, fontSize: 13, marginBottom: 12 }}>
-              选择一个地点探索（选不同地点 = 更多线索 + 更高缘分）
+            <div style={{ color: C.gray, fontSize: 12, marginBottom: 10 }}>选择探索地点</div>
+            {/* 2x2 地点图片卡片网格 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {session.locations.map(loc => {
+                const selected = selectedLoc === loc.id;
+                return (
+                  <div key={loc.id} onClick={() => setSelectedLoc(loc.id)}
+                    style={{
+                      position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'pointer',
+                      border: selected ? `2px solid ${C.gold}` : '2px solid transparent',
+                      boxShadow: selected ? `0 0 12px ${C.gold}40` : 'none',
+                      transition: 'all 0.2s',
+                    }}>
+                    <SceneImg url={loc.imageUrl} alt={loc.name} height={140} />
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                      padding: '24px 10px 10px',
+                    }}>
+                      <div style={{ color: selected ? C.gold : '#fff', fontSize: 15, fontWeight: 700 }}>{loc.name}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2, lineHeight: 1.3,
+                        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                      }}>{loc.description}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {session.locations.map(loc => (
-                <div key={loc.id} onClick={() => setSelectedLoc(loc.id)}
-                  style={{
-                    padding: 14, borderRadius: 10, cursor: 'pointer',
-                    background: selectedLoc === loc.id ? C.goldDim : C.card,
-                    border: selectedLoc === loc.id ? `2px solid ${C.gold}` : '2px solid transparent',
-                    transition: 'all 0.15s',
-                  }}>
-                  <div style={{ color: selectedLoc === loc.id ? C.gold : C.white, fontSize: 15, fontWeight: 600 }}>{loc.name}</div>
-                  <div style={{ color: C.gray, fontSize: 13, marginTop: 4 }}>{loc.description}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 14 }}>
               <Btn text="确认探索" color={C.gold} onClick={handleExplore} disabled={!selectedLoc || loading} full />
             </div>
           </>
@@ -232,6 +287,7 @@ export default function CoexplorePage() {
             <div style={{ color: C.white, fontSize: 14 }}>{partnerTrace}</div>
           </Card>
         )}
+        <div style={{ height: 20 }} />
       </div>
     );
   }
@@ -240,15 +296,11 @@ export default function CoexplorePage() {
   if (session.status === 'REASONING') {
     const iAnswered = myAnswer >= 0;
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title="推理 · 定论" onBack={handleLeave} />
         <FateBar myFate={myFate} partnerFate={partnerFate} myName={myName} partnerName={partnerName} />
 
-        {/* 谜题回顾 */}
-        <Card style={{ marginBottom: 12, borderLeft: `3px solid ${C.gold}` }}>
-          <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>谜题</div>
-          <div style={{ color: C.white, fontSize: 14, lineHeight: 1.6 }}>{session.mysteryBackground}</div>
-        </Card>
+        <MysteryBanner imageUrl={session.mysteryImageUrl} text={session.mysteryBackground} />
 
         {/* 所有线索 */}
         <div style={{ marginBottom: 16 }}>
@@ -269,12 +321,11 @@ export default function CoexplorePage() {
           ))}
         </div>
 
-        {/* 嫌疑人选择 */}
         {iAnswered ? (
           <Card>
             <div style={{ textAlign: 'center', color: C.gray }}>
               <div>你已提交推理，等待 <span style={{ color: C.gold }}>{partnerName}</span>...</div>
-              {!partnerAnswered && <div style={{ marginTop: 12, color: C.gold, fontSize: 20, letterSpacing: 4 }}>···</div>}
+              {!partnerAnswered && <Pulse />}
             </div>
           </Card>
         ) : (
@@ -298,11 +349,9 @@ export default function CoexplorePage() {
             <div style={{ marginTop: 12 }}>
               <Btn text="提交推理" color={C.gold} onClick={handleReason} disabled={selectedAnswer === null || loading} full />
             </div>
-            <div style={{ textAlign: 'center', color: C.gray, fontSize: 12, marginTop: 8 }}>
-              与同伴选择一致可获得额外缘分 +20
-            </div>
           </>
         )}
+        <div style={{ height: 20 }} />
       </div>
     );
   }
@@ -316,45 +365,46 @@ export default function CoexplorePage() {
     const result = session.reasoningResult ? RESULT_LABEL[session.reasoningResult] : null;
 
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title="终局 · 讨伐" />
         <FateBar myFate={myFate} partnerFate={partnerFate} myName={myName} partnerName={partnerName} />
 
-        {/* 推理结果 */}
         {result && (
           <Card style={{ marginBottom: 12, textAlign: 'center', borderLeft: `3px solid ${result.color}` }}>
             <div style={{ color: result.color, fontSize: 16, fontWeight: 700 }}>{result.text}</div>
-            <div style={{ color: C.gray, fontSize: 12, marginTop: 4 }}>奖励倍率 ×{result.mult}</div>
+            <div style={{ color: C.gray, fontSize: 12, marginTop: 4 }}>奖励倍率 x{result.mult}</div>
           </Card>
         )}
 
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🐉</div>
-            <div style={{ color: C.gold, fontSize: 18, marginBottom: 8 }}>书境守护者</div>
-            <div style={{ background: C.darkGray, borderRadius: 8, height: 20, overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+          <SceneImg url={session.mysteryImageUrl} alt="书境守护者" height={180} />
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ color: C.gold, fontSize: 18, fontWeight: 700, marginBottom: 10 }}>书境守护者</div>
+            <div style={{ width: '70%', background: C.darkGray, borderRadius: 8, height: 16, overflow: 'hidden' }}>
               <div style={{
                 width: `${hpPercent}%`, height: '100%', borderRadius: 8,
                 background: hpPercent > 50 ? C.red : hpPercent > 20 ? '#ff9800' : '#f44336',
                 transition: 'width 0.3s ease',
               }} />
             </div>
-            <div style={{ color: C.gray, fontSize: 12 }}>
+            <div style={{ color: C.gray, fontSize: 12, marginTop: 6 }}>
               HP: {Math.max(0, session.bossHp - totalDamage)} / {session.bossHp}
             </div>
           </div>
-        </Card>
+        </div>
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
           <Card style={{ flex: 1 }}>
             <div style={{ color: C.gold, fontSize: 12 }}>你的伤害</div>
             <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>{myDamage}</div>
-            <div style={{ color: C.gray, fontSize: 11 }}>缘分加成 +{Math.floor(myFate / 5)}</div>
           </Card>
           <Card style={{ flex: 1 }}>
             <div style={{ color: C.blue, fontSize: 12 }}>{partnerName} 伤害</div>
             <div style={{ color: '#fff', fontSize: 20, fontWeight: 700 }}>{partnerDamage}</div>
-            <div style={{ color: C.gray, fontSize: 11 }}>缘分加成 +{Math.floor(partnerFate / 5)}</div>
           </Card>
         </div>
 
@@ -366,68 +416,66 @@ export default function CoexplorePage() {
   // 结算
   if (session.status === 'COMPLETED') {
     const result = session.reasoningResult ? RESULT_LABEL[session.reasoningResult] : null;
-    const mult = result?.mult ?? 1.0;
     const correctIdx = session.correctAnswer;
     const minFate = Math.min(myFate, partnerFate);
 
     return (
-      <div style={{ padding: '16px 20px', minHeight: '100vh', background: C.bg }}>
+      <div style={PAGE}>
         <Header title="谜局揭晓" />
 
-        <Card style={{ marginBottom: 16, textAlign: 'center' }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📜</div>
-          <div style={{ color: C.gold, fontSize: 20, marginBottom: 8 }}>书境探索完成</div>
-
-          {/* 推理结果 */}
-          {result && (
-            <div style={{ background: C.card, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <div style={{ color: result.color, fontSize: 18, fontWeight: 700 }}>{result.text}</div>
-              <div style={{ color: C.gray, fontSize: 12, marginTop: 4 }}>奖励倍率 ×{mult}</div>
-            </div>
-          )}
-
-          {/* 正确答案 */}
-          {correctIdx >= 0 && session.suspects && (
-            <Card style={{ borderLeft: `3px solid ${C.green}`, textAlign: 'left', marginBottom: 12 }}>
-              <div style={{ color: C.green, fontSize: 12, marginBottom: 4 }}>真相</div>
-              <div style={{ color: C.white, fontSize: 14 }}>{session.suspects[correctIdx]}</div>
-            </Card>
-          )}
-
-          {/* 缘分值 */}
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 12 }}>
-            <div>
-              <div style={{ color: C.gray, fontSize: 12 }}>{myName || '你'}</div>
-              <div style={{ color: C.gold, fontSize: 24, fontWeight: 700 }}>{myFate}</div>
-            </div>
-            <div>
-              <div style={{ color: C.gray, fontSize: 12 }}>{partnerName}</div>
-              <div style={{ color: C.blue, fontSize: 24, fontWeight: 700 }}>{partnerFate}</div>
-            </div>
+        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+          <SceneImg url={session.mysteryImageUrl} alt="书境探索完成" height={160} />
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(transparent 30%, rgba(0,0,0,0.8))',
+          }}>
+            <div style={{ color: C.gold, fontSize: 22, fontWeight: 700 }}>书境探索完成</div>
+            {result && (
+              <div style={{ color: result.color, fontSize: 16, fontWeight: 700, marginTop: 6 }}>
+                {result.text} x{result.mult}
+              </div>
+            )}
           </div>
+        </div>
 
-          {minFate > 70 && (
-            <div style={{ color: C.gold, fontSize: 14, marginBottom: 12 }}>
-              团队默契奖励：额外宝箱 ×1
-            </div>
-          )}
-        </Card>
+        {correctIdx >= 0 && session.suspects && (
+          <Card style={{ borderLeft: `3px solid ${C.green}`, marginBottom: 12 }}>
+            <div style={{ color: C.green, fontSize: 12, marginBottom: 4 }}>真相</div>
+            <div style={{ color: C.white, fontSize: 14 }}>{session.suspects[correctIdx]}</div>
+          </Card>
+        )}
 
-        {/* 线索回顾 */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <Card style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ color: C.gray, fontSize: 12 }}>{myName || '你'}</div>
+            <div style={{ color: C.gold, fontSize: 24, fontWeight: 700 }}>{myFate}</div>
+          </Card>
+          <Card style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ color: C.gray, fontSize: 12 }}>{partnerName}</div>
+            <div style={{ color: C.blue, fontSize: 24, fontWeight: 700 }}>{partnerFate}</div>
+          </Card>
+        </div>
+
+        {minFate > 70 && (
+          <div style={{ textAlign: 'center', color: C.gold, fontSize: 14, marginBottom: 12 }}>
+            团队默契奖励：额外宝箱 x1
+          </div>
+        )}
+
         <div style={{ color: C.gold, fontSize: 14, marginBottom: 8 }}>线索回顾</div>
         {allClues.map(r => (
           <Card key={r.round} style={{ marginBottom: 8 }}>
-            <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>
-              第{r.round}轮 {r.sameLocation ?
-                <span style={{ color: '#ff9800' }}>（同一地点，线索重叠）</span> :
-                <span style={{ color: C.green }}>（不同地点，互补线索）</span>}
+            <div style={{ color: C.gray, fontSize: 11, marginBottom: 6 }}>第{r.round}轮 {r.sameLocation ?
+              <span style={{ color: '#ff9800' }}>（同一地点）</span> :
+              <span style={{ color: C.green }}>（不同地点）</span>}
             </div>
             <div style={{ color: C.white, fontSize: 13 }}>{r.hostClue}</div>
             <div style={{ color: C.gray, fontSize: 13, marginTop: 2 }}>{r.guestClue}</div>
           </Card>
         ))}
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, paddingBottom: 20 }}>
           <Btn text="返回大厅" color={C.gold} onClick={() => setSession(null)} full />
         </div>
       </div>
@@ -497,5 +545,46 @@ function ClueChip({ children, color }: { children: React.ReactNode; color: strin
     }}>
       {children}
     </div>
+  );
+}
+
+function Pulse() {
+  return <div style={{ marginTop: 16, color: C.gold, fontSize: 20, letterSpacing: 4, textAlign: 'center' }}>···</div>;
+}
+
+function MysteryBanner({ imageUrl, text }: { imageUrl: string | null; text: string }) {
+  return (
+    <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+      <SceneImg url={imageUrl} alt="谜题" height={150} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+        padding: '32px 14px 12px',
+      }}>
+        <div style={{ color: C.gold, fontSize: 12, marginBottom: 4 }}>谜题</div>
+        <div style={{ color: C.white, fontSize: 13, lineHeight: 1.5 }}>{text}</div>
+      </div>
+    </div>
+  );
+}
+
+function SceneImg({ url, alt, height }: { url: string | null; alt: string; height: number }) {
+  if (!url) {
+    return (
+      <div style={{
+        width: '100%', height,
+        background: 'linear-gradient(110deg, #1a1a2e 30%, #16213e 50%, #1a1a2e 70%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s ease-in-out infinite',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+        <span style={{ color: C.gray, fontSize: 12 }}>场景生成中...</span>
+      </div>
+    );
+  }
+  return (
+    <img src={url} alt={alt}
+      style={{ width: '100%', height, objectFit: 'cover', display: 'block' }} />
   );
 }

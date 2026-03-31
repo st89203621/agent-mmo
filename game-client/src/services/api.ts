@@ -1433,8 +1433,11 @@ export function fetchActivatedBonuses(): Promise<Record<string, number>> {
 
 import type { CoexploreSessionData } from '../types';
 
-export function createCoexplore(): Promise<CoexploreSessionData> {
-  return request('/coexplore/create', { method: 'POST' });
+export function createCoexplore(book: { bookTitle: string; bookLoreSummary: string; bookArtStyle: string }): Promise<CoexploreSessionData> {
+  return request('/coexplore/create', {
+    method: 'POST',
+    body: JSON.stringify(book),
+  });
 }
 
 export function joinCoexplore(sessionId: string): Promise<CoexploreSessionData> {

@@ -50,11 +50,15 @@ public class CoexploreService {
 
     // ── 创建 / 加入 ──────────────────────────────────
 
-    public CoexploreSession createSession(long hostId, String hostName) {
+    public CoexploreSession createSession(long hostId, String hostName,
+                                            String bookTitle, String bookLoreSummary, String bookArtStyle) {
         CoexploreSession session = new CoexploreSession();
         session.setId(UUID.randomUUID().toString().substring(0, 8));
         session.setHostId(hostId);
         session.setHostName(hostName);
+        session.setBookTitle(bookTitle);
+        session.setBookLoreSummary(bookLoreSummary);
+        session.setBookArtStyle(bookArtStyle);
         session.setStatus("WAITING");
         session.setCurrentRound(0);
         session.setCreateTime(System.currentTimeMillis());
@@ -79,6 +83,10 @@ public class CoexploreService {
 
     public CoexploreSession getSession(String sessionId) {
         return sessionRepository.findById(sessionId).orElse(null);
+    }
+
+    public CoexploreSession saveSession(CoexploreSession session) {
+        return sessionRepository.save(session);
     }
 
     public List<CoexploreSession> listWaiting() {
@@ -248,14 +256,23 @@ public class CoexploreService {
             return;
         }
 
-        String prompt = """
-                你是书境谜局的设计师。为两位探索者生成一个古风悬疑谜局。
+        String bookTitle = session.getBookTitle() != null ? session.getBookTitle() : "古风世界";
+        String loreSummary = session.getBookLoreSummary() != null ? session.getBookLoreSummary() : "";
+
+        String bookContext = loreSummary.isBlank()
+                ? "以「" + bookTitle + "」为世界观背景。"
+                : "以「" + bookTitle + "」为世界观背景。作品概要：" + loreSummary;
+
+        String prompt = String.format("""
+                你是「%s」世界的谜局设计师。为两位探索者生成一个基于该书世界观的悬疑谜局。
+
+                %s
 
                 要求：
-                1. 案件背景（80-120字）：一个发生在古风世界中的悬疑事件，有明确的谜题
+                1. 案件背景（80-120字）：一个发生在「%s」世界中的悬疑事件，符合原著风格和设定
                 2. 三个嫌疑对象/答案，每个用20-30字描述，其中只有一个是真相
                 3. 正确答案的编号（0/1/2）
-                4. 第一轮4个探索地点和第二轮4个探索地点（共8个）
+                4. 第一轮4个探索地点和第二轮4个探索地点（共8个），地点要贴合原著场景
 
                 线索设计规则：
                 - 指向正确答案的关键线索要分散在不同地点，单独看一条不够，两条合在一起才能推理出真相
@@ -281,13 +298,15 @@ public class CoexploreService {
                     {"id": "r2_3", "name": "...", "description": "...", "clue": "...", "trace": "..."},
                     {"id": "r2_4", "name": "...", "description": "...", "clue": "...", "trace": "..."}
                   ]
-                }""";
+                }""", bookTitle, bookContext, bookTitle);
 
         try {
+            String systemMsg = "你是「" + bookTitle + "」世界的悬疑谜局设计大师。"
+                    + "生成的谜局要贴合原著世界观，逻辑自洽、线索互补、可推理。只输出JSON。";
             List<ChatMessage> messages = List.of(
                     ChatMessage.builder()
                             .role(ChatMessageRole.SYSTEM)
-                            .content("你是古风悬疑谜局设计大师。生成的谜局要逻辑自洽、线索互补、可推理。只输出JSON。")
+                            .content(systemMsg)
                             .build(),
                     ChatMessage.builder()
                             .role(ChatMessageRole.USER)
