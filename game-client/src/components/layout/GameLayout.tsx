@@ -12,8 +12,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: '主页', icon: '🏠' },
-  { id: 'coexplore', label: '同游', icon: '🤝' },
   { id: 'explore', label: '探索', icon: '🗺️' },
+  { id: 'coexplore', label: '同游', icon: '🤝' },
   { id: 'character', label: '角色', icon: '👤' },
   { id: 'achievement', label: '成就', icon: '🏅' },
 ];

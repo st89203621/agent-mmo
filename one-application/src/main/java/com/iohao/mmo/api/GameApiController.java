@@ -77,6 +77,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -193,6 +195,12 @@ public class GameApiController {
     CoexploreService coexploreService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
+
+    /** 共探 SSE 推送：sessionId → (userId → emitter) */
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Long, SseEmitter>> coexploreEmitters = new ConcurrentHashMap<>();
+
+    /** 共探大厅 SSE 推送：所有在大厅界面的用户 */
+    private final ConcurrentHashMap<Long, SseEmitter> coexploreLobbyEmitters = new ConcurrentHashMap<>();
 
     // ── 认证 ─────────────────────────────────────────
 
@@ -3591,6 +3599,7 @@ public class GameApiController {
         long userId = requireLogin(session);
         String name = (String) session.getAttribute("username");
         var s = coexploreService.createSession(userId, name != null ? name : "");
+        broadcastCoexploreLobby();
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3601,6 +3610,8 @@ public class GameApiController {
         String name = (String) session.getAttribute("username");
         var s = coexploreService.joinSession(sessionId, userId, name != null ? name : "");
         if (s == null) return err("加入失败，房间不存在或已满");
+        broadcastCoexplore(s);
+        broadcastCoexploreLobby();
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3627,6 +3638,7 @@ public class GameApiController {
         String locationId = (String) body.get("locationId");
         var s = coexploreService.explore(sessionId, userId, locationId);
         if (s == null) return err("操作失败");
+        broadcastCoexplore(s);
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3637,6 +3649,7 @@ public class GameApiController {
         int answerIndex = ((Number) body.get("answerIndex")).intValue();
         var s = coexploreService.reason(sessionId, userId, answerIndex);
         if (s == null) return err("推理失败");
+        broadcastCoexplore(s);
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3646,6 +3659,7 @@ public class GameApiController {
         String sessionId = (String) body.get("sessionId");
         var s = coexploreService.bossBattle(sessionId, userId);
         if (s == null) return err("战斗失败");
+        broadcastCoexplore(s);
         return ok(coexploreToMap(s, userId));
     }
 
@@ -3655,7 +3669,99 @@ public class GameApiController {
         String sessionId = (String) body.get("sessionId");
         var s = coexploreService.leaveSession(sessionId, userId);
         if (s == null) return err("离开失败");
+        broadcastCoexplore(s);
+        broadcastCoexploreLobby();
         return ok(coexploreToMap(s, userId));
+    }
+
+    @GetMapping(value = "/coexplore/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeCoexplore(@RequestParam String sessionId, HttpSession session) {
+        long userId = requireLogin(session);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5 分钟超时
+
+        var sessionEmitters = coexploreEmitters.computeIfAbsent(sessionId, k -> new ConcurrentHashMap<>());
+        sessionEmitters.put(userId, emitter);
+
+        Runnable cleanup = () -> {
+            var map = coexploreEmitters.get(sessionId);
+            if (map != null) {
+                map.remove(userId);
+                if (map.isEmpty()) coexploreEmitters.remove(sessionId);
+            }
+        };
+        emitter.onCompletion(cleanup);
+        emitter.onTimeout(cleanup);
+        emitter.onError(e -> cleanup.run());
+
+        // 立即推送当前状态
+        sseExecutor.submit(() -> {
+            try {
+                var s = coexploreService.getSession(sessionId);
+                if (s != null) {
+                    emitter.send(SseEmitter.event().name("update").data(JSON.toJSONString(coexploreToMap(s, userId))));
+                }
+            } catch (Exception ignored) {}
+        });
+
+        return emitter;
+    }
+
+    /** 向同一 session 的所有 SSE 订阅者推送最新状态 */
+    private void broadcastCoexplore(CoexploreSession s) {
+        if (s == null) return;
+        var sessionEmitters = coexploreEmitters.get(s.getId());
+        if (sessionEmitters == null) return;
+        sessionEmitters.forEach((uid, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event().name("update").data(JSON.toJSONString(coexploreToMap(s, uid))));
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        });
+        // 会话结束时清理
+        if ("COMPLETED".equals(s.getStatus())) {
+            sessionEmitters.forEach((uid, emitter) -> {
+                try { emitter.complete(); } catch (Exception ignored) {}
+            });
+            coexploreEmitters.remove(s.getId());
+        }
+    }
+
+    @GetMapping(value = "/coexplore/subscribe-lobby", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribeCoexploreLobby(HttpSession session) {
+        long userId = requireLogin(session);
+        SseEmitter emitter = new SseEmitter(300_000L);
+
+        coexploreLobbyEmitters.put(userId, emitter);
+        Runnable cleanup = () -> coexploreLobbyEmitters.remove(userId);
+        emitter.onCompletion(cleanup);
+        emitter.onTimeout(cleanup);
+        emitter.onError(e -> cleanup.run());
+
+        // 立即推送当前等待列表
+        sseExecutor.submit(() -> {
+            try {
+                var list = coexploreService.listWaiting();
+                var result = list.stream().map(x -> coexploreToMap(x, userId)).toList();
+                emitter.send(SseEmitter.event().name("lobby").data(JSON.toJSONString(Map.of("sessions", result))));
+            } catch (Exception ignored) {}
+        });
+
+        return emitter;
+    }
+
+    /** 向所有大厅 SSE 订阅者推送最新等待列表 */
+    private void broadcastCoexploreLobby() {
+        if (coexploreLobbyEmitters.isEmpty()) return;
+        var list = coexploreService.listWaiting();
+        coexploreLobbyEmitters.forEach((uid, emitter) -> {
+            try {
+                var result = list.stream().map(x -> coexploreToMap(x, uid)).toList();
+                emitter.send(SseEmitter.event().name("lobby").data(JSON.toJSONString(Map.of("sessions", result))));
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+        });
     }
 
     /**

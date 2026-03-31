@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  createCoexplore, joinCoexplore, getCoexploreSession,
-  listCoexploreWaiting, coexploreExplore, coexploreReason,
+  createCoexplore, joinCoexplore,
+  coexploreExplore, coexploreReason,
   coexploreBoss, leaveCoexplore,
+  subscribeCoexplore, subscribeCoexploreLobby,
 } from '../../services/api';
 import { usePlayerStore } from '../../store/playerStore';
 import type { CoexploreSessionData, CoexploreRoundData } from '../../types';
-
-const POLL_INTERVAL = 2000;
 
 const C = {
   bg: '#0a0a12', card: 'rgba(255,255,255,0.05)',
@@ -33,7 +32,7 @@ export default function CoexplorePage() {
   const [selectedLoc, setSelectedLoc] = useState<string | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [attacking, setAttacking] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const unsubRef = useRef<(() => void) | null>(null);
 
   const isHost = session ? playerId === session.hostId : false;
   const myName = isHost ? session?.hostName : session?.guestName;
@@ -41,23 +40,23 @@ export default function CoexplorePage() {
   const myFate = isHost ? session?.hostFateValue ?? 0 : session?.guestFateValue ?? 0;
   const partnerFate = isHost ? session?.guestFateValue ?? 0 : session?.hostFateValue ?? 0;
 
-  // ── 轮询 ──
-
-  const pollSession = useCallback(async () => {
-    if (!session) return;
-    try { setSession(await getCoexploreSession(session.sessionId)); } catch { /* ignore */ }
-  }, [session?.sessionId]);
+  // ── SSE 实时订阅 ──
 
   useEffect(() => {
     if (session && session.status !== 'COMPLETED') {
-      pollRef.current = setInterval(pollSession, POLL_INTERVAL);
-      return () => clearInterval(pollRef.current);
+      unsubRef.current?.();
+      unsubRef.current = subscribeCoexplore(session.sessionId, setSession);
+      return () => { unsubRef.current?.(); unsubRef.current = null; };
     }
-  }, [session?.sessionId, session?.status, pollSession]);
+  }, [session?.sessionId, session?.status]);
+
+  // ── 大厅实时订阅 ──
 
   useEffect(() => {
-    if (!session) { listCoexploreWaiting().then(d => setWaitingList(d.sessions)).catch(() => {}); }
-  }, [session]);
+    if (!session) {
+      return subscribeCoexploreLobby(d => setWaitingList(d.sessions));
+    }
+  }, [!session]);
 
   // ── 操作 ──
 

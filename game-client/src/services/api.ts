@@ -1479,3 +1479,28 @@ export function leaveCoexplore(sessionId: string): Promise<CoexploreSessionData>
     body: JSON.stringify({ sessionId }),
   });
 }
+
+/** SSE 订阅同游大厅等待列表实时更新，返回关闭函数 */
+export function subscribeCoexploreLobby(
+  onUpdate: (data: { sessions: CoexploreSessionData[] }) => void,
+): () => void {
+  const es = new EventSource(`${BASE_URL}/coexplore/subscribe-lobby`);
+  es.addEventListener('lobby', (e) => {
+    try { onUpdate(JSON.parse(e.data)); } catch { /* ignore */ }
+  });
+  es.onerror = () => { es.close(); };
+  return () => es.close();
+}
+
+/** SSE 订阅同游会话实时更新，返回关闭函数 */
+export function subscribeCoexplore(
+  sessionId: string,
+  onUpdate: (data: CoexploreSessionData) => void,
+): () => void {
+  const es = new EventSource(`${BASE_URL}/coexplore/subscribe?sessionId=${encodeURIComponent(sessionId)}`);
+  es.addEventListener('update', (e) => {
+    try { onUpdate(JSON.parse(e.data)); } catch { /* ignore */ }
+  });
+  es.onerror = () => { es.close(); };
+  return () => es.close();
+}
