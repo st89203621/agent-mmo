@@ -18,4 +18,9 @@ public class ExploreState {
     private Instant lastRecoverTime = Instant.now();
     private int todayExploreCount;
     private String lastExploreDate;
+
+    /** 当前章节号（从1开始） */
+    private int chapterNumber = 1;
+    /** 当前章节进度（0-4，每5个事件为一章） */
+    private int chapterProgress = 0;
 }

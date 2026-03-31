@@ -12,7 +12,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: '主页', icon: '🏠' },
-  { id: 'story', label: '剧情', icon: '📜' },
+  { id: 'coexplore', label: '同游', icon: '🤝' },
   { id: 'explore', label: '探索', icon: '🗺️' },
   { id: 'character', label: '角色', icon: '👤' },
   { id: 'achievement', label: '成就', icon: '🏅' },
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
 
 /** 这些页面是从角色页等入口进入的子页面，需要显示返回按钮 */
 const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
+  'story': { label: '剧情对话', back: 'character' },
   'skill-tree': { label: '技能树', back: 'character' },
   'pet': { label: '宠物', back: 'character' },
   'pet-summon': { label: '召唤', back: 'pet' },
@@ -40,7 +41,6 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'scene': { label: '场景', back: 'character' },
   'treasure-mountain': { label: '宝山', back: 'guild' },
   'fate-map': { label: '命运织机', back: 'achievement' },
-  'coexplore': { label: '共探书境', back: 'home' },
 };
 
 interface Props {

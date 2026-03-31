@@ -217,6 +217,18 @@
 
 .apRow { display: flex; align-items: center; gap: 8px; }
 
+.chapterBar { display: flex; gap: 4px; align-items: center; }
+
+.chapterDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(200, 180, 120, 0.15);
+  transition: background 0.3s;
+}
+.chapterDot[data-filled] {
+  background: var(--gold);
+  box-shadow: 0 0 4px rgba(200, 180, 100, 0.5);
+}
+
 .apBar {
   flex: 1;
   max-width: 120px;

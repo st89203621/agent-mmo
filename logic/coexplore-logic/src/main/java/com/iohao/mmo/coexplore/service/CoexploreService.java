@@ -1,14 +1,26 @@
 package com.iohao.mmo.coexplore.service;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.iohao.mmo.coexplore.entity.CoexploreRound;
 import com.iohao.mmo.coexplore.entity.CoexploreSession;
-import com.iohao.mmo.coexplore.entity.CoexploreSession.Location;
+import com.iohao.mmo.coexplore.entity.CoexploreSession.ClueLocation;
 import com.iohao.mmo.coexplore.repository.CoexploreSessionRepository;
+import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
+import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
+import com.volcengine.ark.runtime.model.completion.chat.ChatMessageRole;
+import com.volcengine.ark.runtime.service.ArkService;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.ConnectionPool;
+import okhttp3.Dispatcher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -17,25 +29,24 @@ public class CoexploreService {
     @Resource
     CoexploreSessionRepository sessionRepository;
 
-    // ── 场景数据池 ──────────────────────────────────
+    @Value("${volcengine.chat-api-key:}")
+    private String apiKey;
 
-    private static final String[][] LOCATION_POOL = {
-            {"ancient_temple", "古刹", "香烟缭绕的破败庙宇，墙上有模糊的壁画", "你在神像底座发现一块刻有铭文的玉佩", "你闻到远处飘来的檀香"},
-            {"dark_forest", "幽林", "迷雾弥漫的密林，树上挂着奇怪的符咒", "你在一棵古树的树洞中发现一封密信", "你注意到地上有新鲜的脚印"},
-            {"river_bank", "河畔", "月光下的河岸，水面倒映着不属于此处的影子", "你在河中捞起一面铜镜，镜中映出奇异景象", "你听到上游传来低沉的吟唱声"},
-            {"old_inn", "客栈", "灯火昏暗的客栈，掌柜似乎认识你", "你在柜台下发现一本泛黄的账簿，记载着可疑的交易", "桌上有一杯尚温的茶"},
-            {"cliff_edge", "断崖", "悬崖边有一座孤零零的石碑", "石碑上的文字忽然发光，你看到了一段前世记忆", "崖壁上有人留下的抓痕"},
-            {"underground", "地穴", "阴冷的地下洞穴，回荡着水滴声", "你在石壁暗格中发现一柄断剑和一幅画像", "洞壁上有新刻的箭头标记"},
-            {"market_ruins", "废墟集市", "废弃的集市，摊位上还留着货物", "你翻到一张标注神秘地点的地图", "有人刚刚翻动过这里的东西"},
-            {"pagoda", "古塔", "七层宝塔，每层都封印着不同的气息", "你在第三层发现一卷封印的经书", "你感到塔内有另一股灵力在探索"},
-    };
+    @Value("${volcengine.chat-model:doubao-pro-32k}")
+    private String chatModel;
 
-    private static final String[][] VOTE_POOL = {
-            {"confront", "正面查探", "直接前往线索指向的地方"},
-            {"stealth", "暗中调查", "不打草惊蛇，迂回收集更多情报"},
-            {"seek_ally", "寻找帮手", "去找可能知情的NPC求助"},
-            {"set_trap", "设下埋伏", "在关键位置设伏，等待真相浮现"},
-    };
+    private ArkService arkService;
+
+    @PostConstruct
+    public void init() {
+        if (apiKey != null && !apiKey.isBlank()) {
+            this.arkService = ArkService.builder()
+                    .dispatcher(new Dispatcher())
+                    .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
+                    .apiKey(apiKey)
+                    .build();
+        }
+    }
 
     // ── 创建 / 加入 ──────────────────────────────────
 
@@ -46,7 +57,6 @@ public class CoexploreService {
         session.setHostName(hostName);
         session.setStatus("WAITING");
         session.setCurrentRound(0);
-        session.setCurrentPhase("WAIT");
         session.setCreateTime(System.currentTimeMillis());
         return sessionRepository.save(session);
     }
@@ -58,7 +68,12 @@ public class CoexploreService {
 
         session.setGuestId(guestId);
         session.setGuestName(guestName);
-        startNewRound(session);
+
+        // AI 生成谜局剧本
+        generateMystery(session);
+
+        // 开始第一轮探索
+        startRound(session, 1);
         return sessionRepository.save(session);
     }
 
@@ -86,111 +101,106 @@ public class CoexploreService {
         CoexploreRound round = getCurrentRound(session);
         if (round == null) return null;
 
-        // 找到选择的地点
-        Location chosen = session.getLocations().stream()
+        List<ClueLocation> locations = session.getCurrentRound() == 1
+                ? session.getRound1Locations() : session.getRound2Locations();
+        ClueLocation chosen = locations.stream()
                 .filter(l -> l.getId().equals(locationId))
                 .findFirst().orElse(null);
         if (chosen == null) return null;
 
         boolean isHost = playerId == session.getHostId();
         if (isHost) {
-            if (round.getHostLocationId() != null) return session; // 已选
+            if (round.getHostLocationId() != null) return session;
             round.setHostLocationId(locationId);
-            round.setHostDiscovery(chosen.getDiscovery());
-            round.setHostFateGain(round.getHostFateGain() + chosen.getFateReward());
-            session.setHostFateValue(session.getHostFateValue() + chosen.getFateReward());
+            round.setHostClue(chosen.getClueText());
+            round.setHostTrace(chosen.getTrace());
         } else {
             if (round.getGuestLocationId() != null) return session;
             round.setGuestLocationId(locationId);
-            round.setGuestDiscovery(chosen.getDiscovery());
-            round.setGuestFateGain(round.getGuestFateGain() + chosen.getFateReward());
-            session.setGuestFateValue(session.getGuestFateValue() + chosen.getFateReward());
+            round.setGuestClue(chosen.getClueText());
+            round.setGuestTrace(chosen.getTrace());
         }
 
-        // 生成痕迹（对方能看到的线索）
-        Location hostLoc = session.getLocations().stream()
-                .filter(l -> l.getId().equals(round.getHostLocationId())).findFirst().orElse(null);
-        Location guestLoc = session.getLocations().stream()
-                .filter(l -> l.getId().equals(round.getGuestLocationId())).findFirst().orElse(null);
-
-        if (round.getHostLocationId() != null && hostLoc != null) {
-            // guest能看到host的痕迹
-            round.setHostTrace(findTrace(hostLoc.getId()));
-        }
-        if (round.getGuestLocationId() != null && guestLoc != null) {
-            round.setGuestTrace(findTrace(guestLoc.getId()));
-        }
-
-        // 双方都已选择 → 进入汇合阶段
+        // 双方都已选择
         if (round.getHostLocationId() != null && round.getGuestLocationId() != null) {
-            session.setStatus("GATHERING");
-            session.setCurrentPhase("GATHER");
-            generateVoteOptions(round);
+            boolean same = round.getHostLocationId().equals(round.getGuestLocationId());
+            round.setSameLocation(same);
+
+            // 缘分值：不同地点 +15，相同地点 +5
+            int fate = same ? 5 : 15;
+            round.setHostFateGain(fate);
+            round.setGuestFateGain(fate);
+            session.setHostFateValue(session.getHostFateValue() + fate);
+            session.setGuestFateValue(session.getGuestFateValue() + fate);
+
+            if (session.getCurrentRound() < 2) {
+                startRound(session, session.getCurrentRound() + 1);
+            } else {
+                // 进入推理阶段
+                session.setStatus("REASONING");
+                session.setCurrentRound(3);
+            }
         }
 
         return sessionRepository.save(session);
     }
 
-    // ── 投票阶段 ──────────────────────────────────
+    // ── 推理阶段 ──────────────────────────────────
 
-    public CoexploreSession vote(String sessionId, long playerId, String voteId) {
+    public CoexploreSession reason(String sessionId, long playerId, int answerIndex) {
         CoexploreSession session = sessionRepository.findById(sessionId).orElse(null);
-        if (session == null) return null;
-        // 允许在 GATHERING 或 VOTING 状态投票
-        if (!"GATHERING".equals(session.getStatus()) && !"VOTING".equals(session.getStatus())) return null;
-
-        CoexploreRound round = getCurrentRound(session);
-        if (round == null) return null;
+        if (session == null || !"REASONING".equals(session.getStatus())) return null;
+        if (answerIndex < 0 || answerIndex > 2) return null;
 
         boolean isHost = playerId == session.getHostId();
         if (isHost) {
-            round.setHostVote(voteId);
+            if (session.getHostAnswer() >= 0) return session;
+            session.setHostAnswer(answerIndex);
         } else {
-            round.setGuestVote(voteId);
+            if (session.getGuestAnswer() >= 0) return session;
+            session.setGuestAnswer(answerIndex);
         }
 
-        // 投票加缘分
-        int voteBonus = 5;
-        if (isHost) {
-            round.setHostFateGain(round.getHostFateGain() + voteBonus);
-            session.setHostFateValue(session.getHostFateValue() + voteBonus);
-        } else {
-            round.setGuestFateGain(round.getGuestFateGain() + voteBonus);
-            session.setGuestFateValue(session.getGuestFateValue() + voteBonus);
-        }
+        // 双方都已作答
+        if (session.getHostAnswer() >= 0 && session.getGuestAnswer() >= 0) {
+            boolean hostCorrect = session.getHostAnswer() == session.getCorrectAnswer();
+            boolean guestCorrect = session.getGuestAnswer() == session.getCorrectAnswer();
+            boolean sameAnswer = session.getHostAnswer() == session.getGuestAnswer();
 
-        // 双方都投票 → 决定结果
-        if (round.getHostVote() != null && round.getGuestVote() != null) {
-            // 一致额外加分
-            if (round.getHostVote().equals(round.getGuestVote())) {
-                int consensusBonus = 10;
-                session.setHostFateValue(session.getHostFateValue() + consensusBonus);
-                session.setGuestFateValue(session.getGuestFateValue() + consensusBonus);
-                round.setHostFateGain(round.getHostFateGain() + consensusBonus);
-                round.setGuestFateGain(round.getGuestFateGain() + consensusBonus);
-                round.setVoteResult(round.getHostVote());
+            String result;
+            int bossHp;
+            if (sameAnswer && hostCorrect) {
+                result = "PERFECT";
+                bossHp = 120;
+            } else if (sameAnswer) {
+                result = "CONSENSUS";
+                bossHp = 200;
+            } else if (hostCorrect || guestCorrect) {
+                result = "SPLIT";
+                bossHp = 200;
             } else {
-                // 不一致随机选一个
-                round.setVoteResult(new Random().nextBoolean() ? round.getHostVote() : round.getGuestVote());
+                result = "LOST";
+                bossHp = 300;
             }
+            session.setReasoningResult(result);
 
-            // 判断是否进入Boss战或下一轮
-            if (session.getCurrentRound() >= 3) {
-                session.setStatus("BOSS");
-                session.setCurrentPhase("BOSS");
-                initBoss(session);
-            } else {
-                startNewRound(session);
-            }
-        } else {
-            session.setStatus("VOTING");
-            session.setCurrentPhase("VOTE");
+            // 推理缘分奖励
+            int matchBonus = sameAnswer ? 20 : 0;
+            int correctBonus = 15;
+            session.setHostFateValue(session.getHostFateValue() + matchBonus + (hostCorrect ? correctBonus : 0));
+            session.setGuestFateValue(session.getGuestFateValue() + matchBonus + (guestCorrect ? correctBonus : 0));
+
+            // 进入 Boss 战
+            session.setStatus("BOSS");
+            session.setBossHp(bossHp);
+            session.setBossDamageHost(0);
+            session.setBossDamageGuest(0);
         }
 
         return sessionRepository.save(session);
     }
 
-    // ── Boss战 ──────────────────────────────────
+    // ── Boss 战 ──────────────────────────────────
 
     public CoexploreSession bossBattle(String sessionId, long playerId) {
         CoexploreSession session = sessionRepository.findById(sessionId).orElse(null);
@@ -199,21 +209,16 @@ public class CoexploreService {
         boolean isHost = playerId == session.getHostId();
         int fateValue = isHost ? session.getHostFateValue() : session.getGuestFateValue();
 
-        // 伤害 = 基础伤害 + 缘分值加成
-        int baseDamage = 30;
-        int fateBonusDamage = fateValue / 5;
-        int totalDamage = baseDamage + fateBonusDamage;
-
+        int damage = 30 + fateValue / 5;
         if (isHost) {
-            session.setBossDamageHost(session.getBossDamageHost() + totalDamage);
+            session.setBossDamageHost(session.getBossDamageHost() + damage);
         } else {
-            session.setBossDamageGuest(session.getBossDamageGuest() + totalDamage);
+            session.setBossDamageGuest(session.getBossDamageGuest() + damage);
         }
 
-        int totalBossDamage = session.getBossDamageHost() + session.getBossDamageGuest();
-        if (totalBossDamage >= session.getBossHp()) {
+        int totalDamage = session.getBossDamageHost() + session.getBossDamageGuest();
+        if (totalDamage >= session.getBossHp()) {
             session.setStatus("COMPLETED");
-            session.setCurrentPhase("RESULT");
         }
 
         return sessionRepository.save(session);
@@ -221,52 +226,12 @@ public class CoexploreService {
 
     // ── 内部方法 ──────────────────────────────────
 
-    private void startNewRound(CoexploreSession session) {
-        int nextRound = session.getCurrentRound() + 1;
-        session.setCurrentRound(nextRound);
+    private void startRound(CoexploreSession session, int roundNum) {
+        session.setCurrentRound(roundNum);
         session.setStatus("EXPLORING");
-        session.setCurrentPhase("EXPLORE");
-
         CoexploreRound round = new CoexploreRound();
-        round.setRound(nextRound);
+        round.setRound(roundNum);
         session.getRounds().add(round);
-
-        // 随机选4个地点
-        List<String[]> pool = new ArrayList<>(Arrays.asList(LOCATION_POOL));
-        Collections.shuffle(pool);
-        List<Location> locations = new ArrayList<>();
-        for (int i = 0; i < Math.min(4, pool.size()); i++) {
-            String[] raw = pool.get(i);
-            Location loc = new Location();
-            loc.setId(raw[0]);
-            loc.setName(raw[1]);
-            loc.setDescription(raw[2]);
-            loc.setDiscovery(raw[3]);
-            loc.setFateReward(8 + new Random().nextInt(8)); // 8-15
-            locations.add(loc);
-        }
-        session.setLocations(locations);
-    }
-
-    private void generateVoteOptions(CoexploreRound round) {
-        List<String[]> pool = new ArrayList<>(Arrays.asList(VOTE_POOL));
-        Collections.shuffle(pool);
-        List<CoexploreRound.VoteOption> options = new ArrayList<>();
-        for (int i = 0; i < Math.min(3, pool.size()); i++) {
-            String[] raw = pool.get(i);
-            CoexploreRound.VoteOption opt = new CoexploreRound.VoteOption();
-            opt.setId(raw[0]);
-            opt.setText(raw[1]);
-            opt.setDescription(raw[2]);
-            options.add(opt);
-        }
-        round.setVoteOptions(options);
-    }
-
-    private void initBoss(CoexploreSession session) {
-        session.setBossHp(200);
-        session.setBossDamageHost(0);
-        session.setBossDamageGuest(0);
     }
 
     private CoexploreRound getCurrentRound(CoexploreSession session) {
@@ -275,10 +240,143 @@ public class CoexploreService {
         return rounds.get(rounds.size() - 1);
     }
 
-    private String findTrace(String locationId) {
-        for (String[] loc : LOCATION_POOL) {
-            if (loc[0].equals(locationId)) return loc[4];
+    // ── AI 谜局生成 ──────────────────────────────────
+
+    private void generateMystery(CoexploreSession session) {
+        if (arkService == null) {
+            applyFallbackMystery(session);
+            return;
         }
-        return "你感觉有人来过这里";
+
+        String prompt = """
+                你是书境谜局的设计师。为两位探索者生成一个古风悬疑谜局。
+
+                要求：
+                1. 案件背景（80-120字）：一个发生在古风世界中的悬疑事件，有明确的谜题
+                2. 三个嫌疑对象/答案，每个用20-30字描述，其中只有一个是真相
+                3. 正确答案的编号（0/1/2）
+                4. 第一轮4个探索地点和第二轮4个探索地点（共8个）
+
+                线索设计规则：
+                - 指向正确答案的关键线索要分散在不同地点，单独看一条不够，两条合在一起才能推理出真相
+                - 每轮4个地点中，至少2个地点有指向真相的线索碎片
+                - 干扰线索要有一定合理性，能指向错误嫌疑人但不如真线索完整
+                - 第一轮线索较为表面，第二轮线索更深入关键
+                - 痕迹是模糊提示，暗示这个地点可能有什么，帮助对方决策
+
+                严格按JSON格式返回，不要输出其他内容：
+                {
+                  "background": "案件背景...",
+                  "suspects": ["嫌疑人A描述", "嫌疑人B描述", "嫌疑人C描述"],
+                  "correctAnswer": 0,
+                  "round1": [
+                    {"id": "r1_1", "name": "≤4字地点名", "description": "20-30字场景", "clue": "20-40字线索", "trace": "10-20字痕迹"},
+                    {"id": "r1_2", "name": "...", "description": "...", "clue": "...", "trace": "..."},
+                    {"id": "r1_3", "name": "...", "description": "...", "clue": "...", "trace": "..."},
+                    {"id": "r1_4", "name": "...", "description": "...", "clue": "...", "trace": "..."}
+                  ],
+                  "round2": [
+                    {"id": "r2_1", "name": "...", "description": "...", "clue": "...", "trace": "..."},
+                    {"id": "r2_2", "name": "...", "description": "...", "clue": "...", "trace": "..."},
+                    {"id": "r2_3", "name": "...", "description": "...", "clue": "...", "trace": "..."},
+                    {"id": "r2_4", "name": "...", "description": "...", "clue": "...", "trace": "..."}
+                  ]
+                }""";
+
+        try {
+            List<ChatMessage> messages = List.of(
+                    ChatMessage.builder()
+                            .role(ChatMessageRole.SYSTEM)
+                            .content("你是古风悬疑谜局设计大师。生成的谜局要逻辑自洽、线索互补、可推理。只输出JSON。")
+                            .build(),
+                    ChatMessage.builder()
+                            .role(ChatMessageRole.USER)
+                            .content(prompt)
+                            .build()
+            );
+
+            ChatCompletionRequest request = ChatCompletionRequest.builder()
+                    .model(chatModel)
+                    .messages(messages)
+                    .maxTokens(1024)
+                    .temperature(0.9)
+                    .build();
+
+            var result = arkService.createChatCompletion(request);
+            String text = result.getChoices().get(0).getMessage().getContent().toString().trim();
+            log.debug("谜局AI回复: {}", text);
+            parseMystery(session, text);
+        } catch (Exception e) {
+            log.error("AI生成谜局失败，使用兜底: {}", e.getMessage());
+            applyFallbackMystery(session);
+        }
+    }
+
+    private void parseMystery(CoexploreSession session, String text) {
+        int start = text.indexOf('{');
+        int end = text.lastIndexOf('}');
+        if (start < 0 || end <= start) {
+            applyFallbackMystery(session);
+            return;
+        }
+        JSONObject json = JSON.parseObject(text.substring(start, end + 1));
+
+        session.setMysteryBackground(json.getString("background"));
+        session.setSuspects(json.getJSONArray("suspects").toJavaList(String.class));
+        session.setCorrectAnswer(json.getIntValue("correctAnswer"));
+        session.setRound1Locations(parseLocations(json.getJSONArray("round1")));
+        session.setRound2Locations(parseLocations(json.getJSONArray("round2")));
+    }
+
+    private List<ClueLocation> parseLocations(JSONArray arr) {
+        List<ClueLocation> list = new ArrayList<>();
+        for (int i = 0; i < arr.size(); i++) {
+            JSONObject o = arr.getJSONObject(i);
+            ClueLocation loc = new ClueLocation();
+            loc.setId(o.getString("id"));
+            loc.setName(o.getString("name"));
+            loc.setDescription(o.getString("description"));
+            loc.setClueText(o.getString("clue"));
+            loc.setTrace(o.getString("trace"));
+            list.add(loc);
+        }
+        return list;
+    }
+
+    // ── 兜底谜局 ──────────────────────────────────
+
+    private void applyFallbackMystery(CoexploreSession session) {
+        session.setMysteryBackground("清河镇李大夫离奇失踪，药堂被翻得凌乱不堪。"
+                + "镇上传言纷纷，三人嫌疑最大：他的徒弟、老对手、以及一位神秘过客。"
+                + "真相到底是什么？");
+        session.setSuspects(List.of(
+                "徒弟赵安——跟师五年，近来频繁与外人接触，行迹可疑",
+                "对手钱伯——与李大夫争了半辈子，最近生意惨淡",
+                "过客孙旅——三日前入镇，自称游医，对药材异常熟悉"
+        ));
+        session.setCorrectAnswer(2);
+
+        session.setRound1Locations(List.of(
+                buildLoc("r1_1", "药堂", "药柜倒了半边，地上散落着碎瓷瓶", "药柜深处藏着一封未拆的信，来自远方一个叫'孙'的人", "空气中残留着一股陌生药草的气味"),
+                buildLoc("r1_2", "后院", "院中水缸被移动过，地面有拖拽痕迹", "水缸下有个暗格，里面是空的，但有新鲜刮痕", "水缸旁有一只不属于本镇的草鞋印"),
+                buildLoc("r1_3", "茶馆", "镇上消息最灵通的地方", "掌柜说李大夫失踪前一晚，有人在药堂附近徘徊到深夜", "赵安最近经常来这里，但都是独自一人"),
+                buildLoc("r1_4", "钱伯药铺", "门庭冷落，钱伯面色不善", "钱伯的药材清单上有几味罕见的药，和李大夫的配方重合", "钱伯的伙计说主人昨夜很早就睡了")
+        ));
+        session.setRound2Locations(List.of(
+                buildLoc("r2_1", "驿站", "南来北往的旅人歇脚处", "客簿记载三日前一位'孙姓游医'入住，登记的籍贯是假的", "驿站小二说那位客人总在深夜外出"),
+                buildLoc("r2_2", "药山", "镇外采药的山坡", "山上发现新挖的药坑，挖走的是一味极珍贵的药材，李大夫正在研制的秘方需要它", "有两组脚印——一组匆忙，一组从容"),
+                buildLoc("r2_3", "赵安住所", "简朴的小屋，摆满医书", "赵安确实在和外人联络——但内容是他准备离开师门、自立药堂", "医书上的笔记很用心，赵安对师父有感恩之情"),
+                buildLoc("r2_4", "河边码头", "清河镇的水路出口", "码头苦力说失踪当夜有人雇船急走，带着一个大木箱，给了三倍船资", "那人用布巾蒙面，但口音不是本地的")
+        ));
+    }
+
+    private ClueLocation buildLoc(String id, String name, String desc, String clue, String trace) {
+        ClueLocation loc = new ClueLocation();
+        loc.setId(id);
+        loc.setName(name);
+        loc.setDescription(desc);
+        loc.setClueText(clue);
+        loc.setTrace(trace);
+        return loc;
     }
 }

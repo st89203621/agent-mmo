@@ -30,6 +30,8 @@ public class ExploreEvent {
     /** 书名 */
     private String bookTitle;
     private boolean resolved;
+    /** 是否为章节高潮事件 */
+    private boolean chapterClimax;
     private Instant createTime = Instant.now();
 
     // ── 奖励快照（resolve时写入） ──

@@ -107,7 +107,7 @@ function PageCache({ currentPage }: { currentPage: PageId }) {
 }
 
 /** 主导航页面：保持挂载，切换时用 display:none 隐藏，避免重复加载 */
-const KEEP_ALIVE_PAGES: PageId[] = ['home', 'story', 'explore', 'character', 'achievement'];
+const KEEP_ALIVE_PAGES: PageId[] = ['home', 'coexplore', 'explore', 'character', 'achievement'];
 
 const PAGE_MAP: Record<PageId, React.FC> = {
   'home': HomePage,

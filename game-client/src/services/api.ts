@@ -1459,10 +1459,10 @@ export function coexploreExplore(sessionId: string, locationId: string): Promise
   });
 }
 
-export function coexploreVote(sessionId: string, voteId: string): Promise<CoexploreSessionData> {
-  return request('/coexplore/vote', {
+export function coexploreReason(sessionId: string, answerIndex: number): Promise<CoexploreSessionData> {
+  return request('/coexplore/reason', {
     method: 'POST',
-    body: JSON.stringify({ sessionId, voteId }),
+    body: JSON.stringify({ sessionId, answerIndex }),
   });
 }
 

@@ -79,6 +79,8 @@ public class ExploreService {
         result.put("maxPoints", MAX_ACTION_POINTS);
         result.put("nextRecoverSec", nextRecoverSec);
         result.put("todayCount", state.getTodayExploreCount());
+        result.put("chapterNumber", state.getChapterNumber());
+        result.put("chapterProgress", state.getChapterProgress());
         return result;
     }
 
@@ -113,10 +115,11 @@ public class ExploreService {
         state.setTodayExploreCount(state.getTodayExploreCount() + 1);
         stateRepository.save(state);
 
-        // AI生成事件
-        ExploreEvent event = generateEvent(userId, worldIndex, bookTitle, dejaVuChance);
+        // AI生成事件（根据章节进度调整）
+        ExploreEvent event = generateEvent(userId, worldIndex, bookTitle, dejaVuChance, state.getChapterProgress());
         event.setWorldIndex(worldIndex);
         event.setBookTitle(bookTitle);
+        event.setChapterClimax(state.getChapterProgress() == 4);
         eventRepository.save(event);
         return event;
     }
@@ -143,6 +146,9 @@ public class ExploreService {
 
         // 根据事件类型和风险计算奖励
         Map<String, Object> reward = calculateReward(event, chosen);
+
+        // 章节进度推进
+        advanceChapter(userId, event, reward);
 
         // 持久化奖励快照
         event.setResolved(true);
@@ -236,6 +242,9 @@ public class ExploreService {
             reward.put("imageUrl", null);
         }
 
+        // 章节进度推进
+        advanceChapter(userId, event, reward);
+
         // 持久化奖励快照
         event.setResolved(true);
         event.setRewardMessage((String) reward.get("message"));
@@ -247,23 +256,58 @@ public class ExploreService {
         return reward;
     }
 
-    private ExploreEvent generateEvent(long userId, int worldIndex, String bookTitle, double dejaVuChance) {
+    /** 推进章节进度，章节完成时追加奖励 */
+    private void advanceChapter(long userId, ExploreEvent event, Map<String, Object> reward) {
+        ExploreState state = getOrCreateState(userId);
+        state.setChapterProgress(state.getChapterProgress() + 1);
+        if (state.getChapterProgress() >= 5) {
+            state.setChapterNumber(state.getChapterNumber() + 1);
+            state.setChapterProgress(0);
+            // 章节完成奖励
+            int chapterGold = 100 + (state.getChapterNumber() - 1) * 50;
+            int bonusFate = 5;
+            reward.put("fateDelta", (int) reward.get("fateDelta") + bonusFate);
+            reward.put("gold", reward.getOrDefault("gold", 0) instanceof Number
+                    ? ((Number) reward.get("gold")).intValue() + chapterGold : chapterGold);
+            reward.put("chapterComplete", true);
+            reward.put("chapterNumber", state.getChapterNumber() - 1);
+            reward.put("message", reward.get("message") + " | 章节完成！金币 +" + chapterGold);
+        }
+        stateRepository.save(state);
+    }
+
+    private ExploreEvent generateEvent(long userId, int worldIndex, String bookTitle, double dejaVuChance, int chapterProgress) {
         // 前世记忆回响（约15%触发率，需要轮回技能）
         if (dejaVuChance > ThreadLocalRandom.current().nextDouble()) {
             return buildDejaVuEvent(userId, bookTitle);
         }
 
-        // combat 出现概率约 30%（6种类型中占2权重）
-        String[] types = {"encounter", "discovery", "lore", "dilemma", "vista", "combat", "combat"};
-        String randomType = types[ThreadLocalRandom.current().nextInt(types.length)];
+        // 章节高潮强制 dilemma 或 combat；其余正常随机
+        String randomType;
+        if (chapterProgress == 4) {
+            randomType = ThreadLocalRandom.current().nextBoolean() ? "dilemma" : "combat";
+        } else {
+            String[] types = {"encounter", "discovery", "lore", "dilemma", "vista", "combat", "combat"};
+            randomType = types[ThreadLocalRandom.current().nextInt(types.length)];
+        }
 
         // 查最近5条已完成事件，构建前情提要
         String storySoFar = buildStorySoFar(userId, worldIndex);
+
+        // 根据章节进度调整叙事指导
+        String chapterDirective = switch (chapterProgress) {
+            case 0 -> "这是新章节的开篇。请设立本章的悬念和主题，引入新的线索或人物。";
+            case 1, 2 -> "这是章节的发展阶段。推进剧情，深化冲突，埋下伏笔。";
+            case 3 -> "这是章节的转折点。揭示隐藏的真相或出现意外变故，为高潮蓄力。";
+            case 4 -> "这是本章的高潮收尾！回收前面的伏笔，制造戏剧性的转折或决战。事件应有强烈的紧迫感和决定性。";
+            default -> "";
+        };
 
         String prompt = String.format("""
                 你是「%s」世界的命运织者。玩家正在书中漫步探索。
                 你需要编织一段连贯的旅途故事，每个事件都是这段故事的新篇章。
                 %s
+                【章节节奏】%s
                 根据前情和这部作品的世界观，生成旅途中自然发展的下一个事件。
                 新事件要与之前的经历产生关联——可以是伏笔的回收、人物的再现、线索的串联，或情感的递进。
                 保持叙事连贯，让玩家感到自己在经历一段完整的故事，而不是零散的随机事件。
@@ -289,7 +333,7 @@ public class ExploreService {
                   "npcId": null,
                   "sceneHint": "≤10字画面描述（仅vista类型需要，其他为null）",
                   "enemyName": "≤6字敌人名称（仅combat类型需要，其他为null）"
-                }""", bookTitle, storySoFar, randomType, randomType);
+                }""", bookTitle, storySoFar, chapterDirective, randomType, randomType);
 
         try {
             List<ChatMessage> messages = List.of(

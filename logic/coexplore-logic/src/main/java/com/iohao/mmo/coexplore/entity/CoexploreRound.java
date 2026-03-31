@@ -4,8 +4,6 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
-import java.util.List;
-
 /**
  * 单轮探索记录
  */
@@ -14,30 +12,22 @@ import java.util.List;
 public class CoexploreRound {
     int round;
 
-    /** 探索阶段 */
+    /** 双方选择的地点 ID */
     String hostLocationId;
     String guestLocationId;
-    String hostDiscovery;
-    String guestDiscovery;
-    /** 对方的痕迹（探索后可见） */
+
+    /** 双方获得的线索 */
+    String hostClue;
+    String guestClue;
+
+    /** 对方可见的痕迹 */
     String hostTrace;
     String guestTrace;
-
-    /** 投票阶段 */
-    List<VoteOption> voteOptions;
-    String hostVote;
-    String guestVote;
-    String voteResult;
 
     /** 本轮获得的缘分值 */
     int hostFateGain;
     int guestFateGain;
 
-    @Data
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class VoteOption {
-        String id;
-        String text;
-        String description;
-    }
+    /** 双方是否选了同一个地点 */
+    boolean sameLocation;
 }

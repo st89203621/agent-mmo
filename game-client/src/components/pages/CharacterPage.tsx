@@ -261,6 +261,7 @@ export default function CharacterPage() {
         <section className={styles.section}>
           <div className={styles.quickLinks}>
             {([
+              ['story', '剧情对话'],
               ['inventory', '背包'], ['shop', '商城'], ['enchant', '附魔'],
               ['skill-tree', '技能树'], ['pet', '宠物'], ['companion', '灵侣'],
               ['dungeon', '副本'], ['quest', '任务'], ['battle', '战斗'],
@@ -269,7 +270,7 @@ export default function CharacterPage() {
               ['book-world', '书库'], ['codex', '图鉴'],
               ['title', '称号'], ['guild', '盟会'], ['scene', '场景'],
               ['treasure-mountain', '聚宝山'], ['flower', '情花'],
-              ['trade', '交易'], ['team-battle', '组队PvP'], ['coexplore', '共探书境'],
+              ['trade', '交易'], ['team-battle', '组队PvP'],
               ['achievement', '排行', { tab: 'rank' }],
             ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
               <button key={label} className={styles.quickLink}

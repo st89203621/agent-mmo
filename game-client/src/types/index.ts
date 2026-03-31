@@ -153,6 +153,8 @@ export interface ExploreStatus {
   maxPoints: number;
   nextRecoverSec: number;
   todayCount: number;
+  chapterNumber: number;
+  chapterProgress: number;
 }
 
 /** 探索事件 */
@@ -197,14 +199,6 @@ export interface CoexploreLocation {
   id: string;
   name: string;
   description: string;
-  fateReward: number;
-}
-
-/** 共探书境 - 投票选项 */
-export interface CoexploreVoteOption {
-  id: string;
-  text: string;
-  description: string;
 }
 
 /** 共探书境 - 轮次记录 */
@@ -212,16 +206,13 @@ export interface CoexploreRoundData {
   round: number;
   hostLocationId: string | null;
   guestLocationId: string | null;
-  hostDiscovery: string | null;
-  guestDiscovery: string | null;
+  hostClue: string | null;
+  guestClue: string | null;
   hostTrace: string | null;
   guestTrace: string | null;
-  hostVote: string | null;
-  guestVote: string | null;
-  voteResult: string | null;
   hostFateGain: number;
   guestFateGain: number;
-  voteOptions: CoexploreVoteOption[];
+  sameLocation: boolean;
 }
 
 /** 共探书境 - 会话 */
@@ -231,14 +222,24 @@ export interface CoexploreSessionData {
   hostName: string;
   guestId: number;
   guestName: string;
-  status: string;
+  status: string; // WAITING | EXPLORING | REASONING | BOSS | COMPLETED
   currentRound: number;
-  currentPhase: string;
+  // 谜局
+  mysteryBackground: string;
+  suspects: string[];
+  correctAnswer: number; // -1 = 未揭晓
+  // 推理
+  hostAnswer: number;
+  guestAnswer: number;
+  reasoningResult: string | null; // PERFECT | CONSENSUS | SPLIT | LOST
+  // 缘分
   hostFateValue: number;
   guestFateValue: number;
+  // Boss
   bossHp: number;
   bossDamageHost: number;
   bossDamageGuest: number;
+  // 数据
   locations: CoexploreLocation[];
   rounds: CoexploreRoundData[];
 }

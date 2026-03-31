@@ -51,7 +51,7 @@ public class CoexploreAction {
         msg.guestName = session.getGuestName() != null ? session.getGuestName() : "";
         msg.status = session.getStatus();
         msg.currentRound = session.getCurrentRound();
-        msg.currentPhase = session.getCurrentPhase() != null ? session.getCurrentPhase() : "";
+        msg.currentPhase = session.getStatus() != null ? session.getStatus() : "";
         msg.hostFateValue = session.getHostFateValue();
         msg.guestFateValue = session.getGuestFateValue();
         msg.eventsJson = JSON.toJSONString(session.getRounds());

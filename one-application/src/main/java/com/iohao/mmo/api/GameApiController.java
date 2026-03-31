@@ -3591,7 +3591,7 @@ public class GameApiController {
         long userId = requireLogin(session);
         String name = (String) session.getAttribute("username");
         var s = coexploreService.createSession(userId, name != null ? name : "");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
     @PostMapping("/coexplore/join")
@@ -3601,22 +3601,22 @@ public class GameApiController {
         String name = (String) session.getAttribute("username");
         var s = coexploreService.joinSession(sessionId, userId, name != null ? name : "");
         if (s == null) return err("加入失败，房间不存在或已满");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
     @GetMapping("/coexplore/session")
     public ResponseEntity<Map<String, Object>> getCoexplore(@RequestParam String sessionId, HttpSession session) {
-        requireLogin(session);
+        long userId = requireLogin(session);
         var s = coexploreService.getSession(sessionId);
         if (s == null) return err("会话不存在");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
     @GetMapping("/coexplore/list")
     public ResponseEntity<Map<String, Object>> listCoexplore(HttpSession session) {
-        requireLogin(session);
+        long userId = requireLogin(session);
         var list = coexploreService.listWaiting();
-        List<Map<String, Object>> result = list.stream().map(this::coexploreToMap).toList();
+        List<Map<String, Object>> result = list.stream().map(x -> coexploreToMap(x, userId)).toList();
         return ok(Map.of("sessions", result));
     }
 
@@ -3627,17 +3627,17 @@ public class GameApiController {
         String locationId = (String) body.get("locationId");
         var s = coexploreService.explore(sessionId, userId, locationId);
         if (s == null) return err("操作失败");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
-    @PostMapping("/coexplore/vote")
-    public ResponseEntity<Map<String, Object>> coexploreVote(@RequestBody Map<String, Object> body, HttpSession session) {
+    @PostMapping("/coexplore/reason")
+    public ResponseEntity<Map<String, Object>> coexploreReason(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String sessionId = (String) body.get("sessionId");
-        String voteId = (String) body.get("voteId");
-        var s = coexploreService.vote(sessionId, userId, voteId);
-        if (s == null) return err("投票失败");
-        return ok(coexploreToMap(s));
+        int answerIndex = ((Number) body.get("answerIndex")).intValue();
+        var s = coexploreService.reason(sessionId, userId, answerIndex);
+        if (s == null) return err("推理失败");
+        return ok(coexploreToMap(s, userId));
     }
 
     @PostMapping("/coexplore/boss")
@@ -3646,7 +3646,7 @@ public class GameApiController {
         String sessionId = (String) body.get("sessionId");
         var s = coexploreService.bossBattle(sessionId, userId);
         if (s == null) return err("战斗失败");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
     @PostMapping("/coexplore/leave")
@@ -3655,10 +3655,18 @@ public class GameApiController {
         String sessionId = (String) body.get("sessionId");
         var s = coexploreService.leaveSession(sessionId, userId);
         if (s == null) return err("离开失败");
-        return ok(coexploreToMap(s));
+        return ok(coexploreToMap(s, userId));
     }
 
-    private Map<String, Object> coexploreToMap(CoexploreSession s) {
+    /**
+     * 会话序列化 — 根据请求者身份过滤敏感数据
+     * <p>
+     * 规则：
+     * - correctAnswer 仅 COMPLETED 时返回
+     * - 当前轮中未完成双选时，只返回自己的线索
+     * - 已完成轮次的线索双方都可见
+     */
+    private Map<String, Object> coexploreToMap(CoexploreSession s, long viewerId) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("sessionId", s.getId());
         m.put("hostId", s.getHostId());
@@ -3667,22 +3675,33 @@ public class GameApiController {
         m.put("guestName", s.getGuestName() != null ? s.getGuestName() : "");
         m.put("status", s.getStatus());
         m.put("currentRound", s.getCurrentRound());
-        m.put("currentPhase", s.getCurrentPhase());
         m.put("hostFateValue", s.getHostFateValue());
         m.put("guestFateValue", s.getGuestFateValue());
         m.put("bossHp", s.getBossHp());
         m.put("bossDamageHost", s.getBossDamageHost());
         m.put("bossDamageGuest", s.getBossDamageGuest());
 
-        // 地点列表
+        // 谜局信息
+        m.put("mysteryBackground", s.getMysteryBackground());
+        m.put("suspects", s.getSuspects());
+        // correctAnswer 仅结算后可见
+        m.put("correctAnswer", "COMPLETED".equals(s.getStatus()) ? s.getCorrectAnswer() : -1);
+
+        // 推理答案
+        m.put("hostAnswer", s.getHostAnswer());
+        m.put("guestAnswer", s.getGuestAnswer());
+        m.put("reasoningResult", s.getReasoningResult());
+
+        // 当前轮地点（不含线索文本，线索通过轮次记录获取）
+        boolean isHost = viewerId == s.getHostId();
         List<Map<String, Object>> locs = new ArrayList<>();
-        if (s.getLocations() != null) {
-            for (var loc : s.getLocations()) {
+        var locList = s.getCurrentRound() <= 1 ? s.getRound1Locations() : s.getRound2Locations();
+        if (locList != null) {
+            for (var loc : locList) {
                 Map<String, Object> lm = new LinkedHashMap<>();
                 lm.put("id", loc.getId());
                 lm.put("name", loc.getName());
                 lm.put("description", loc.getDescription());
-                lm.put("fateReward", loc.getFateReward());
                 locs.add(lm);
             }
         }
@@ -3696,23 +3715,24 @@ public class GameApiController {
                 rm.put("round", r.getRound());
                 rm.put("hostLocationId", r.getHostLocationId());
                 rm.put("guestLocationId", r.getGuestLocationId());
-                rm.put("hostDiscovery", r.getHostDiscovery());
-                rm.put("guestDiscovery", r.getGuestDiscovery());
-                rm.put("hostTrace", r.getHostTrace());
-                rm.put("guestTrace", r.getGuestTrace());
-                rm.put("hostVote", r.getHostVote());
-                rm.put("guestVote", r.getGuestVote());
-                rm.put("voteResult", r.getVoteResult());
                 rm.put("hostFateGain", r.getHostFateGain());
                 rm.put("guestFateGain", r.getGuestFateGain());
+                rm.put("sameLocation", r.isSameLocation());
 
-                List<Map<String, Object>> opts = new ArrayList<>();
-                if (r.getVoteOptions() != null) {
-                    for (var o : r.getVoteOptions()) {
-                        opts.add(Map.of("id", o.getId(), "text", o.getText(), "description", o.getDescription()));
-                    }
+                // 线索可见性：双方都选完后所有线索可见；否则只能看自己的
+                boolean roundComplete = r.getHostLocationId() != null && r.getGuestLocationId() != null;
+                if (roundComplete) {
+                    rm.put("hostClue", r.getHostClue());
+                    rm.put("guestClue", r.getGuestClue());
+                    rm.put("hostTrace", r.getHostTrace());
+                    rm.put("guestTrace", r.getGuestTrace());
+                } else {
+                    rm.put("hostClue", isHost ? r.getHostClue() : null);
+                    rm.put("guestClue", isHost ? null : r.getGuestClue());
+                    // 痕迹：对方选过的地点痕迹可见
+                    rm.put("hostTrace", !isHost && r.getHostTrace() != null ? r.getHostTrace() : null);
+                    rm.put("guestTrace", isHost && r.getGuestTrace() != null ? r.getGuestTrace() : null);
                 }
-                rm.put("voteOptions", opts);
                 rounds.add(rm);
             }
         }

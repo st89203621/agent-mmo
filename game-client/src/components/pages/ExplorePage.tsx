@@ -281,6 +281,7 @@ export default function ExplorePage() {
   const handleDismissReward = useCallback(() => {
     setCurrentEvent(null);
     setCurrentReward(null);
+    fetchExploreStatus().then(setStatus).catch(() => {});
   }, []);
 
   useEffect(() => { generateBg(); }, [generateBg]);
@@ -418,12 +419,17 @@ export default function ExplorePage() {
       <div className={styles.mapHeader}>
         <div className={styles.mapTitleRow}>
           <span className={styles.mapTitle}>{bookTitle}</span>
-          <span className={styles.mapSubtitle}>书中漫步</span>
+          <span className={styles.mapSubtitle}>第{status?.chapterNumber ?? 1}章</span>
           <button className={styles.bgRefreshBtn} disabled={bgLoading} onClick={() => generateBg(true)} title="换背景">
             {bgLoading ? '...' : '🎨'}
           </button>
         </div>
         <div className={styles.apRow}>
+          <div className={styles.chapterBar}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className={styles.chapterDot} data-filled={i < (status?.chapterProgress ?? 0) ? '' : undefined} />
+            ))}
+          </div>
           <div className={styles.apBar}>
             <div className={styles.apBarFill} style={{ width: `${(ap / maxAp) * 100}%` }} />
           </div>
