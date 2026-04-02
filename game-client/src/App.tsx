@@ -35,6 +35,11 @@ import TradePage from './components/pages/TradePage';
 import TeamBattlePage from './components/pages/TeamBattlePage';
 import CoexplorePage from './components/pages/CoexplorePage';
 import FateMapPage from './components/pages/FateMapPage';
+import ActivityPage from './components/pages/ActivityPage';
+import WorldBossPage from './components/pages/WorldBossPage';
+import WheelPage from './components/pages/WheelPage';
+import MysticTomePage from './components/pages/MysticTomePage';
+import SecretRealmPage from './components/pages/SecretRealmPage';
 import type { PageId } from './types';
 
 /** 错误边界：防止子组件崩溃导致整个页面黑屏 */
@@ -107,7 +112,7 @@ function PageCache({ currentPage }: { currentPage: PageId }) {
 }
 
 /** 主导航页面：保持挂载，切换时用 display:none 隐藏，避免重复加载 */
-const KEEP_ALIVE_PAGES: PageId[] = ['home', 'coexplore', 'explore', 'character', 'achievement'];
+const KEEP_ALIVE_PAGES: PageId[] = ['home', 'coexplore', 'explore', 'character', 'activity'];
 
 const PAGE_MAP: Record<PageId, React.FC> = {
   'home': HomePage,
@@ -140,6 +145,11 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'team-battle': TeamBattlePage,
   'coexplore': CoexplorePage,
   'fate-map': FateMapPage,
+  'activity': ActivityPage,
+  'world-boss': WorldBossPage,
+  'wheel': WheelPage,
+  'mystic-tome': MysticTomePage,
+  'secret-realm': SecretRealmPage,
 };
 
 export default function App() {

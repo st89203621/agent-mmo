@@ -1,0 +1,230 @@
+/* 天命之轮 - 转盘抽奖 */
+
+/* 转盘容器 */
+.wheelWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  position: relative;
+}
+
+.wheelOuter {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin-bottom: 20px;
+}
+
+.wheelCanvas {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 4px solid var(--gold);
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.3), inset 0 0 20px rgba(0,0,0,0.2);
+  transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+}
+
+.wheelSpinning {
+  /* override transition for active spin */
+}
+
+.wheelPointer {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  z-index: 2;
+}
+
+.wheelCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border: 3px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--paper);
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform var(--transition-fast);
+}
+
+.wheelCenter:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* 免费次数 */
+.freeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.freeBadge {
+  padding: 4px 14px;
+  background: rgba(80, 180, 120, 0.12);
+  border: 1px solid rgba(80, 180, 120, 0.3);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #50b478;
+  font-weight: 600;
+}
+
+.costBadge {
+  padding: 4px 14px;
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+/* 抽奖按钮 */
+.spinBtn {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--paper);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: all var(--transition-fast);
+}
+
+.spinBtn:active { transform: scale(0.97); }
+.spinBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 结果弹窗 */
+.resultOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.resultCard {
+  background: var(--paper);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 28px 24px;
+  text-align: center;
+  min-width: 240px;
+  animation: resultPop 0.4s ease;
+}
+
+@keyframes resultPop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.resultIcon { font-size: 48px; margin-bottom: 12px; }
+
+.resultName {
+  font-family: var(--font-main);
+  font-size: 18px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.resultDesc {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.6;
+  margin-bottom: 16px;
+}
+
+.resultBtn {
+  padding: 10px 32px;
+  background: var(--gold);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+/* 奖品列表 */
+.prizeSection {
+  padding: 0 16px 16px;
+  width: 100%;
+}
+
+.prizeTitle {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-darker);
+}
+
+.prizeGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.prizeItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-sm);
+}
+
+.prizeIcon { font-size: 24px; }
+.prizeName { font-size: 10px; color: var(--ink); opacity: 0.7; text-align: center; }
+.prizeRare { border-color: rgba(201, 168, 76, 0.3); background: linear-gradient(135deg, var(--paper-dark), rgba(201, 168, 76, 0.05)); }
+
+/* 抽奖记录 */
+.historySection {
+  padding: 0 16px 16px;
+  width: 100%;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--paper-darker);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.historyItem:last-child { border-bottom: none; }
+.historyTime { opacity: 0.4; font-size: 11px; }
+.historyReward { color: var(--gold-dim); font-weight: 600; }

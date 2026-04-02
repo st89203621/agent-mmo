@@ -1507,3 +1507,144 @@ export function subscribeCoexplore(
   es.onerror = () => { es.close(); };
   return () => es.close();
 }
+
+// ── 诸神黄昏（世界Boss）──────────────────────────────
+
+export interface WorldBossData {
+  bossId: string;
+  bossName: string;
+  bossTitle: string;
+  maxHp: number;
+  currentHp: number;
+  myDamage: number;
+  status: 'alive' | 'dead';
+}
+
+export interface BossRankEntry {
+  playerId: string;
+  playerName: string;
+  damage: number;
+}
+
+export function fetchWorldBoss(): Promise<WorldBossData> {
+  return request('/world-boss/info');
+}
+
+export function attackWorldBoss(): Promise<{ damage: number; cooldownSeconds: number; reward?: string }> {
+  return request('/world-boss/attack', { method: 'POST' });
+}
+
+export function fetchBossRank(): Promise<{ entries: BossRankEntry[] }> {
+  return request('/world-boss/rank');
+}
+
+// ── 天命之轮（转盘抽奖）──────────────────────────────
+
+export interface WheelPrize {
+  id: string;
+  name: string;
+  icon: string;
+  rare?: boolean;
+}
+
+export interface WheelSpinResult {
+  prizeIndex: number;
+  rewardName: string;
+  rewardIcon: string;
+  rewardDesc: string;
+  remainingFreeSpins: number;
+}
+
+export function fetchWheelInfo(): Promise<{
+  prizes: WheelPrize[];
+  freeSpins: number;
+  spinCost: number;
+  history: { time: string; reward: string }[];
+}> {
+  return request('/wheel/info');
+}
+
+export function spinWheel(): Promise<WheelSpinResult> {
+  return request('/wheel/spin', { method: 'POST' });
+}
+
+// ── 太古秘典（技能书抽取）──────────────────────────────
+
+export interface TomeSkillBook {
+  id: string;
+  name: string;
+  icon: string;
+  rank: 'SSR' | 'SR' | 'R' | 'N';
+  description?: string;
+}
+
+export function fetchTomePool(): Promise<{
+  books: TomeSkillBook[];
+  pityCount: number;
+  pityGuarantee: number;
+  drawOneCost: number;
+  drawTenCost: number;
+}> {
+  return request('/mystic-tome/pool');
+}
+
+export function drawTome(count: number): Promise<{
+  results: TomeSkillBook[];
+  pityCount: number;
+}> {
+  return request('/mystic-tome/draw', {
+    method: 'POST',
+    body: JSON.stringify({ count }),
+  });
+}
+
+// ── 鸿蒙秘境（限时探索）──────────────────────────────
+
+export interface RealmData {
+  realmId: string;
+  status: 'idle' | 'active' | 'ended';
+  currentFloor: number;
+  stamina: number;
+  maxStamina: number;
+  endTime: number;
+  logs: string[];
+}
+
+export interface RealmEvent {
+  eventId: string;
+  type: 'battle' | 'treasure' | 'heal' | 'mystery';
+  icon: string;
+  title: string;
+  description: string;
+  choices: string[];
+}
+
+export function fetchRealmStatus(): Promise<RealmData> {
+  return request('/secret-realm/status');
+}
+
+export function enterRealm(): Promise<RealmData> {
+  return request('/secret-realm/enter', { method: 'POST' });
+}
+
+export function exploreRealm(): Promise<{
+  event: RealmEvent;
+  stamina: number;
+  currentFloor: number;
+}> {
+  return request('/secret-realm/explore', { method: 'POST' });
+}
+
+export function resolveRealmEvent(eventId: string, choice: number): Promise<{
+  success: boolean;
+  resultText: string;
+  loot?: { icon: string; name: string }[];
+  logEntry: string;
+  stamina: number;
+  currentFloor: number;
+}> {
+  return request('/secret-realm/resolve', {
+    method: 'POST',
+    body: JSON.stringify({ eventId, choice }),
+  });
+}

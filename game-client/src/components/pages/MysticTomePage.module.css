@@ -1,0 +1,274 @@
+/* 太古秘典 - 技能书抽取 */
+
+/* 池子展示 */
+.poolBanner {
+  position: relative;
+  padding: 20px 16px;
+  background: linear-gradient(180deg, rgba(40, 80, 60, 0.2), var(--paper-dark));
+  border-bottom: 1px solid var(--paper-darker);
+  text-align: center;
+  overflow: hidden;
+}
+
+.poolGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, rgba(80, 180, 120, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.poolIcon {
+  font-size: 56px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+  animation: tomeFloat 3s ease-in-out infinite;
+}
+
+@keyframes tomeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.poolName {
+  font-family: var(--font-main);
+  font-size: 18px;
+  color: var(--gold);
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.poolDesc {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  position: relative;
+  z-index: 1;
+}
+
+/* 概率展示 */
+.rateRow {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.rateBadge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.rateSsr {
+  background: rgba(220, 60, 60, 0.15);
+  color: #e05050;
+  border: 1px solid rgba(220, 60, 60, 0.3);
+}
+
+.rateSr {
+  background: rgba(180, 120, 220, 0.15);
+  color: #b478dc;
+  border: 1px solid rgba(180, 120, 220, 0.3);
+}
+
+.rateR {
+  background: rgba(100, 140, 220, 0.15);
+  color: #648cdc;
+  border: 1px solid rgba(100, 140, 220, 0.3);
+}
+
+/* 抽取按钮 */
+.drawSection {
+  padding: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.drawBtn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.drawBtn:active { transform: scale(0.97); }
+.drawBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.drawOne {
+  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+  color: var(--paper);
+}
+
+.drawTen {
+  background: linear-gradient(135deg, #b478dc, #d060a0);
+  color: white;
+}
+
+.drawCost {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* 开箱动画 */
+.revealOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.revealCards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 340px;
+  margin-bottom: 20px;
+}
+
+.revealCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  min-width: 70px;
+  background: var(--paper);
+  border: 2px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  animation: cardPop 0.5s ease backwards;
+}
+
+.revealCard:nth-child(1) { animation-delay: 0.0s; }
+.revealCard:nth-child(2) { animation-delay: 0.1s; }
+.revealCard:nth-child(3) { animation-delay: 0.15s; }
+.revealCard:nth-child(4) { animation-delay: 0.2s; }
+.revealCard:nth-child(5) { animation-delay: 0.25s; }
+.revealCard:nth-child(6) { animation-delay: 0.3s; }
+.revealCard:nth-child(7) { animation-delay: 0.35s; }
+.revealCard:nth-child(8) { animation-delay: 0.4s; }
+.revealCard:nth-child(9) { animation-delay: 0.45s; }
+.revealCard:nth-child(10) { animation-delay: 0.5s; }
+
+@keyframes cardPop {
+  from { transform: scale(0) rotate(-10deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.revealCardSsr { border-color: #e05050; box-shadow: 0 0 12px rgba(220, 60, 60, 0.3); }
+.revealCardSr { border-color: #b478dc; box-shadow: 0 0 8px rgba(180, 120, 220, 0.2); }
+.revealCardR { border-color: #648cdc; }
+
+.revealIcon { font-size: 28px; }
+.revealName { font-size: 11px; color: var(--ink); font-weight: 600; text-align: center; }
+.revealRank { font-size: 9px; font-weight: 700; }
+
+.revealClose {
+  padding: 10px 40px;
+  background: var(--gold);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+/* 技能书列表 */
+.bookSection {
+  padding: 0 16px 16px;
+}
+
+.bookSectionTitle {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-darker);
+}
+
+.bookGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.bookCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.bookCard:active { transform: scale(0.96); }
+
+.bookCardSsr { border-color: rgba(220, 60, 60, 0.3); background: linear-gradient(135deg, var(--paper-dark), rgba(220, 60, 60, 0.05)); }
+.bookCardSr { border-color: rgba(180, 120, 220, 0.3); background: linear-gradient(135deg, var(--paper-dark), rgba(180, 120, 220, 0.05)); }
+.bookCardR { border-color: rgba(100, 140, 220, 0.15); }
+
+.bookIcon { font-size: 28px; }
+
+.bookName {
+  font-family: var(--font-main);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.bookRank {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* 保底计数 */
+.pityRow {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.pityVal {
+  color: var(--gold);
+  font-weight: 600;
+  opacity: 1;
+}

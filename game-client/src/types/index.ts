@@ -254,4 +254,5 @@ export type PageId =
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'
   | 'companion' | 'title' | 'guild' | 'scene' | 'treasure-mountain'
-  | 'flower' | 'trade' | 'team-battle' | 'fate-map' | 'coexplore';
+  | 'flower' | 'trade' | 'team-battle' | 'fate-map' | 'coexplore' | 'activity'
+  | 'world-boss' | 'wheel' | 'mystic-tome' | 'secret-realm';

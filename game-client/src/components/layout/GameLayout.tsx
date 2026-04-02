@@ -14,8 +14,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: '主页', icon: '🏠' },
   { id: 'explore', label: '探索', icon: '🗺️' },
   { id: 'coexplore', label: '同游', icon: '🤝' },
+  { id: 'activity', label: '活动', icon: '🔥' },
   { id: 'character', label: '角色', icon: '👤' },
-  { id: 'achievement', label: '成就', icon: '🏅' },
 ];
 
 /** 这些页面是从角色页等入口进入的子页面，需要显示返回按钮 */
@@ -40,7 +40,11 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'guild': { label: '盟会', back: 'character' },
   'scene': { label: '场景', back: 'character' },
   'treasure-mountain': { label: '宝山', back: 'guild' },
-  'fate-map': { label: '命运织机', back: 'achievement' },
+  'fate-map': { label: '命运织机', back: 'character' },
+  'world-boss': { label: '诸神黄昏', back: 'activity' },
+  'wheel': { label: '天命之轮', back: 'activity' },
+  'mystic-tome': { label: '太古秘典', back: 'activity' },
+  'secret-realm': { label: '鸿蒙秘境', back: 'activity' },
 };
 
 interface Props {

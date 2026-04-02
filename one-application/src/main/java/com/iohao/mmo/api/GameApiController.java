@@ -64,6 +64,10 @@ import com.iohao.mmo.coexplore.service.CoexploreService;
 import com.iohao.mmo.companion.entity.CompanionBag;
 import com.iohao.mmo.companion.entity.SpiritCompanion;
 import com.iohao.mmo.companion.service.CompanionService;
+import com.iohao.mmo.event.entity.LuckyWheelEvent;
+import com.iohao.mmo.event.entity.WorldBossEvent;
+import com.iohao.mmo.event.service.LuckyWheelEventService;
+import com.iohao.mmo.event.service.WorldBossEventService;
 import com.iohao.mmo.pet.entity.PetBag;
 import com.iohao.mmo.story.entity.SceneImage;
 import com.iohao.mmo.story.service.SceneImageService;
@@ -193,6 +197,12 @@ public class GameApiController {
 
     @Resource
     CoexploreService coexploreService;
+
+    @Resource
+    LuckyWheelEventService luckyWheelEventService;
+
+    @Resource
+    WorldBossEventService worldBossEventService;
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -3899,5 +3909,321 @@ public class GameApiController {
         }
         m.put("rounds", rounds);
         return m;
+    }
+
+    // ── 天命之轮（转盘）──────────────────────────────────
+
+    @GetMapping("/wheel/info")
+    public ResponseEntity<Map<String, Object>> wheelInfo(HttpSession session) {
+        requireLogin(session);
+        // 获取或创建默认转盘
+        LuckyWheelEvent wheel = getOrCreateDefaultWheel();
+        List<Map<String, Object>> prizes = new ArrayList<>();
+        if (wheel.getPrizes() != null) {
+            for (int i = 0; i < wheel.getPrizes().size(); i++) {
+                LuckyWheelEvent.WheelPrize p = wheel.getPrizes().get(i);
+                Map<String, Object> pm = new LinkedHashMap<>();
+                pm.put("id", p.getPrizeId());
+                pm.put("name", p.getPrizeName());
+                pm.put("icon", qualityToIcon(p.getQuality(), p.getPrizeType()));
+                pm.put("rare", p.isJackpot());
+                prizes.add(pm);
+            }
+        }
+        return ok(Map.of(
+            "prizes", prizes,
+            "freeSpins", wheel.getDailyFreeSpin(),
+            "spinCost", wheel.getCostPerSpin(),
+            "history", List.of()
+        ));
+    }
+
+    @PostMapping("/wheel/spin")
+    public ResponseEntity<Map<String, Object>> wheelSpin(HttpSession session) {
+        long userId = requireLogin(session);
+        LuckyWheelEvent wheel = getOrCreateDefaultWheel();
+        LuckyWheelEventService.SpinResult result = luckyWheelEventService.spin(wheel.getId(), userId, true);
+        if (!result.isSuccess()) {
+            // 免费次数用完，尝试付费
+            result = luckyWheelEventService.spin(wheel.getId(), userId, false);
+        }
+        LuckyWheelEvent.WheelPrize prize = result.getPrize();
+        int prizeIndex = 0;
+        if (prize != null && wheel.getPrizes() != null) {
+            for (int i = 0; i < wheel.getPrizes().size(); i++) {
+                if (wheel.getPrizes().get(i).getPrizeId().equals(prize.getPrizeId())) {
+                    prizeIndex = i;
+                    break;
+                }
+            }
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("prizeIndex", prizeIndex);
+        data.put("rewardName", prize != null ? prize.getPrizeName() : "神秘奖品");
+        data.put("rewardIcon", prize != null ? qualityToIcon(prize.getQuality(), prize.getPrizeType()) : "🎁");
+        data.put("rewardDesc", result.getMessage());
+        data.put("remainingFreeSpins", 0);
+        return ok(data);
+    }
+
+    private String qualityToIcon(String quality, LuckyWheelEvent.PrizeType type) {
+        if (type == LuckyWheelEvent.PrizeType.GOLD) return "💰";
+        if (type == LuckyWheelEvent.PrizeType.DIAMOND) return "💎";
+        if (type == LuckyWheelEvent.PrizeType.EXP) return "✨";
+        if (type == LuckyWheelEvent.PrizeType.PET) return "🐉";
+        if (type == LuckyWheelEvent.PrizeType.TITLE) return "👑";
+        if ("mythic".equals(quality)) return "🌟";
+        if ("legendary".equals(quality)) return "⚔️";
+        if ("epic".equals(quality)) return "📜";
+        return "🎁";
+    }
+
+    private LuckyWheelEvent getOrCreateDefaultWheel() {
+        // 尝试获取已有转盘，没有则创建
+        try {
+            var wheels = mongoTemplate.findAll(LuckyWheelEvent.class);
+            if (!wheels.isEmpty()) return wheels.get(0);
+        } catch (Exception ignored) {}
+        return luckyWheelEventService.createLuckyWheel("lucky_wheel", "天命之轮");
+    }
+
+    // ── 世界BOSS ──────────────────────────────────────
+
+    @GetMapping("/world-boss/info")
+    public ResponseEntity<Map<String, Object>> worldBossInfo(HttpSession session) {
+        requireLogin(session);
+        List<WorldBossEvent> bosses = worldBossEventService.getActiveBosses();
+        WorldBossEvent boss;
+        if (bosses.isEmpty()) {
+            boss = worldBossEventService.createWorldBoss("world_boss", "混沌魔神·烛龙", 99, 10000000L);
+        } else {
+            boss = bosses.get(0);
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("bossId", boss.getId());
+        data.put("name", boss.getBossName());
+        data.put("level", boss.getBossLevel());
+        data.put("currentHp", boss.getCurrentHp());
+        data.put("totalHp", boss.getTotalHp());
+        data.put("status", boss.getStatus().name().toLowerCase());
+        data.put("skills", boss.getSkills());
+        data.put("participantCount", boss.getDamageRecords() != null ? boss.getDamageRecords().size() : 0);
+        return ok(data);
+    }
+
+    @PostMapping("/world-boss/attack")
+    public ResponseEntity<Map<String, Object>> worldBossAttack(HttpSession session) {
+        long userId = requireLogin(session);
+        List<WorldBossEvent> bosses = worldBossEventService.getActiveBosses();
+        if (bosses.isEmpty()) return err("当前没有活跃的世界BOSS");
+        WorldBossEvent boss = bosses.get(0);
+        String userName = (String) session.getAttribute("username");
+        long damage = (long) (Math.random() * 5000 + 1000);
+        WorldBossEventService.AttackResult result = worldBossEventService.attackBoss(boss.getId(), userId, userName, damage);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("damage", damage);
+        data.put("cooldownSeconds", 5);
+        if (result.isKilled()) data.put("reward", "传说装备碎片 x1");
+        return ok(data);
+    }
+
+    @GetMapping("/world-boss/rank")
+    public ResponseEntity<Map<String, Object>> worldBossRank(HttpSession session) {
+        requireLogin(session);
+        List<WorldBossEvent> bosses = worldBossEventService.getActiveBosses();
+        List<Map<String, Object>> entries = new ArrayList<>();
+        if (!bosses.isEmpty()) {
+            var ranking = worldBossEventService.getDamageRanking(bosses.get(0).getId(), 50);
+            for (var r : ranking) {
+                Map<String, Object> e = new LinkedHashMap<>();
+                e.put("playerId", String.valueOf(r.getUserId()));
+                e.put("playerName", r.getUserName());
+                e.put("damage", r.getDamage());
+                entries.add(e);
+            }
+        }
+        return ok(Map.of("entries", entries));
+    }
+
+    // ── 太古秘典（技能书抽取）──────────────────────────────
+
+    @GetMapping("/mystic-tome/pool")
+    public ResponseEntity<Map<String, Object>> tomePool(HttpSession session) {
+        requireLogin(session);
+        List<Map<String, Object>> books = new ArrayList<>();
+        String[][] pool = {
+            {"skill_nitiangaiming", "逆天改命", "🌟", "SSR", "改写命运轨迹，无视一切防御"},
+            {"skill_fentianmiedi", "焚天灭地", "🔥", "SSR", "召唤天火焚烧一切"},
+            {"skill_wanjianguizong", "万剑归宗", "⚔️", "SR", "万剑齐发，剑气纵横"},
+            {"skill_xuanyuanzhao", "玄元照", "✨", "SR", "照见真我，提升悟性"},
+            {"skill_bingfengzhan", "冰封斩", "❄️", "R", "冰系攻击，冻结目标"},
+            {"skill_leiyin", "雷引", "⚡", "R", "引雷攻击，范围伤害"},
+            {"skill_tianluo", "天罗", "🕸️", "R", "束缚目标，无法行动"},
+            {"skill_huifu", "灵息术", "💚", "N", "恢复少量生命"},
+        };
+        for (String[] b : pool) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", b[0]);
+            m.put("name", b[1]);
+            m.put("icon", b[2]);
+            m.put("rank", b[3]);
+            m.put("description", b[4]);
+            books.add(m);
+        }
+        return ok(Map.of(
+            "books", books,
+            "pityCount", 0,
+            "pityGuarantee", 10,
+            "drawOneCost", 100,
+            "drawTenCost", 900
+        ));
+    }
+
+    @PostMapping("/mystic-tome/draw")
+    public ResponseEntity<Map<String, Object>> tomeDraw(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        int count = ((Number) body.getOrDefault("count", 1)).intValue();
+        String[][] pool = {
+            {"skill_nitiangaiming", "逆天改命", "🌟", "SSR"},
+            {"skill_fentianmiedi", "焚天灭地", "🔥", "SSR"},
+            {"skill_wanjianguizong", "万剑归宗", "⚔️", "SR"},
+            {"skill_xuanyuanzhao", "玄元照", "✨", "SR"},
+            {"skill_bingfengzhan", "冰封斩", "❄️", "R"},
+            {"skill_leiyin", "雷引", "⚡", "R"},
+            {"skill_tianluo", "天罗", "🕸️", "R"},
+            {"skill_huifu", "灵息术", "💚", "N"},
+        };
+        // 概率权重: SSR=2, SR=8, R=30, N=60
+        int[] weights = {1, 1, 4, 4, 15, 15, 15, 45};
+        int totalWeight = 0;
+        for (int w : weights) totalWeight += w;
+        Random rand = new Random();
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            int roll = rand.nextInt(totalWeight);
+            int cum = 0;
+            int idx = pool.length - 1;
+            for (int j = 0; j < weights.length; j++) {
+                cum += weights[j];
+                if (roll < cum) { idx = j; break; }
+            }
+            String[] b = pool[idx];
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", b[0]);
+            m.put("name", b[1]);
+            m.put("icon", b[2]);
+            m.put("rank", b[3]);
+            results.add(m);
+        }
+        return ok(Map.of("results", results, "pityCount", 0));
+    }
+
+    // ── 鸿蒙秘境（限时探索）──────────────────────────────
+
+    private final ConcurrentHashMap<Long, Map<String, Object>> realmSessions = new ConcurrentHashMap<>();
+
+    @GetMapping("/secret-realm/status")
+    public ResponseEntity<Map<String, Object>> realmStatus(HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> realm = realmSessions.get(userId);
+        if (realm == null) {
+            return ok(Map.of(
+                "realmId", "",
+                "status", "idle",
+                "currentFloor", 0,
+                "stamina", 100,
+                "maxStamina", 100,
+                "endTime", 0,
+                "logs", List.of()
+            ));
+        }
+        return ok(realm);
+    }
+
+    @PostMapping("/secret-realm/enter")
+    public ResponseEntity<Map<String, Object>> realmEnter(HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> realm = new LinkedHashMap<>();
+        realm.put("realmId", "realm_" + userId + "_" + System.currentTimeMillis());
+        realm.put("status", "active");
+        realm.put("currentFloor", 1);
+        realm.put("stamina", 100);
+        realm.put("maxStamina", 100);
+        realm.put("endTime", System.currentTimeMillis() + 2880 * 60 * 1000L);
+        realm.put("logs", new ArrayList<>(List.of("踏入鸿蒙秘境第1层...")));
+        realmSessions.put(userId, realm);
+        return ok(realm);
+    }
+
+    @PostMapping("/secret-realm/explore")
+    public ResponseEntity<Map<String, Object>> realmExplore(HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> realm = realmSessions.get(userId);
+        if (realm == null || !"active".equals(realm.get("status"))) {
+            return err("尚未进入秘境");
+        }
+        int stamina = ((Number) realm.get("stamina")).intValue();
+        if (stamina <= 0) return err("体力不足");
+        realm.put("stamina", stamina - 10);
+        int floor = ((Number) realm.get("currentFloor")).intValue();
+
+        String[][] events = {
+            {"battle", "⚔️", "远古石像守卫", "石像苏醒，阻挡前路！"},
+            {"treasure", "📦", "隐藏宝箱", "发现一个散发灵光的宝箱"},
+            {"heal", "💚", "灵泉", "清澈灵泉涌出，恢复精力"},
+            {"mystery", "🔮", "命运路口", "三条道路分叉，隐约感应到不同气息"},
+        };
+        Random rand = new Random();
+        String[] ev = events[rand.nextInt(events.length)];
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("eventId", "evt_" + System.currentTimeMillis());
+        event.put("type", ev[0]);
+        event.put("icon", ev[1]);
+        event.put("title", ev[2]);
+        event.put("description", ev[3]);
+        event.put("choices", List.of("挑战", "回避"));
+        return ok(Map.of(
+            "event", event,
+            "stamina", stamina - 10,
+            "currentFloor", floor
+        ));
+    }
+
+    @PostMapping("/secret-realm/resolve")
+    @SuppressWarnings("unchecked")
+    public ResponseEntity<Map<String, Object>> realmResolve(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> realm = realmSessions.get(userId);
+        if (realm == null) return err("尚未进入秘境");
+        int choice = ((Number) body.getOrDefault("choice", 0)).intValue();
+        int floor = ((Number) realm.get("currentFloor")).intValue();
+        int stamina = ((Number) realm.get("stamina")).intValue();
+        boolean success = new Random().nextDouble() > 0.3;
+        String resultText;
+        List<Map<String, Object>> loot = new ArrayList<>();
+        if (choice == 0 && success) {
+            resultText = "挑战成功！获得了丰厚奖励";
+            loot.add(Map.of("icon", "💎", "name", "灵石 x" + (50 + new Random().nextInt(100))));
+            floor++;
+            realm.put("currentFloor", floor);
+        } else if (choice == 0) {
+            resultText = "挑战失败，损失了一些体力";
+            stamina = Math.max(0, stamina - 5);
+            realm.put("stamina", stamina);
+        } else {
+            resultText = "选择回避，安全通过";
+            floor++;
+            realm.put("currentFloor", floor);
+        }
+        String logEntry = "第" + floor + "层: " + resultText;
+        ((List<String>) realm.get("logs")).add(logEntry);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("success", success || choice == 1);
+        data.put("resultText", resultText);
+        if (!loot.isEmpty()) data.put("loot", loot);
+        data.put("logEntry", logEntry);
+        data.put("stamina", stamina);
+        data.put("currentFloor", floor);
+        return ok(data);
     }
 }

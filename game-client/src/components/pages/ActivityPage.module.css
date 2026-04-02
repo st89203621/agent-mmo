@@ -1,0 +1,185 @@
+/* 活动页面专属样式 */
+
+.banner {
+  position: relative;
+  margin-bottom: 14px;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(192, 64, 96, 0.08));
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.bannerGlow {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(201, 168, 76, 0.15), transparent 70%);
+  pointer-events: none;
+}
+
+.bannerTitle {
+  font-family: var(--font-main);
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.bannerDesc {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+/* 活动网格 */
+.actGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.actCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px 12px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.actCard:active {
+  transform: scale(0.97);
+}
+
+.actCardGlow {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.actIcon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.actName {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 3px;
+  position: relative;
+  z-index: 1;
+}
+
+.actDesc {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  line-height: 1.4;
+  position: relative;
+  z-index: 1;
+}
+
+.actTag {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  position: relative;
+  z-index: 1;
+}
+
+.actTagHot {
+  background: rgba(220, 60, 60, 0.15);
+  color: #e05050;
+  border: 1px solid rgba(220, 60, 60, 0.3);
+}
+
+.actTagNew {
+  background: rgba(80, 180, 120, 0.15);
+  color: #50b478;
+  border: 1px solid rgba(80, 180, 120, 0.3);
+}
+
+.actTagDaily {
+  background: rgba(100, 140, 220, 0.15);
+  color: #648cdc;
+  border: 1px solid rgba(100, 140, 220, 0.3);
+}
+
+.actTagLimited {
+  background: rgba(200, 120, 60, 0.15);
+  color: #c8783c;
+  border: 1px solid rgba(200, 120, 60, 0.3);
+}
+
+/* 大活动卡片（世界Boss等全宽卡片） */
+.actCardWide {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.actCardWide .actIcon {
+  font-size: 36px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.actCardWide .actInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.actCardWide .actName {
+  font-size: 15px;
+}
+
+.actArrow {
+  font-size: 16px;
+  color: var(--ink);
+  opacity: 0.3;
+  flex-shrink: 0;
+}
+
+/* 倒计时标签 */
+.actCountdown {
+  font-size: 10px;
+  color: var(--gold-dim);
+  opacity: 0.8;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+
+/* 分隔标题 */
+.sectionLabel {
+  font-family: var(--font-main);
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.5;
+  margin: 16px 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--paper-darker);
+}

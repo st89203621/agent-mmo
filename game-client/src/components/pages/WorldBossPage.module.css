@@ -1,0 +1,264 @@
+/* 诸神黄昏 - 世界Boss */
+
+.bossScene {
+  position: relative;
+  padding: 20px 16px;
+  background: linear-gradient(180deg, rgba(60, 10, 10, 0.3), var(--paper-dark));
+  border-bottom: 1px solid var(--paper-darker);
+  text-align: center;
+  overflow: hidden;
+}
+
+.bossGlow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(220, 50, 50, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.bossAvatar {
+  font-size: 64px;
+  line-height: 1;
+  margin-bottom: 8px;
+  animation: bossPulse 2s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes bossPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(220, 50, 50, 0.3)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 16px rgba(220, 50, 50, 0.6)); }
+}
+
+.bossName {
+  font-family: var(--font-main);
+  font-size: 20px;
+  color: #e05050;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.bossTitle {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 血量条 */
+.hpSection {
+  position: relative;
+  z-index: 1;
+}
+
+.hpLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.hpBarWrap {
+  height: 14px;
+  background: var(--paper-darker);
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hpBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #c03030, #e06060);
+  border-radius: 7px;
+  transition: width 0.6s ease;
+  position: relative;
+}
+
+.hpBarFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2));
+  animation: hpShine 1.5s ease-in-out infinite;
+}
+
+@keyframes hpShine {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.hpText {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* 攻击区域 */
+.attackSection {
+  padding: 16px;
+}
+
+.myDamageRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.myDamageLabel {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.myDamageVal {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e05050;
+  font-variant-numeric: tabular-nums;
+}
+
+.attackBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #c03030, #e05050);
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.attackBtn:active {
+  transform: scale(0.97);
+}
+
+.attackBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attackBtnShine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: btnShine 2s infinite;
+}
+
+@keyframes btnShine {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.cooldownText {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* 伤害飘字 */
+.dmgFloat {
+  position: fixed;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffcc00;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  pointer-events: none;
+  z-index: 999;
+  animation: dmgFly 1s ease-out forwards;
+}
+
+@keyframes dmgFly {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -80px) scale(0.8); }
+}
+
+/* 排行榜 */
+.rankSection {
+  padding: 0 16px 16px;
+}
+
+.rankTitle {
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-darker);
+}
+
+.rankList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rankItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-md);
+}
+
+.rankTop { border-color: rgba(220, 50, 50, 0.2); }
+.rankPos { font-size: 18px; width: 28px; text-align: center; flex-shrink: 0; }
+.rankInfo { flex: 1; min-width: 0; }
+.rankName { font-family: var(--font-main); font-size: 14px; color: var(--ink); display: block; }
+.rankDmg { font-size: 16px; color: #e05050; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 奖励预览 */
+.rewardPreview {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.rewardItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: var(--radius-sm);
+  min-width: 60px;
+}
+
+.rewardIcon { font-size: 22px; }
+.rewardName { font-size: 10px; color: var(--ink); opacity: 0.6; }
