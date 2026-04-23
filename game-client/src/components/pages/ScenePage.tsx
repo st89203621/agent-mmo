@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { usePlayerStore } from '../../store/playerStore';
 import { fetchCurrentZone, moveToZone, fetchNearbyPlayers } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import type { ZoneInfo, NearbyPlayer } from '../../types';
@@ -63,14 +62,14 @@ const TELEPORT_GROUPS = [
 const DEFAULT_ZONE: ZoneInfo = {
   zoneId: 'main_city',
   name: '主城',
-  coordinates: [2, 2],
+  coordX: 2,
+  coordY: 2,
   description: '交易买卖中心，安全区域',
   sceneHint: '',
   exits: [
     { direction: '西', targetZoneId: 'social_district', label: '婚介代练(1,2)' },
     { direction: '南', targetZoneId: 'hunting_ground',  label: '猎场宝山(2,1)' },
   ],
-  activities: [],
   nearbyPlayers: [],
   hotEvents: [
     { id: 'divine_pet', label: '★天降神宠★', pageId: 'wheel' },
@@ -82,7 +81,6 @@ const DEFAULT_ZONE: ZoneInfo = {
 
 export default function ScenePage() {
   const { navigateTo, currentBookWorld } = useGameStore();
-  const { playerName } = usePlayerStore();
   const [zone, setZone] = useState<ZoneInfo>(DEFAULT_ZONE);
   const [nearby, setNearby] = useState<NearbyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +142,7 @@ export default function ScenePage() {
           <div className={styles.zoneTitle}>
             {zoneName}
             <span className={styles.zoneCoord}>
-              ({zone.coordinates[0]},{zone.coordinates[1]})
+              ({zone.coordX},{zone.coordY})
             </span>
           </div>
           <div className={styles.topActions}>

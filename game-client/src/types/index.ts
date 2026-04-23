@@ -251,11 +251,11 @@ export interface CoexploreSessionData {
 export interface ZoneInfo {
   zoneId: string;
   name: string;
-  coordinates: [number, number];
+  coordX: number;
+  coordY: number;
   description: string;
   sceneHint: string;
   exits: ZoneExit[];
-  activities: ZoneActivity[];
   nearbyPlayers: NearbyPlayer[];
   hotEvents: ZoneHotEvent[];
 }
@@ -264,17 +264,6 @@ export interface ZoneExit {
   direction: '东' | '西' | '南' | '北';
   targetZoneId: string;
   label: string;
-}
-
-export type ZoneActivityType = 'combat' | 'social' | 'economy' | 'event' | 'feature';
-
-export interface ZoneActivity {
-  type: ZoneActivityType;
-  id: string;
-  label: string;
-  pageId: string;
-  isNew?: boolean;
-  isHot?: boolean;
 }
 
 export interface ZoneHotEvent {

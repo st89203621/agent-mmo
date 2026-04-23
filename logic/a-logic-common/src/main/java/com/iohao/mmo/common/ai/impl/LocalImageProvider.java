@@ -13,6 +13,7 @@ import okhttp3.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,7 +66,11 @@ public class LocalImageProvider implements AiImageProvider {
     @Override
     public AiImageResult generate(AiImageRequest request) throws Exception {
         String clientId = "mmo-" + UUID.randomUUID();
-        JSONObject workflow = WorkflowBuilder.build(cfg, request, clientId);
+        String uploadedName = null;
+        if (request.getSourceImageBase64() != null && !request.getSourceImageBase64().isBlank()) {
+            uploadedName = uploadImage(Base64.getDecoder().decode(request.getSourceImageBase64()));
+        }
+        JSONObject workflow = WorkflowBuilder.build(cfg, request, clientId, uploadedName);
 
         String promptId = postPrompt(workflow);
         JSONObject history = waitHistory(promptId);
@@ -87,6 +92,24 @@ public class LocalImageProvider implements AiImageProvider {
     }
 
     // ── HTTP ──────────────────────────────────────────
+
+    private String uploadImage(byte[] pngBytes) throws IOException {
+        String filename = "mmo-edit-" + UUID.randomUUID() + ".png";
+        RequestBody body = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("image", filename,
+                        RequestBody.create(pngBytes, MediaType.parse("image/png")))
+                .addFormDataPart("overwrite", "true")
+                .addFormDataPart("type", "input")
+                .build();
+        Request req = new Request.Builder().url(base() + "/upload/image").post(body).build();
+        try (Response resp = executeWithRetry(req)) {
+            if (!resp.isSuccessful() || resp.body() == null) {
+                throw new IOException("ComfyUI /upload/image HTTP " + resp.code());
+            }
+            return JSON.parseObject(resp.body().string()).getString("name");
+        }
+    }
 
     private String postPrompt(JSONObject workflow) throws IOException {
         Request req = new Request.Builder()
@@ -167,12 +190,13 @@ public class LocalImageProvider implements AiImageProvider {
     // ── Workflow 策略 ──────────────────────────────────
 
     private static final class WorkflowBuilder {
-        static JSONObject build(AiProperties.Image.Local cfg, AiImageRequest req, String clientId) {
+        static JSONObject build(AiProperties.Image.Local cfg, AiImageRequest req,
+                                String clientId, String uploadedImage) {
             long seed = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
             JSONObject prompt = switch (cfg.getPipeline().toLowerCase()) {
-                case "flux2" -> flux2(cfg, req, seed);
-                case "flux" -> flux(cfg, req, seed);
-                case "sdxl" -> sdxl(cfg, req, seed);
+                case "flux2" -> flux2(cfg, req, seed, uploadedImage);
+                case "flux" -> flux(cfg, req, seed, uploadedImage);
+                case "sdxl" -> sdxl(cfg, req, seed, uploadedImage);
                 default -> throw new IllegalArgumentException("未知 pipeline: " + cfg.getPipeline());
             };
             JSONObject body = new JSONObject();
@@ -181,7 +205,30 @@ public class LocalImageProvider implements AiImageProvider {
             return body;
         }
 
-        private static JSONObject flux2(AiProperties.Image.Local cfg, AiImageRequest req, long seed) {
+        /**
+         * 向 workflow 写入 latent 源节点，返回 {KSampler.latent_image 引用, denoise}。
+         * 文生图：EmptyLatentImage、denoise=1.0；图生图：LoadImage+VAEEncode、denoise=cfg.editDenoise。
+         * 节点 id 用字符串避免与各 pipeline 内部数字节点号冲突。
+         */
+        private static Latent latentSource(JSONObject p, AiProperties.Image.Local cfg,
+                                           AiImageRequest req, String uploadedImage,
+                                           JSONArray vaeRef) {
+            if (uploadedImage == null) {
+                p.put("latent_src", node("EmptyLatentImage", map(
+                        "width", req.getWidth(), "height", req.getHeight(),
+                        "batch_size", req.getCount())));
+                return new Latent(ref("latent_src", 0), 1.0);
+            }
+            p.put("latent_load", node("LoadImage", map("image", uploadedImage)));
+            p.put("latent_src", node("VAEEncode",
+                    map("pixels", ref("latent_load", 0), "vae", vaeRef)));
+            return new Latent(ref("latent_src", 0), cfg.getEditDenoise());
+        }
+
+        private record Latent(JSONArray ref, double denoise) {}
+
+        private static JSONObject flux2(AiProperties.Image.Local cfg, AiImageRequest req,
+                                        long seed, String uploadedImage) {
             JSONObject p = new JSONObject();
             p.put("1", node("UNETLoader", map(
                     "unet_name", cfg.getDiffusionModel(),
@@ -192,19 +239,20 @@ public class LocalImageProvider implements AiImageProvider {
             p.put("3", node("VAELoader", map("vae_name", cfg.getVae())));
             p.put("4", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("2", 0))));
             p.put("5", node("CLIPTextEncode", map("text", "", "clip", ref("2", 0))));
-            p.put("6", node("EmptyLatentImage", map(
-                    "width", req.getWidth(), "height", req.getHeight(), "batch_size", req.getCount())));
+            Latent latent = latentSource(p, cfg, req, uploadedImage, ref("3", 0));
             p.put("7", node("KSampler", map(
                     "seed", seed, "steps", cfg.getSteps(), "cfg", cfg.getCfg(),
-                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(), "denoise", 1.0,
+                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(),
+                    "denoise", latent.denoise(),
                     "model", ref("1", 0), "positive", ref("4", 0),
-                    "negative", ref("5", 0), "latent_image", ref("6", 0))));
+                    "negative", ref("5", 0), "latent_image", latent.ref())));
             p.put("8", node("VAEDecode", map("samples", ref("7", 0), "vae", ref("3", 0))));
             p.put("9", node("SaveImage", map("filename_prefix", "mmo", "images", ref("8", 0))));
             return p;
         }
 
-        private static JSONObject flux(AiProperties.Image.Local cfg, AiImageRequest req, long seed) {
+        private static JSONObject flux(AiProperties.Image.Local cfg, AiImageRequest req,
+                                       long seed, String uploadedImage) {
             JSONObject p = new JSONObject();
             p.put("1", node("UNETLoader", map(
                     "unet_name", cfg.getDiffusionModel(),
@@ -216,32 +264,34 @@ public class LocalImageProvider implements AiImageProvider {
             p.put("3", node("VAELoader", map("vae_name", cfg.getVae())));
             p.put("4", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("2", 0))));
             p.put("5", node("CLIPTextEncode", map("text", "", "clip", ref("2", 0))));
-            p.put("6", node("EmptyLatentImage", map(
-                    "width", req.getWidth(), "height", req.getHeight(), "batch_size", req.getCount())));
+            Latent latent = latentSource(p, cfg, req, uploadedImage, ref("3", 0));
             p.put("7", node("KSampler", map(
                     "seed", seed, "steps", cfg.getSteps(), "cfg", cfg.getCfg(),
-                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(), "denoise", 1.0,
+                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(),
+                    "denoise", latent.denoise(),
                     "model", ref("1", 0), "positive", ref("4", 0),
-                    "negative", ref("5", 0), "latent_image", ref("6", 0))));
+                    "negative", ref("5", 0), "latent_image", latent.ref())));
             p.put("8", node("VAEDecode", map("samples", ref("7", 0), "vae", ref("3", 0))));
             p.put("9", node("SaveImage", map("filename_prefix", "mmo", "images", ref("8", 0))));
             return p;
         }
 
-        private static JSONObject sdxl(AiProperties.Image.Local cfg, AiImageRequest req, long seed) {
+        private static JSONObject sdxl(AiProperties.Image.Local cfg, AiImageRequest req,
+                                       long seed, String uploadedImage) {
             String ckpt = (cfg.getCheckpoint() == null || cfg.getCheckpoint().isBlank())
                     ? cfg.getDiffusionModel() : cfg.getCheckpoint();
             JSONObject p = new JSONObject();
             p.put("4", node("CheckpointLoaderSimple", map("ckpt_name", ckpt)));
-            p.put("5", node("EmptyLatentImage", map(
-                    "width", req.getWidth(), "height", req.getHeight(), "batch_size", req.getCount())));
             p.put("6", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("4", 1))));
             p.put("7", node("CLIPTextEncode", map("text", "", "clip", ref("4", 1))));
+            // sdxl 的 vae 从 CheckpointLoaderSimple 的 output[2] 取
+            Latent latent = latentSource(p, cfg, req, uploadedImage, ref("4", 2));
             p.put("3", node("KSampler", map(
                     "seed", seed, "steps", cfg.getSteps(), "cfg", cfg.getCfg(),
-                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(), "denoise", 1.0,
+                    "sampler_name", cfg.getSamplerName(), "scheduler", cfg.getScheduler(),
+                    "denoise", latent.denoise(),
                     "model", ref("4", 0), "positive", ref("6", 0),
-                    "negative", ref("7", 0), "latent_image", ref("5", 0))));
+                    "negative", ref("7", 0), "latent_image", latent.ref())));
             p.put("8", node("VAEDecode", map("samples", ref("3", 0), "vae", ref("4", 2))));
             p.put("9", node("SaveImage", map("filename_prefix", "mmo", "images", ref("8", 0))));
             return p;

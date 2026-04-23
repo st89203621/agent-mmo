@@ -62,6 +62,11 @@ public class AiProperties {
             private String weightDtype = "fp8_e4m3fn";
             private int pollIntervalMs = 100;
             private int timeoutSec = 300;
+            /**
+             * 图生图去噪强度：0.0 完全保留原图、1.0 等同文生图。
+             * 0.4~0.5 适合小幅改动（换发色/服饰），0.6~0.7 通用，0.8+ 几乎重画。
+             */
+            private double editDenoise = 0.6;
         }
 
         @Data

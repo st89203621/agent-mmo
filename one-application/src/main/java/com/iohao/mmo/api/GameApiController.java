@@ -4260,7 +4260,7 @@ public class GameApiController {
         return ok(zoneInfoToMap(info));
     }
 
-    @GetMapping("/zone/nearby")
+    @GetMapping("/zone/nearby-players")
     public ResponseEntity<Map<String, Object>> getNearbyPlayers(HttpSession session) {
         long userId = requireLogin(session);
         var players = zoneService.getNearbyPlayers(userId);
