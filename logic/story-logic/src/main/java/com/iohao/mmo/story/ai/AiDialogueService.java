@@ -2,66 +2,28 @@ package com.iohao.mmo.story.ai;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessageRole;
-import com.volcengine.ark.runtime.service.ArkService;
-import jakarta.annotation.PostConstruct;
+import com.iohao.mmo.common.ai.chat.AiChatMessage;
+import com.iohao.mmo.common.ai.chat.AiChatProvider;
+import com.iohao.mmo.common.ai.chat.AiChatRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import io.reactivex.Flowable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * AI 对话服务 - 基于火山引擎豆包大模型
- * 用于驱动 NPC 实时对话生成
+ * AI 对话服务 - 驱动 NPC 实时对话生成。
+ * 通过 AiChatProvider 抽象，支持本地 / 火山模型切换（ai.chat.provider=local|volcengine）。
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AiDialogueService {
 
-    @Value("${volcengine.chat-api-key:3e2f9349-8892-4a67-ae9c-7e8fbd75f071}")
-    private String apiKey;
+    private final AiChatProvider chatProvider;
 
-    @Value("${volcengine.chat-model:doubao-pro-32k}")
-    private String chatModel;
-
-    private ArkService arkService;
-
-    @PostConstruct
-    public void init() {
-        ConnectionPool connectionPool = new ConnectionPool(5, 1, TimeUnit.SECONDS);
-        Dispatcher dispatcher = new Dispatcher();
-        this.arkService = ArkService.builder()
-                .dispatcher(dispatcher)
-                .connectionPool(connectionPool)
-                .apiKey(apiKey)
-                .build();
-        log.info("✅ AI对话服务初始化成功，模型: {}", chatModel);
-    }
-
-    /**
-     * 生成 NPC 对话回复（结构化JSON输出）
-     *
-     * @param npcName      NPC名称
-     * @param npcPersona   NPC人设描述
-     * @param bookTitle    书籍世界名称
-     * @param bookEra      时代背景
-     * @param langStyle    语言风格（文言/白话/热血等）
-     * @param keyFacts     与玩家的历史关键事实（最多5条）
-     * @param fateScore    当前缘分值 0-100
-     * @param playerInput  玩家当前输入（选项文字或自由文本）
-     * @param historyText  近期对话历史（最多3轮）
-     * @return DialogueAiResult 包含 text/emotion/choices/allowFreeInput
-     */
     public DialogueAiResult generateNpcResponse(
             String npcName,
             String npcPersona,
@@ -77,26 +39,14 @@ public class AiDialogueService {
         String userPrompt = buildUserPrompt(playerInput, historyText, fateScore);
 
         try {
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(ChatMessage.builder()
-                    .role(ChatMessageRole.SYSTEM)
-                    .content(systemPrompt)
-                    .build());
-            messages.add(ChatMessage.builder()
-                    .role(ChatMessageRole.USER)
-                    .content(userPrompt)
-                    .build());
-
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model(chatModel)
-                    .messages(messages)
+            AiChatRequest request = AiChatRequest.builder()
+                    .message(AiChatMessage.system(systemPrompt))
+                    .message(AiChatMessage.user(userPrompt))
                     .maxTokens(512)
                     .temperature(0.8)
                     .build();
 
-            var result = arkService.createChatCompletion(request);
-            String content = result.getChoices().get(0).getMessage().getContent().toString().trim();
-
+            String content = chatProvider.complete(request).trim();
             log.debug("AI对话原始回复: {}", content);
             return parseAiResponse(content, npcName);
 
@@ -106,10 +56,6 @@ public class AiDialogueService {
         }
     }
 
-    /**
-     * 流式生成 NPC 对话回复
-     * 每收到一个 token 就通过 onChunk 回调推送，全部完成后解析完整JSON并通过 onComplete 回调
-     */
     public void generateNpcResponseStream(
             String npcName, String npcPersona, String bookTitle, String bookEra,
             String langStyle, List<String> keyFacts, int fateScore,
@@ -119,49 +65,26 @@ public class AiDialogueService {
         String systemPrompt = buildSystemPrompt(npcName, npcPersona, bookTitle, bookEra, langStyle, keyFacts, fateScore);
         String userPrompt = buildUserPrompt(playerInput, historyText, fateScore);
 
-        try {
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(ChatMessage.builder().role(ChatMessageRole.SYSTEM).content(systemPrompt).build());
-            messages.add(ChatMessage.builder().role(ChatMessageRole.USER).content(userPrompt).build());
+        AiChatRequest request = AiChatRequest.builder()
+                .message(AiChatMessage.system(systemPrompt))
+                .message(AiChatMessage.user(userPrompt))
+                .maxTokens(512)
+                .temperature(0.8)
+                .build();
 
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model(chatModel)
-                    .messages(messages)
-                    .maxTokens(512)
-                    .temperature(0.8)
-                    .build();
-
-            StringBuilder fullContent = new StringBuilder();
-            JsonTextExtractor extractor = new JsonTextExtractor("text", onChunk);
-
-            Flowable<com.volcengine.ark.runtime.model.completion.chat.ChatCompletionChunk> stream =
-                    arkService.streamChatCompletion(request);
-
-            stream.blockingForEach(chunk -> {
-                if (chunk.getChoices() != null && !chunk.getChoices().isEmpty()) {
-                    var msg = chunk.getChoices().get(0).getMessage();
-                    if (msg != null && msg.getContent() != null) {
-                        String token = msg.getContent().toString();
-                        fullContent.append(token);
-                        extractor.feed(token);
-                    }
-                }
-            });
-
-            String content = fullContent.toString().trim();
-            log.debug("AI流式对话完整回复: {}", content);
-            DialogueAiResult result = parseAiResponse(content, npcName);
-            onComplete.accept(result);
-
-        } catch (Exception e) {
-            log.warn("AI流式对话失败: {}", e.getMessage());
-            onError.accept(e);
-        }
+        JsonTextExtractor extractor = new JsonTextExtractor("text", onChunk);
+        chatProvider.stream(request,
+                token -> extractor.feed(token),
+                full -> {
+                    log.debug("AI流式对话完整回复: {}", full);
+                    onComplete.accept(parseAiResponse(full.trim(), npcName));
+                },
+                err -> {
+                    log.warn("AI流式对话失败: {}", err.getMessage());
+                    onError.accept(err instanceof Exception ex ? ex : new RuntimeException(err));
+                });
     }
 
-    /**
-     * 构建 NPC 系统提示词（GDD 6.1 规范）
-     */
     private String buildSystemPrompt(String npcName, String npcPersona, String bookTitle,
                                       String bookEra, String langStyle, List<String> keyFacts, int fateScore) {
         StringBuilder sb = new StringBuilder();
@@ -219,7 +142,6 @@ public class AiDialogueService {
 
     private DialogueAiResult parseAiResponse(String content, String npcName) {
         try {
-            // 提取 JSON 部分（可能有前后多余文字）
             int start = content.indexOf('{');
             int end = content.lastIndexOf('}');
             if (start >= 0 && end > start) {
@@ -281,8 +203,7 @@ public class AiDialogueService {
     }
 
     /**
-     * 流式 JSON text 字段提取器
-     * 只将 "text" 字段的值内容转发给 onChunk，过滤掉 JSON 结构字符
+     * 流式 JSON text 字段提取器：只将 "text" 字段值转发给 onChunk。
      */
     private static class JsonTextExtractor {
         private enum State { SEEKING_KEY, SEEKING_COLON, SEEKING_QUOTE, EMITTING, DONE }
@@ -304,7 +225,6 @@ public class AiDialogueService {
                 switch (state) {
                     case SEEKING_KEY:
                         buffer.append(c);
-                        // 保持 buffer 只存最近 targetKey.length() 个字符
                         if (buffer.length() > targetKey.length()) {
                             buffer.deleteCharAt(0);
                         }
@@ -321,7 +241,6 @@ public class AiDialogueService {
                         break;
                     case EMITTING:
                         if (escaped) {
-                            // 转义字符：输出实际字符
                             if (c == 'n') onChunk.accept("\n");
                             else if (c == 't') onChunk.accept("\t");
                             else onChunk.accept(String.valueOf(c));
@@ -341,7 +260,6 @@ public class AiDialogueService {
         }
     }
 
-    /** AI 对话结果数据结构 */
     public static class DialogueAiResult {
         public String speaker;
         public String emotion;

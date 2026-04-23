@@ -1,0 +1,18 @@
+# 公告列表
+路径: charselect>修罗部分任务可以快进了(04-22 11:51)
+
+公告列表系统公告游戏公告
+修罗部分任务可以快进了[04-22]
+应玩家要求，我们对部分的修罗任务恢复了快进功能，更新将于4月23号生效。欢迎玩家反馈游戏中的问题，您的反馈是我们一不断前进的动力。
+修罗部分任务可以快进了
+修罗部分任务可以快进了
+其他公告
+选择角色
+[21:14]
+
+---LINKS---
+  [游戏公告] → r.jsp?f_page=aMain/wapSysNewsList&sTyp=yes&sid=8ACA875CB554D17D8F4E35C7BDDB58F480A1D3E127E2FC33F1D27D62CA2B332B3DDD41979
+  [修罗部分任务可以快进了] → r.jsp?f_page=aMain/wapSysNewsDetail&pswOK=E90CDB626CB68E7D&sid=8ACA875CB554D17D8F4E35C7BDDB58F480A1D3E127E2FC33F1D27D62C
+  [修罗部分任务可以快进了] → r.jsp?f_page=aMain/wapSysNewsDetail&pswOK=E90CDB626CB68E7D&sid=8ACA875CB554D17D8F4E35C7BDDB58F480A1D3E127E2FC33F1D27D62C
+  [其他公告] → r.jsp?f_page=aMain/wapSysNewsList&pswOK=E90CDB626CB68E7D&sid=8ACA875CB554D17D8F4E35C7BDDB58F480A1D3E127E2FC33F1D27D62CA2
+  [选择角色] → r.jsp?f_page=aMain/GameArea&pswOK=E90CDB626CB68E7D&sid=8ACA875CB554D17D8F4E35C7BDDB58F480A1D3E127E2FC33F1D27D62CA2B332B3

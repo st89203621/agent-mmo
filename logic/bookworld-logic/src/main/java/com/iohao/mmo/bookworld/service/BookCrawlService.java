@@ -5,17 +5,13 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.iohao.mmo.bookworld.entity.BookWorld;
 import com.iohao.mmo.bookworld.repository.BookWorldRepository;
+import com.iohao.mmo.common.ai.chat.AiChatMessage;
+import com.iohao.mmo.common.ai.chat.AiChatProvider;
+import com.iohao.mmo.common.ai.chat.AiChatRequest;
 import com.iohao.mmo.fate.entity.NpcTemplate;
 import com.iohao.mmo.fate.repository.NpcTemplateRepository;
-import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessageRole;
-import com.volcengine.ark.runtime.service.ArkService;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -26,7 +22,6 @@ import org.springframework.stereotype.Service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 书籍添加服务 - AI优先，爬取补充
@@ -49,12 +44,6 @@ public class BookCrawlService {
     @Value("${crawl.request-delay-ms:300}")
     private int requestDelayMs;
 
-    @Value("${volcengine.chat-api-key:}")
-    private String apiKey;
-
-    @Value("${volcengine.chat-model:doubao-pro-32k}")
-    private String chatModel;
-
     @Resource
     private BookWorldRepository bookWorldRepository;
 
@@ -64,21 +53,8 @@ public class BookCrawlService {
     @Resource
     private NpcTemplateRepository npcTemplateRepository;
 
-    private ArkService arkService;
-
-    @PostConstruct
-    public void init() {
-        if (apiKey != null && !apiKey.isBlank()) {
-            ConnectionPool connectionPool = new ConnectionPool(5, 1, TimeUnit.SECONDS);
-            Dispatcher dispatcher = new Dispatcher();
-            this.arkService = ArkService.builder()
-                    .dispatcher(dispatcher)
-                    .connectionPool(connectionPool)
-                    .apiKey(apiKey)
-                    .build();
-            log.info("BookCrawlService AI服务初始化成功，模型: {}", chatModel);
-        }
-    }
+    @Resource
+    private AiChatProvider chatProvider;
 
     /**
      * 主编排方法：根据书名添加书籍并自动提取NPC
@@ -94,10 +70,6 @@ public class BookCrawlService {
             result.put("npcs", existNpcs);
             result.put("msg", "该书籍已存在，共有" + existNpcs.size() + "个角色");
             return result;
-        }
-
-        if (arkService == null) {
-            throw new RuntimeException("AI服务未初始化，无法添加书籍");
         }
 
         // 1. 尝试爬取（可选，失败不影响主流程）
@@ -148,26 +120,15 @@ public class BookCrawlService {
         String prompt = buildPrompt(bookTitle, crawledContent);
 
         try {
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(ChatMessage.builder()
-                    .role(ChatMessageRole.SYSTEM)
-                    .content("你是一个中文小说分析专家，对各类网络文学、武侠、仙侠、玄幻、科幻小说有深入了解。"
-                            + "请根据书名（和可能提供的部分原文）分析小说，严格按JSON格式输出，不要输出任何其他内容。")
-                    .build());
-            messages.add(ChatMessage.builder()
-                    .role(ChatMessageRole.USER)
-                    .content(prompt)
-                    .build());
-
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model(chatModel)
-                    .messages(messages)
+            AiChatRequest request = AiChatRequest.builder()
+                    .message(AiChatMessage.system("你是一个中文小说分析专家，对各类网络文学、武侠、仙侠、玄幻、科幻小说有深入了解。"
+                            + "请根据书名（和可能提供的部分原文）分析小说，严格按JSON格式输出，不要输出任何其他内容。"))
+                    .message(AiChatMessage.user(prompt))
                     .maxTokens(2048)
                     .temperature(0.3)
                     .build();
 
-            var result = arkService.createChatCompletion(request);
-            String responseText = result.getChoices().get(0).getMessage().getContent().toString().trim();
+            String responseText = chatProvider.complete(request).trim();
             log.debug("AI提取原始回复: {}", responseText);
 
             return parseAiResult(responseText);

@@ -18,7 +18,8 @@
  */
 package com.iohao.mmo.config;
 
-import com.iohao.mmo.pet.util.VolcengineConfig;
+import com.iohao.mmo.pet.util.PetAssetProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -27,23 +28,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * 静态资源配置 - 提供AI生成的宠物图片访问
- *
- * @author 渔民小镇
- * @date 2025-01-18
  */
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class StaticResourceConfig implements WebMvcConfigurer {
 
-    private final VolcengineConfig volcengineConfig;
-
-    public StaticResourceConfig(VolcengineConfig volcengineConfig) {
-        this.volcengineConfig = volcengineConfig;
-    }
+    private final PetAssetProperties petAssetProperties;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String assetsPath = volcengineConfig.getFrontendAssetsPath();
+        String assetsPath = petAssetProperties.getFrontendAssetsPath();
         String resourceLocation;
         if (assetsPath.matches("^[A-Za-z]:.*")) {
             resourceLocation = "file:///" + assetsPath.replace("\\", "/") + "/";

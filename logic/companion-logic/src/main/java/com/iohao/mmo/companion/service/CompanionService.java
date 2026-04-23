@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
 public class CompanionService {
     final MongoTemplate mongoTemplate;
 
-    @Value("${volcengine.frontend-server-url:auto}")
+    @Value("${app.frontend-server-url:auto}")
     private String frontendServerUrl;
 
     public CompanionService(MongoTemplate mongoTemplate) {

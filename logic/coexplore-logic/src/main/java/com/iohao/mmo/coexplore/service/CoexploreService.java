@@ -7,20 +7,14 @@ import com.iohao.mmo.coexplore.entity.CoexploreRound;
 import com.iohao.mmo.coexplore.entity.CoexploreSession;
 import com.iohao.mmo.coexplore.entity.CoexploreSession.ClueLocation;
 import com.iohao.mmo.coexplore.repository.CoexploreSessionRepository;
-import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessageRole;
-import com.volcengine.ark.runtime.service.ArkService;
-import jakarta.annotation.PostConstruct;
+import com.iohao.mmo.common.ai.chat.AiChatMessage;
+import com.iohao.mmo.common.ai.chat.AiChatProvider;
+import com.iohao.mmo.common.ai.chat.AiChatRequest;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -29,24 +23,8 @@ public class CoexploreService {
     @Resource
     CoexploreSessionRepository sessionRepository;
 
-    @Value("${volcengine.chat-api-key:}")
-    private String apiKey;
-
-    @Value("${volcengine.chat-model:doubao-pro-32k}")
-    private String chatModel;
-
-    private ArkService arkService;
-
-    @PostConstruct
-    public void init() {
-        if (apiKey != null && !apiKey.isBlank()) {
-            this.arkService = ArkService.builder()
-                    .dispatcher(new Dispatcher())
-                    .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
-                    .apiKey(apiKey)
-                    .build();
-        }
-    }
+    @Resource
+    AiChatProvider chatProvider;
 
     // ── 创建 / 加入 ──────────────────────────────────
 
@@ -251,11 +229,6 @@ public class CoexploreService {
     // ── AI 谜局生成 ──────────────────────────────────
 
     private void generateMystery(CoexploreSession session) {
-        if (arkService == null) {
-            applyFallbackMystery(session);
-            return;
-        }
-
         String bookTitle = session.getBookTitle() != null ? session.getBookTitle() : "古风世界";
         String loreSummary = session.getBookLoreSummary() != null ? session.getBookLoreSummary() : "";
 
@@ -303,26 +276,15 @@ public class CoexploreService {
         try {
             String systemMsg = "你是「" + bookTitle + "」世界的悬疑谜局设计大师。"
                     + "生成的谜局要贴合原著世界观，逻辑自洽、线索互补、可推理。只输出JSON。";
-            List<ChatMessage> messages = List.of(
-                    ChatMessage.builder()
-                            .role(ChatMessageRole.SYSTEM)
-                            .content(systemMsg)
-                            .build(),
-                    ChatMessage.builder()
-                            .role(ChatMessageRole.USER)
-                            .content(prompt)
-                            .build()
-            );
 
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model(chatModel)
-                    .messages(messages)
+            AiChatRequest request = AiChatRequest.builder()
+                    .message(AiChatMessage.system(systemMsg))
+                    .message(AiChatMessage.user(prompt))
                     .maxTokens(1024)
                     .temperature(0.9)
                     .build();
 
-            var result = arkService.createChatCompletion(request);
-            String text = result.getChoices().get(0).getMessage().getContent().toString().trim();
+            String text = chatProvider.complete(request).trim();
             log.debug("谜局AI回复: {}", text);
             parseMystery(session, text);
         } catch (Exception e) {

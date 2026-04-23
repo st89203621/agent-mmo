@@ -1,0 +1,695 @@
+{
+  "00_charselect": {
+    "title": "气盖山河区-角色选择",
+    "chars": 121,
+    "links": 10,
+    "file": "00_charselect",
+    "label": "00_charselect"
+  },
+  "01_login_success": {
+    "title": "成功",
+    "chars": 111,
+    "links": 6,
+    "file": "01_login_success",
+    "label": "01_login_success"
+  },
+  "02_teleport_menu": {
+    "title": "传送",
+    "chars": 107,
+    "links": 20,
+    "file": "02_teleport_menu",
+    "label": "02_teleport_menu"
+  },
+  "03_game_main": {
+    "title": "极北大陆",
+    "chars": 299,
+    "links": 36,
+    "file": "03_game_main",
+    "label": "03_game_main"
+  },
+  "main>任务": {
+    "title": "我的任务状态",
+    "chars": 213,
+    "links": 12,
+    "file": "main_任务",
+    "label": "任务"
+  },
+  "main>【天降神宠】": {
+    "title": "砸★灵官马元帅★",
+    "chars": 359,
+    "links": 17,
+    "file": "main_【天降神宠】",
+    "label": "【天降神宠】"
+  },
+  "main>【充值礼包】": {
+    "title": "充值返奖",
+    "chars": 183,
+    "links": 11,
+    "file": "main_【充值礼包】",
+    "label": "【充值礼包】"
+  },
+  "main>【愚人节整蛊秘籍抽奖】": {
+    "title": "愚人节整蛊秘籍",
+    "chars": 161,
+    "links": 10,
+    "file": "main_【愚人节整蛊秘籍抽奖】",
+    "label": "【愚人节整蛊秘籍抽奖】"
+  },
+  "main>拍卖": {
+    "title": "拍卖行",
+    "chars": 387,
+    "links": 33,
+    "file": "main_拍卖",
+    "label": "拍卖"
+  },
+  "main>商城": {
+    "title": "商城卡片",
+    "chars": 403,
+    "links": 44,
+    "file": "main_商城",
+    "label": "商城"
+  },
+  "main>神匠": {
+    "title": "打造神兵",
+    "chars": 118,
+    "links": 15,
+    "file": "main_神匠",
+    "label": "神匠"
+  },
+  "main>家产": {
+    "title": "房屋",
+    "chars": 161,
+    "links": 13,
+    "file": "main_家产",
+    "label": "家产"
+  },
+  "main>集市": {
+    "title": "集市",
+    "chars": 195,
+    "links": 35,
+    "file": "main_集市",
+    "label": "集市"
+  },
+  "main>小摊": {
+    "title": "小摊",
+    "chars": 141,
+    "links": 18,
+    "file": "main_小摊",
+    "label": "小摊"
+  },
+  "main>砸蛋": {
+    "title": "砸★灵官马元帅★",
+    "chars": 359,
+    "links": 17,
+    "file": "main_砸蛋",
+    "label": "砸蛋"
+  },
+  "main>宝宝": {
+    "title": "宝宝商店",
+    "chars": 151,
+    "links": 19,
+    "file": "main_宝宝",
+    "label": "宝宝"
+  },
+  "main>鬼炉": {
+    "title": "鬼炉升级",
+    "chars": 194,
+    "links": 10,
+    "file": "main_鬼炉",
+    "label": "鬼炉"
+  },
+  "main>魂魄鼎": {
+    "title": "魂魄鼎",
+    "chars": 149,
+    "links": 17,
+    "file": "main_魂魄鼎",
+    "label": "魂魄鼎"
+  },
+  "main>天命之途": {
+    "title": "天命之途首页",
+    "chars": 192,
+    "links": 16,
+    "file": "main_天命之途",
+    "label": "天命之途"
+  },
+  "main>【全民冲级】": {
+    "title": "untitled",
+    "chars": 144,
+    "links": 8,
+    "file": "main_【全民冲级】",
+    "label": "【全民冲级】"
+  },
+  "main>【全民神宠】": {
+    "title": "提示",
+    "chars": 71,
+    "links": 8,
+    "file": "main_【全民神宠】",
+    "label": "【全民神宠】"
+  },
+  "main>【全民附魔】": {
+    "title": "提示",
+    "chars": 71,
+    "links": 8,
+    "file": "main_【全民附魔】",
+    "label": "【全民附魔】"
+  },
+  "main>西:婚介代练(1,2)←": {
+    "title": "极北大陆",
+    "chars": 243,
+    "links": 25,
+    "file": "main_西_婚介代练(1,2)←",
+    "label": "西:婚介代练(1,2)←"
+  },
+  "main>南: 猎场宝山(2,1)↓": {
+    "title": "极北大陆",
+    "chars": 224,
+    "links": 20,
+    "file": "main_南_猎场宝山(2,1)↓",
+    "label": "南: 猎场宝山(2,1)↓"
+  },
+  "main>状态": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 212,
+    "links": 16,
+    "file": "main_状态",
+    "label": "状态"
+  },
+  "main>道具": {
+    "title": "道具",
+    "chars": 123,
+    "links": 18,
+    "file": "main_道具",
+    "label": "道具"
+  },
+  "main>四周": {
+    "title": "用户列表",
+    "chars": 142,
+    "links": 17,
+    "file": "main_四周",
+    "label": "四周"
+  },
+  "main>消息": {
+    "title": "消息",
+    "chars": 90,
+    "links": 9,
+    "file": "main_消息",
+    "label": "消息"
+  },
+  "main>功能": {
+    "title": "功能",
+    "chars": 245,
+    "links": 22,
+    "file": "main_功能",
+    "label": "功能"
+  },
+  "teleport>充值礼包": {
+    "title": "功能",
+    "chars": 240,
+    "links": 21,
+    "file": "teleport_充值礼包",
+    "label": "充值礼包"
+  },
+  "teleport>在线领奖": {
+    "title": "登录就有奖",
+    "chars": 224,
+    "links": 12,
+    "file": "teleport_在线领奖",
+    "label": "在线领奖"
+  },
+  "teleport>探险": {
+    "title": "探险传送点",
+    "chars": 61,
+    "links": 3,
+    "file": "teleport_探险",
+    "label": "探险"
+  },
+  "teleport>活动": {
+    "title": "当前活动",
+    "chars": 109,
+    "links": 10,
+    "file": "teleport_活动",
+    "label": "活动"
+  },
+  "teleport>商城": {
+    "title": "商城卡片",
+    "chars": 403,
+    "links": 44,
+    "file": "teleport_商城",
+    "label": "商城"
+  },
+  "teleport>集市": {
+    "title": "集市",
+    "chars": 195,
+    "links": 35,
+    "file": "teleport_集市",
+    "label": "集市"
+  },
+  "teleport>小摊": {
+    "title": "极北大陆",
+    "chars": 299,
+    "links": 36,
+    "file": "teleport_小摊",
+    "label": "小摊"
+  },
+  "teleport>代练": {
+    "title": "极北大陆",
+    "chars": 248,
+    "links": 25,
+    "file": "teleport_代练",
+    "label": "代练"
+  },
+  "teleport>拍卖": {
+    "title": "极北大陆",
+    "chars": 299,
+    "links": 36,
+    "file": "teleport_拍卖",
+    "label": "拍卖"
+  },
+  "teleport>追杀": {
+    "title": "极北大陆",
+    "chars": 216,
+    "links": 20,
+    "file": "teleport_追杀",
+    "label": "追杀"
+  },
+  "teleport>武斗": {
+    "title": "极北大陆",
+    "chars": 224,
+    "links": 20,
+    "file": "teleport_武斗",
+    "label": "武斗"
+  },
+  "teleport>狩猎": {
+    "title": "极北大陆",
+    "chars": 275,
+    "links": 28,
+    "file": "teleport_狩猎",
+    "label": "狩猎"
+  },
+  "teleport>婚介": {
+    "title": "极北大陆",
+    "chars": 243,
+    "links": 25,
+    "file": "teleport_婚介",
+    "label": "婚介"
+  },
+  "teleport>游乐": {
+    "title": "极北大陆",
+    "chars": 243,
+    "links": 25,
+    "file": "teleport_游乐",
+    "label": "游乐"
+  },
+  "teleport>钓鱼": {
+    "title": "隔世小镇",
+    "chars": 252,
+    "links": 26,
+    "file": "teleport_钓鱼",
+    "label": "钓鱼"
+  },
+  "teleport>留言": {
+    "title": "留言板",
+    "chars": 145,
+    "links": 14,
+    "file": "teleport_留言",
+    "label": "留言"
+  },
+  "teleport>客服": {
+    "title": "客服",
+    "chars": 115,
+    "links": 18,
+    "file": "teleport_客服",
+    "label": "客服"
+  },
+  "charselect>修罗部分任务可以快进了(04-22 11:51)": {
+    "title": "公告列表",
+    "chars": 139,
+    "links": 5,
+    "file": "charselect_修罗部分任务可以快进了(04-22_11_51)",
+    "label": "修罗部分任务可以快进了(04-22 11:51)"
+  },
+  "charselect>新手攻略": {
+    "title": "新手入门攻略",
+    "chars": 58,
+    "links": 9,
+    "file": "charselect_新手攻略",
+    "label": "新手攻略"
+  },
+  "charselect>成长攻略": {
+    "title": "快速成长攻略",
+    "chars": 43,
+    "links": 6,
+    "file": "charselect_成长攻略",
+    "label": "成长攻略"
+  },
+  "charselect>老鸟攻略": {
+    "title": "老鸟养成攻略",
+    "chars": 96,
+    "links": 14,
+    "file": "charselect_老鸟攻略",
+    "label": "老鸟攻略"
+  },
+  "charselect>活动攻略": {
+    "title": "节日活动攻略",
+    "chars": 71,
+    "links": 7,
+    "file": "charselect_活动攻略",
+    "label": "活动攻略"
+  },
+  "main>★传送天使★": {
+    "title": "探险传送点",
+    "chars": 61,
+    "links": 3,
+    "file": "main_★传送天使★",
+    "label": "★传送天使★"
+  },
+  "main>★传送天使★>极北大陆": {
+    "title": "极北大陆",
+    "chars": 224,
+    "links": 20,
+    "file": "main_★传送天使★_极北大陆",
+    "label": "极北大陆"
+  },
+  "main>★传送天使★>隔世小镇": {
+    "title": "隔世小镇",
+    "chars": 240,
+    "links": 23,
+    "file": "main_★传送天使★_隔世小镇",
+    "label": "隔世小镇"
+  },
+  "main>寻宝王": {
+    "title": "隔世小镇",
+    "chars": 235,
+    "links": 23,
+    "file": "main_寻宝王",
+    "label": "寻宝王"
+  },
+  "main>寻宝王>充值礼包": {
+    "title": "热点活动",
+    "chars": 437,
+    "links": 13,
+    "file": "main_寻宝王_充值礼包",
+    "label": "充值礼包"
+  },
+  "main>寻宝王>【加异性玩友为好友】": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "main_寻宝王_【加异性玩友为好友】",
+    "label": "【加异性玩友为好友】"
+  },
+  "main>寻宝王>【寻找师傅】": {
+    "title": "消息",
+    "chars": 90,
+    "links": 9,
+    "file": "main_寻宝王_【寻找师傅】",
+    "label": "【寻找师傅】"
+  },
+  "main>寻宝王>客服007": {
+    "title": "宝宝",
+    "chars": 99,
+    "links": 10,
+    "file": "main_寻宝王_客服007",
+    "label": "客服007"
+  },
+  "main>寻宝王>北: 小镇北门(1,2)↑": {
+    "title": "功能",
+    "chars": 245,
+    "links": 22,
+    "file": "main_寻宝王_北_小镇北门(1,2)↑",
+    "label": "北: 小镇北门(1,2)↑"
+  },
+  "main>寻宝王>东: 钓鱼场(2,1)→": {
+    "title": "隔世小镇",
+    "chars": 235,
+    "links": 23,
+    "file": "main_寻宝王_东_钓鱼场(2,1)→",
+    "label": "东: 钓鱼场(2,1)→"
+  },
+  "main>捉鬼屋": {
+    "title": "隔世小镇",
+    "chars": 236,
+    "links": 23,
+    "file": "main_捉鬼屋",
+    "label": "捉鬼屋"
+  },
+  "main>捉鬼屋>消费排行榜": {
+    "title": "热点活动",
+    "chars": 432,
+    "links": 12,
+    "file": "main_捉鬼屋_消费排行榜",
+    "label": "消费排行榜"
+  },
+  "main>捉鬼屋>【加异性玩友为好友】": {
+    "title": "消息",
+    "chars": 90,
+    "links": 9,
+    "file": "main_捉鬼屋_【加异性玩友为好友】",
+    "label": "【加异性玩友为好友】"
+  },
+  "main>捉鬼屋>【寻找师傅】": {
+    "title": "宝宝",
+    "chars": 99,
+    "links": 10,
+    "file": "main_捉鬼屋_【寻找师傅】",
+    "label": "【寻找师傅】"
+  },
+  "main>捉鬼屋>客服007": {
+    "title": "功能",
+    "chars": 245,
+    "links": 22,
+    "file": "main_捉鬼屋_客服007",
+    "label": "客服007"
+  },
+  "main>捉鬼屋>北: 小镇北门(1,2)↑": {
+    "title": "隔世小镇",
+    "chars": 240,
+    "links": 23,
+    "file": "main_捉鬼屋_北_小镇北门(1,2)↑",
+    "label": "北: 小镇北门(1,2)↑"
+  },
+  "main>捉鬼屋>东: 钓鱼场(2,1)→": {
+    "title": "隔世小镇",
+    "chars": 252,
+    "links": 26,
+    "file": "main_捉鬼屋_东_钓鱼场(2,1)→",
+    "label": "东: 钓鱼场(2,1)→"
+  },
+  "main>射击场": {
+    "title": "隔世小镇",
+    "chars": 235,
+    "links": 23,
+    "file": "main_射击场",
+    "label": "射击场"
+  },
+  "main>射击场>充值礼包": {
+    "title": "热点活动",
+    "chars": 432,
+    "links": 12,
+    "file": "main_射击场_充值礼包",
+    "label": "充值礼包"
+  },
+  "main>射击场>【加异性玩友为好友】": {
+    "title": "找帅哥",
+    "chars": 167,
+    "links": 15,
+    "file": "main_射击场_【加异性玩友为好友】",
+    "label": "【加异性玩友为好友】"
+  },
+  "main>射击场>【寻找师傅】": {
+    "title": "寻找师傅",
+    "chars": 164,
+    "links": 14,
+    "file": "main_射击场_【寻找师傅】",
+    "label": "【寻找师傅】"
+  },
+  "main>射击场>客服007": {
+    "title": "客服",
+    "chars": 115,
+    "links": 18,
+    "file": "main_射击场_客服007",
+    "label": "客服007"
+  },
+  "main>射击场>北: 小镇北门(1,2)↑": {
+    "title": "隔世小镇",
+    "chars": 216,
+    "links": 20,
+    "file": "main_射击场_北_小镇北门(1,2)↑",
+    "label": "北: 小镇北门(1,2)↑"
+  },
+  "main>射击场>东: 钓鱼场(2,1)→": {
+    "title": "隔世小镇",
+    "chars": 233,
+    "links": 22,
+    "file": "main_射击场_东_钓鱼场(2,1)→",
+    "label": "东: 钓鱼场(2,1)→"
+  },
+  "main>钓鱼台": {
+    "title": "隔世小镇",
+    "chars": 216,
+    "links": 20,
+    "file": "main_钓鱼台",
+    "label": "钓鱼台"
+  },
+  "main>钓鱼台>猫精": {
+    "title": "猫精",
+    "chars": 150,
+    "links": 11,
+    "file": "main_钓鱼台_猫精",
+    "label": "猫精"
+  },
+  "main>钓鱼台>北:隔世山谷(1,3)↑": {
+    "title": "宝宝",
+    "chars": 94,
+    "links": 9,
+    "file": "main_钓鱼台_北_隔世山谷(1,3)↑",
+    "label": "北:隔世山谷(1,3)↑"
+  },
+  "main>钓鱼台>南:小镇广场(1,1)↓": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 217,
+    "links": 17,
+    "file": "main_钓鱼台_南_小镇广场(1,1)↓",
+    "label": "南:小镇广场(1,1)↓"
+  },
+  "main>组队大厅": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 212,
+    "links": 16,
+    "file": "main_组队大厅",
+    "label": "组队大厅"
+  },
+  "main>组队大厅>补": {
+    "title": "物品列表",
+    "chars": 100,
+    "links": 13,
+    "file": "main_组队大厅_补",
+    "label": "补"
+  },
+  "main>组队大厅>更换头像": {
+    "title": "选择头像",
+    "chars": 70,
+    "links": 6,
+    "file": "main_组队大厅_更换头像",
+    "label": "更换头像"
+  },
+  "main>组队大厅>交友资料": {
+    "title": "交友资料",
+    "chars": 270,
+    "links": 34,
+    "file": "main_组队大厅_交友资料",
+    "label": "交友资料"
+  },
+  "main>组队大厅>节省流量": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 173,
+    "links": 14,
+    "file": "main_组队大厅_节省流量",
+    "label": "节省流量"
+  },
+  "main>队名帅哥": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 212,
+    "links": 16,
+    "file": "main_队名帅哥",
+    "label": "队名帅哥"
+  },
+  "main>队名帅哥>补": {
+    "title": "物品列表",
+    "chars": 100,
+    "links": 13,
+    "file": "main_队名帅哥_补",
+    "label": "补"
+  },
+  "main>队名帅哥>更换头像": {
+    "title": "丿征战丶蔷薇的状态",
+    "chars": 217,
+    "links": 17,
+    "file": "main_队名帅哥_更换头像",
+    "label": "更换头像"
+  },
+  "main>队名帅哥>交友资料": {
+    "title": "道具",
+    "chars": 123,
+    "links": 18,
+    "file": "main_队名帅哥_交友资料",
+    "label": "交友资料"
+  },
+  "main>队名帅哥>节省流量": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "main_队名帅哥_节省流量",
+    "label": "节省流量"
+  },
+  "main>加入": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "main_加入",
+    "label": "加入"
+  },
+  "main>西: 小镇广场(1,1)←": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "main_西_小镇广场(1,1)←",
+    "label": "西: 小镇广场(1,1)←"
+  },
+  "main>东: 杀戮阶梯(3,1)→": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "main_东_杀戮阶梯(3,1)→",
+    "label": "东: 杀戮阶梯(3,1)→"
+  },
+  "teleport>天降神宠": {
+    "title": "用户列表",
+    "chars": 99,
+    "links": 11,
+    "file": "teleport_天降神宠",
+    "label": "天降神宠"
+  },
+  "main>功能>VIP": {
+    "title": "VIP特权大礼包",
+    "chars": 247,
+    "links": 9,
+    "file": "main_功能_VIP",
+    "label": "VIP"
+  },
+  "main>功能>页面显示设置": {
+    "title": "页面设置",
+    "chars": 154,
+    "links": 19,
+    "file": "main_功能_页面显示设置",
+    "label": "页面显示设置"
+  },
+  "main>功能>特权": {
+    "title": "领取VIP特权",
+    "chars": 767,
+    "links": 11,
+    "file": "main_功能_特权",
+    "label": "特权"
+  },
+  "main>功能>充值": {
+    "title": "功能",
+    "chars": 245,
+    "links": 22,
+    "file": "main_功能_充值",
+    "label": "充值"
+  },
+  "main>宝宝>宝宝": {
+    "title": "宝宝",
+    "chars": 94,
+    "links": 9,
+    "file": "main_宝宝_宝宝",
+    "label": "宝宝"
+  },
+  "main>消息>系统": {
+    "title": "消息",
+    "chars": 107,
+    "links": 12,
+    "file": "main_消息_系统",
+    "label": "系统"
+  }
+}

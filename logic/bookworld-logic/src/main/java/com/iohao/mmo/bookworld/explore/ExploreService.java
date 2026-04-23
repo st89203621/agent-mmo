@@ -5,16 +5,11 @@ import com.iohao.mmo.bookworld.repository.ExploreStateRepository;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.volcengine.ark.runtime.model.completion.chat.ChatCompletionRequest;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessage;
-import com.volcengine.ark.runtime.model.completion.chat.ChatMessageRole;
-import com.volcengine.ark.runtime.service.ArkService;
-import jakarta.annotation.PostConstruct;
+import com.iohao.mmo.common.ai.chat.AiChatMessage;
+import com.iohao.mmo.common.ai.chat.AiChatProvider;
+import com.iohao.mmo.common.ai.chat.AiChatRequest;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -24,7 +19,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -33,31 +27,14 @@ public class ExploreService {
     private static final int MAX_ACTION_POINTS = 100;
     private static final long RECOVER_INTERVAL_SEC = 1800; // 30分钟
 
-    @Value("${volcengine.chat-api-key:}")
-    private String apiKey;
-
-    @Value("${volcengine.chat-model:doubao-pro-32k}")
-    private String chatModel;
-
     @Resource
     private ExploreStateRepository stateRepository;
 
     @Resource
     private ExploreEventRepository eventRepository;
 
-    private ArkService arkService;
-
-    @PostConstruct
-    public void init() {
-        if (apiKey != null && !apiKey.isBlank()) {
-            this.arkService = ArkService.builder()
-                    .dispatcher(new Dispatcher())
-                    .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
-                    .apiKey(apiKey)
-                    .build();
-            log.info("ExploreService AI服务初始化成功");
-        }
-    }
+    @Resource
+    private AiChatProvider chatProvider;
 
     /**
      * 获取探索状态（自动恢复行动力）
@@ -94,10 +71,6 @@ public class ExploreService {
      * 执行一次探索：消耗行动力 → AI生成事件 → 返回事件数据
      */
     public ExploreEvent explore(long userId, int worldIndex, String bookTitle, double dejaVuChance) {
-        if (arkService == null) {
-            throw new RuntimeException("AI服务未初始化");
-        }
-
         ExploreState state = getOrCreateState(userId);
         recoverActionPoints(state);
 
@@ -336,33 +309,20 @@ public class ExploreService {
                 }""", bookTitle, storySoFar, chapterDirective, randomType, randomType);
 
         try {
-            List<ChatMessage> messages = List.of(
-                    ChatMessage.builder()
-                            .role(ChatMessageRole.SYSTEM)
-                            .content("你是一个中文小说世界的叙事大师，擅长编织连贯动人的探索故事线。每个事件都是同一段旅途故事的新篇章，前后要有因果和情感递进。只输出JSON。")
-                            .build(),
-                    ChatMessage.builder()
-                            .role(ChatMessageRole.USER)
-                            .content(prompt)
-                            .build()
-            );
-
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model(chatModel)
-                    .messages(messages)
+            AiChatRequest request = AiChatRequest.builder()
+                    .message(AiChatMessage.system("你是一个中文小说世界的叙事大师，擅长编织连贯动人的探索故事线。每个事件都是同一段旅途故事的新篇章，前后要有因果和情感递进。只输出JSON。"))
+                    .message(AiChatMessage.user(prompt))
                     .maxTokens(512)
                     .temperature(0.85)
                     .build();
 
-            var result = arkService.createChatCompletion(request);
-            String responseText = result.getChoices().get(0).getMessage().getContent().toString().trim();
+            String responseText = chatProvider.complete(request).trim();
             log.debug("探索事件AI回复: {}", responseText);
 
             return parseEvent(userId, responseText);
 
         } catch (Exception e) {
             log.error("AI生成探索事件失败: {}", e.getMessage(), e);
-            // 兜底：生成一个默认事件
             return buildFallbackEvent(userId, randomType, bookTitle);
         }
     }

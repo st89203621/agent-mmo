@@ -37,7 +37,7 @@ import com.iohao.mmo.pet.proto.CreatePetMessage;
 import com.iohao.mmo.pet.proto.UpdatePetImageMessage;
 import com.iohao.mmo.pet.proto.internal.EnhancePetSkillMessage;
 import com.iohao.mmo.pet.service.PetService;
-import com.iohao.mmo.pet.util.VolcengineAiImageGenerator;
+import com.iohao.mmo.pet.util.PetAiImageGenerator;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -60,7 +60,7 @@ public class PetAction {
     PetService petService;
 
     @Resource
-    VolcengineAiImageGenerator aiImageGenerator;
+    PetAiImageGenerator aiImageGenerator;
 
     /**
      * 宠物宝宝模板列表
