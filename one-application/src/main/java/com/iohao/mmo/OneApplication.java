@@ -56,6 +56,7 @@ import com.iohao.mmo.flower.FlowerLogicServer;
 import com.iohao.mmo.trade.TradeLogicServer;
 import com.iohao.mmo.teambattle.TeamBattleLogicServer;
 import com.iohao.mmo.coexplore.CoexploreLogicServer;
+import com.iohao.mmo.auction.AuctionLogicServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -160,6 +161,8 @@ public class OneApplication {
                 , new TeamBattleLogicServer()
                 // 共探书境
                 , new CoexploreLogicServer()
+                // 拍卖行
+                , new AuctionLogicServer()
         );
     }
 

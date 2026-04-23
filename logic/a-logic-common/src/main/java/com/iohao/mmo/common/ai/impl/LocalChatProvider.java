@@ -128,6 +128,11 @@ public class LocalChatProvider implements AiChatProvider {
         if (request.getMaxTokens() != null) body.put("max_tokens", request.getMaxTokens());
         if (request.getTemperature() != null) body.put("temperature", request.getTemperature());
         if (stream) body.put("stream", true);
+        if (cfg.isDisableThinking()) {
+            JSONObject kwargs = new JSONObject();
+            kwargs.put("enable_thinking", false);
+            body.put("chat_template_kwargs", kwargs);
+        }
         return body;
     }
 

@@ -1447,6 +1447,166 @@ export function joinCoexplore(sessionId: string): Promise<CoexploreSessionData> 
   });
 }
 
+// ── 区域/地图 ──────────────────────────────────────
+
+import type { ZoneInfo, NearbyPlayer, AuctionItem, MarketListing, BoardMessage, RankingEntry } from '../types';
+
+export function fetchCurrentZone(): Promise<ZoneInfo> {
+  return request('/zone/current');
+}
+
+export function moveToZone(zoneId: string): Promise<ZoneInfo> {
+  return request('/zone/move', {
+    method: 'POST',
+    body: JSON.stringify({ zoneId }),
+  });
+}
+
+export function fetchNearbyPlayers(): Promise<{ players: NearbyPlayer[] }> {
+  return request('/zone/nearby-players');
+}
+
+// ── 拍卖行 ──────────────────────────────────────
+
+export function fetchAuctionList(tab: 'active' | 'ended' | 'mybids' | 'mysales', page = 0): Promise<{ items: AuctionItem[]; total: number }> {
+  return request(`/auction/list?tab=${tab}&page=${page}`);
+}
+
+export function placeBid(auctionId: string, amount: number): Promise<{ success: boolean; currentBid: number }> {
+  return request('/auction/bid', {
+    method: 'POST',
+    body: JSON.stringify({ auctionId, amount }),
+  });
+}
+
+export function buyNow(auctionId: string): Promise<{ success: boolean }> {
+  return request('/auction/buy-now', {
+    method: 'POST',
+    body: JSON.stringify({ auctionId }),
+  });
+}
+
+export function listItemOnAuction(params: {
+  itemId: string;
+  startPrice: number;
+  buyNowPrice?: number;
+  durationHours: number;
+}): Promise<{ auctionId: string }> {
+  return request('/auction/list-item', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export function cancelAuctionListing(auctionId: string): Promise<{ success: boolean }> {
+  return request('/auction/cancel', {
+    method: 'POST',
+    body: JSON.stringify({ auctionId }),
+  });
+}
+
+// ── 集市（玩家挂单） ──────────────────────────────────────
+
+export function fetchMarketItems(category?: string, keyword?: string, page = 0): Promise<{ items: MarketListing[]; total: number }> {
+  const params = new URLSearchParams({ page: String(page) });
+  if (category) params.set('category', category);
+  if (keyword) params.set('keyword', keyword);
+  return request(`/market/list?${params}`);
+}
+
+export function sellOnMarket(itemId: string, price: number, quantity: number): Promise<{ listingId: string }> {
+  return request('/market/sell', {
+    method: 'POST',
+    body: JSON.stringify({ itemId, price, quantity }),
+  });
+}
+
+export function buyFromMarket(listingId: string, quantity = 1): Promise<{ success: boolean }> {
+  return request('/market/buy', {
+    method: 'POST',
+    body: JSON.stringify({ listingId, quantity }),
+  });
+}
+
+export function fetchMyMarketListings(): Promise<{ items: MarketListing[] }> {
+  return request('/market/my-listings');
+}
+
+export function cancelMarketListing(listingId: string): Promise<{ success: boolean }> {
+  return request('/market/cancel', {
+    method: 'POST',
+    body: JSON.stringify({ listingId }),
+  });
+}
+
+// ── 婚介/婚姻 ──────────────────────────────────────
+
+export function fetchMarriageStatus(): Promise<{
+  isMarried: boolean; spouseId?: number; spouseName?: string;
+  spousePortraitUrl?: string; marriageDate?: number; buffDescription?: string;
+}> {
+  return request('/marriage/status');
+}
+
+export function fetchMatchmakingList(): Promise<{
+  candidates: { playerId: number; name: string; level: number; fateScore: number; portraitUrl?: string }[];
+}> {
+  return request('/marriage/matchmaking');
+}
+
+export function proposeMarriage(targetPlayerId: number): Promise<{ success: boolean; msg: string }> {
+  return request('/marriage/propose', {
+    method: 'POST',
+    body: JSON.stringify({ targetPlayerId }),
+  });
+}
+
+export function divorce(): Promise<{ success: boolean }> {
+  return request('/marriage/divorce', { method: 'POST' });
+}
+
+// ── 留言板 ──────────────────────────────────────
+
+export function fetchMessageBoard(zoneId?: string): Promise<{ messages: BoardMessage[] }> {
+  const q = zoneId ? `?zoneId=${encodeURIComponent(zoneId)}` : '';
+  return request(`/message-board/list${q}`);
+}
+
+export function postBoardMessage(content: string, zoneId?: string): Promise<BoardMessage> {
+  return request('/message-board/post', {
+    method: 'POST',
+    body: JSON.stringify({ content, zoneId }),
+  });
+}
+
+// ── 综合排行榜（扩展） ──────────────────────────────────────
+
+export function fetchRankings(type: 'consume' | 'combat' | 'fate' | 'level'): Promise<{ entries: RankingEntry[]; myRank: number }> {
+  return request(`/rank/list?type=${type}&limit=50`);
+}
+
+// ── 在线领奖（扩展） ──────────────────────────────────────
+
+export interface OnlineRewardData {
+  rewardId: string;
+  label: string;
+  requiredMinutes: number;
+  rewardDesc: string;
+  claimed: boolean;
+  available: boolean;
+}
+
+export function fetchOnlineRewards(): Promise<{ rewards: OnlineRewardData[]; onlineMinutes: number }> {
+  return request('/event/online-rewards');
+}
+
+export function claimOnlineReward(rewardId: string): Promise<{ success: boolean; reward: string }> {
+  return request('/event/claim-online', {
+    method: 'POST',
+    body: JSON.stringify({ rewardId }),
+  });
+}
+
 export function getCoexploreSession(sessionId: string): Promise<CoexploreSessionData> {
   return request(`/coexplore/session?sessionId=${sessionId}`);
 }

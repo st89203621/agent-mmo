@@ -216,6 +216,12 @@
             <artifactId>coexplore-logic</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>auction-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

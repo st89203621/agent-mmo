@@ -95,6 +95,8 @@
         <module>logic/team-battle-logic</module>
         <module>provide/coexplore-provide</module>
         <module>logic/coexplore-logic</module>
+        <module>provide/auction-provide</module>
+        <module>logic/auction-logic</module>
 
         <!-- 多服单进程启动模块 -->
         <module>one-application</module>

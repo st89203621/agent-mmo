@@ -247,6 +247,110 @@ export interface CoexploreSessionData {
   rounds: CoexploreRoundData[];
 }
 
+/** 书境内区域（对应 lunhui 地图节点） */
+export interface ZoneInfo {
+  zoneId: string;
+  name: string;
+  coordinates: [number, number];
+  description: string;
+  sceneHint: string;
+  exits: ZoneExit[];
+  activities: ZoneActivity[];
+  nearbyPlayers: NearbyPlayer[];
+  hotEvents: ZoneHotEvent[];
+}
+
+export interface ZoneExit {
+  direction: '东' | '西' | '南' | '北';
+  targetZoneId: string;
+  label: string;
+}
+
+export type ZoneActivityType = 'combat' | 'social' | 'economy' | 'event' | 'feature';
+
+export interface ZoneActivity {
+  type: ZoneActivityType;
+  id: string;
+  label: string;
+  pageId: string;
+  isNew?: boolean;
+  isHot?: boolean;
+}
+
+export interface ZoneHotEvent {
+  id: string;
+  label: string;
+  pageId: string;
+}
+
+export interface NearbyPlayer {
+  playerId: number;
+  name: string;
+  level: number;
+  zoneId: string;
+  portraitUrl?: string;
+}
+
+/** 拍卖行物品 */
+export interface AuctionItem {
+  auctionId: string;
+  itemId: string;
+  itemName: string;
+  itemQuality: 'white' | 'green' | 'blue' | 'purple' | 'orange';
+  sellerId: number;
+  sellerName: string;
+  currentBid: number;
+  buyNowPrice: number | null;
+  endTime: number;
+  bidCount: number;
+  myBid?: number;
+  description?: string;
+}
+
+/** 集市挂单 */
+export interface MarketListing {
+  listingId: string;
+  itemId: string;
+  itemName: string;
+  itemCategory: string;
+  itemQuality: string;
+  sellerId: number;
+  sellerName: string;
+  unitPrice: number;
+  quantity: number;
+  sold: number;
+  createdAt: number;
+}
+
+/** 婚姻状态 */
+export interface MarriageStatus {
+  isMarried: boolean;
+  spouseId?: number;
+  spouseName?: string;
+  spousePortraitUrl?: string;
+  marriageDate?: number;
+  buffDescription?: string;
+}
+
+/** 留言板消息 */
+export interface BoardMessage {
+  id: string;
+  authorId: number;
+  authorName: string;
+  content: string;
+  zoneId?: string;
+  createdAt: number;
+}
+
+/** 排行榜条目 */
+export interface RankingEntry {
+  rank: number;
+  playerId: number;
+  playerName: string;
+  value: number;
+  portraitUrl?: string;
+}
+
 /** 页面ID枚举 */
 export type PageId =
   | 'home' | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
@@ -255,4 +359,6 @@ export type PageId =
   | 'dungeon' | 'codex' | 'char-create' | 'achievement' | 'quest' | 'shop'
   | 'companion' | 'title' | 'guild' | 'scene' | 'treasure-mountain'
   | 'flower' | 'trade' | 'team-battle' | 'fate-map' | 'coexplore' | 'activity'
-  | 'world-boss' | 'wheel' | 'mystic-tome' | 'secret-realm';
+  | 'world-boss' | 'wheel' | 'mystic-tome' | 'secret-realm'
+  | 'auction' | 'market' | 'forge' | 'housing' | 'message-board' | 'stall'
+  | 'destiny-path' | 'ranking';

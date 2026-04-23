@@ -19,11 +19,16 @@ public class AiProperties {
 
         @Data
         public static class Local {
-            /** OpenAI 兼容入口：vLLM/Ollama/llama.cpp-server 等 */
+            /** OpenAI 兼容入口：vLLM / Ollama / gpustack / llama.cpp-server 等 */
             private String baseUrl = "http://127.0.0.1:11434/v1";
             private String model = "qwen2.5:14b";
             private String apiKey = "";
             private int timeoutSec = 120;
+            /**
+             * 关闭 Qwen3 / DeepSeek-R1 等模型的 reasoning 输出；
+             * 开启后透传 chat_template_kwargs={enable_thinking:false}，避免 token 全耗在思考链上。
+             */
+            private boolean disableThinking = false;
         }
 
         @Data

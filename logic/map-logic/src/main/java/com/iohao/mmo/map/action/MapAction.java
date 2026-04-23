@@ -25,15 +25,15 @@ import com.iohao.game.widget.light.room.flow.GameFlowContext;
 import com.iohao.mmo.common.core.flow.MyFlowContext;
 import com.iohao.mmo.map.cmd.MapCmd;
 import com.iohao.mmo.map.mapper.MapMapper;
-import com.iohao.mmo.map.proto.EnterMapMessage;
-import com.iohao.mmo.map.proto.EnterMapReq;
-import com.iohao.mmo.map.proto.LocationMessage;
+import com.iohao.mmo.map.proto.*;
 import com.iohao.mmo.map.room.*;
+import com.iohao.mmo.map.zone.ZoneService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -48,6 +48,8 @@ import java.util.Optional;
 public class MapAction {
     @Resource
     MapRoomService roomService;
+    @Resource
+    ZoneService zoneService;
 
     private MapRoom getMapRoom() {
         // 模拟地图
@@ -100,6 +102,29 @@ public class MapAction {
         enterMapMessage.players = MapMapper.ME.convertList(players);
 
         return enterMapMessage;
+    }
+
+    @ActionMethod(MapCmd.getZoneInfo)
+    public ZoneInfoProto getZoneInfo(MyFlowContext flowContext) {
+        long userId = flowContext.getUserId();
+        ZoneInfoProto info = zoneService.getZoneInfo(userId);
+        info.nearbyPlayers = zoneService.getNearbyPlayers(userId);
+        return info;
+    }
+
+    @ActionMethod(MapCmd.moveToZone)
+    public ZoneInfoProto moveToZone(MoveZoneReq req, MyFlowContext flowContext) {
+        long userId = flowContext.getUserId();
+        ZoneInfoProto info = zoneService.moveToZone(userId, req.zoneId);
+        if (info == null) throw new RuntimeException("无法移动到目标区域");
+        info.nearbyPlayers = zoneService.getNearbyPlayers(userId);
+        return info;
+    }
+
+    @ActionMethod(MapCmd.getNearbyPlayers)
+    public List<NearbyPlayerProto> getNearbyPlayers(MyFlowContext flowContext) {
+        long userId = flowContext.getUserId();
+        return zoneService.getNearbyPlayers(userId);
     }
 
     /**

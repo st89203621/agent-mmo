@@ -1,0 +1,415 @@
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── 顶部状态栏 ── */
+.topBar {
+  flex-shrink: 0;
+  padding: 10px 14px 8px;
+  background: rgba(10, 8, 6, 0.92);
+  border-bottom: 1px solid rgba(201,168,76,0.15);
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.zoneTitle {
+  font-family: var(--font-main);
+  font-size: 17px;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zoneCoord {
+  font-size: 11px;
+  color: var(--gold-dim);
+  opacity: 0.7;
+  font-family: var(--font-ui);
+}
+
+.topActions {
+  display: flex;
+  gap: 6px;
+}
+
+.topBtn {
+  padding: 4px 10px;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--gold-dim);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.15s;
+}
+
+.topBtn:active { background: rgba(201,168,76,0.25); }
+
+.teleportBtn {
+  padding: 4px 12px;
+  background: rgba(201,168,76,0.2);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--gold);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
+/* 描述文字 */
+.zoneDesc {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.45;
+  font-family: var(--font-ui);
+}
+
+/* ── 滚动区 ── */
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 16px;
+}
+
+/* ── 热门活动横幅 ── */
+.eventBanner {
+  padding: 8px 14px;
+  background: rgba(201,168,76,0.06);
+  border-bottom: 1px solid rgba(201,168,76,0.1);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.eventBanner::-webkit-scrollbar { display: none; }
+
+.eventTag {
+  white-space: nowrap;
+  padding: 4px 10px;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--gold-dim);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eventTagNew { border-color: rgba(200,80,80,0.5); color: #e08080; background: rgba(200,80,80,0.08); }
+.eventTagHot { border-color: rgba(220,120,40,0.5); color: #e0a060; background: rgba(220,120,40,0.08); }
+
+/* ── 功能宫格 ── */
+.section {
+  padding: 12px 14px 0;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.4;
+  font-family: var(--font-ui);
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.funcGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.funcBtn {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  padding: 6px 2px;
+}
+
+.funcBtn:active {
+  background: rgba(201,168,76,0.12);
+  border-color: rgba(201,168,76,0.4);
+}
+
+.funcIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.funcLabel {
+  font-size: 11px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.funcNew {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e05050;
+}
+
+/* ── 地图导航 ── */
+.mapNav {
+  margin: 0 14px 12px;
+  padding: 10px 12px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 8px;
+}
+
+.mapNavTitle {
+  font-size: 10px;
+  color: var(--ink);
+  opacity: 0.35;
+  font-family: var(--font-ui);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.mapExits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.exitBtn {
+  padding: 5px 12px;
+  background: rgba(124,168,198,0.08);
+  border: 1px solid rgba(124,168,198,0.25);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #7ca8c6;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.exitBtn:active {
+  background: rgba(124,168,198,0.2);
+}
+
+.dirArrow {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* ── 附近玩家 ── */
+.nearbySection {
+  margin: 0 14px 12px;
+}
+
+.nearbyList {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.nearbyList::-webkit-scrollbar { display: none; }
+
+.nearbyCard {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 8px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 56px;
+}
+
+.nearbyAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--paper-darker);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.nearbyAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nearbyName {
+  font-size: 10px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  opacity: 0.7;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.nearbyLv {
+  font-size: 9px;
+  color: var(--gold-dim);
+  font-family: var(--font-ui);
+  opacity: 0.6;
+}
+
+/* ── 角色面板（底部） ── */
+.playerPanel {
+  flex-shrink: 0;
+  display: flex;
+  border-top: 1px solid var(--paper-darker);
+  background: var(--paper-dark);
+}
+
+.panelBtn {
+  flex: 1;
+  padding: 10px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.panelBtn:active { background: rgba(201,168,76,0.08); }
+
+.panelBtnIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.panelBtnLabel {
+  font-size: 10px;
+  color: var(--ink);
+  opacity: 0.55;
+  font-family: var(--font-ui);
+}
+
+/* ── 传送面板覆盖层 ── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 50;
+}
+
+.teleportPanel {
+  background: var(--paper-dark);
+  border-top: 1px solid rgba(201,168,76,0.2);
+  border-radius: 12px 12px 0 0;
+  padding: 16px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.teleportTitle {
+  font-family: var(--font-main);
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.teleportNpc {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.5;
+  font-family: var(--font-ui);
+  margin-bottom: 14px;
+}
+
+.teleportGroup {
+  margin-bottom: 14px;
+}
+
+.teleportGroupLabel {
+  font-size: 10px;
+  color: var(--ink);
+  opacity: 0.35;
+  font-family: var(--font-ui);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.teleportBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.teleportItemBtn {
+  padding: 6px 14px;
+  background: rgba(201,168,76,0.08);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.15s;
+}
+
+.teleportItemBtn:active {
+  background: rgba(201,168,76,0.2);
+  color: var(--gold);
+}
+
+.teleportClose {
+  width: 100%;
+  padding: 12px;
+  background: rgba(201,168,76,0.12);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--gold-dim);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  margin-top: 8px;
+}

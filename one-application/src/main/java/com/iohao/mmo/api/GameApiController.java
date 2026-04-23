@@ -71,6 +71,8 @@ import com.iohao.mmo.event.service.WorldBossEventService;
 import com.iohao.mmo.pet.entity.PetBag;
 import com.iohao.mmo.story.entity.SceneImage;
 import com.iohao.mmo.story.service.SceneImageService;
+import com.iohao.mmo.auction.service.AuctionService;
+import com.iohao.mmo.map.zone.ZoneService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -203,6 +205,19 @@ public class GameApiController {
 
     @Resource
     WorldBossEventService worldBossEventService;
+
+    @Resource
+    AuctionService auctionService;
+
+    @Resource
+    ZoneService zoneService;
+
+    /** 留言板：zoneId→messages (in-memory) */
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<Map<String, Object>>> boardMessages = new ConcurrentHashMap<>();
+    /** 婚姻关系：playerId→{partnerId, partnerName, createdAt} */
+    private final ConcurrentHashMap<Long, Map<String, Object>> marriageMap = new ConcurrentHashMap<>();
+    /** 求婚请求：targetId→{fromId, fromName, createdAt} */
+    private final ConcurrentHashMap<Long, Map<String, Object>> proposeMap = new ConcurrentHashMap<>();
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -4225,5 +4240,261 @@ public class GameApiController {
         data.put("stamina", stamina);
         data.put("currentFloor", floor);
         return ok(data);
+    }
+
+    // ── 区域 (Zone) ────────────────────────────────────
+
+    @GetMapping("/zone/current")
+    public ResponseEntity<Map<String, Object>> getCurrentZone(HttpSession session) {
+        long userId = requireLogin(session);
+        var info = zoneService.getZoneInfo(userId);
+        return ok(zoneInfoToMap(info));
+    }
+
+    @PostMapping("/zone/move")
+    public ResponseEntity<Map<String, Object>> moveToZone(@RequestBody Map<String, String> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String targetZoneId = body.get("zoneId");
+        var info = zoneService.moveToZone(userId, targetZoneId);
+        if (info == null) return err("无法移动到目标区域");
+        return ok(zoneInfoToMap(info));
+    }
+
+    @GetMapping("/zone/nearby")
+    public ResponseEntity<Map<String, Object>> getNearbyPlayers(HttpSession session) {
+        long userId = requireLogin(session);
+        var players = zoneService.getNearbyPlayers(userId);
+        List<Map<String, Object>> list = players.stream().map(p -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("playerId", p.playerId);
+            m.put("name", p.name);
+            m.put("level", p.level);
+            m.put("zoneId", p.zoneId);
+            m.put("portraitUrl", p.portraitUrl);
+            return m;
+        }).toList();
+        return ok(Map.of("players", list));
+    }
+
+    private Map<String, Object> zoneInfoToMap(com.iohao.mmo.map.proto.ZoneInfoProto info) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("zoneId", info.zoneId);
+        m.put("name", info.name);
+        m.put("coordX", info.coordX);
+        m.put("coordY", info.coordY);
+        m.put("description", info.description);
+        m.put("sceneHint", info.sceneHint);
+        m.put("exits", info.exits == null ? List.of() : info.exits.stream().map(e -> {
+            Map<String, Object> em = new LinkedHashMap<>();
+            em.put("direction", e.direction);
+            em.put("targetZoneId", e.targetZoneId);
+            em.put("label", e.label);
+            return em;
+        }).toList());
+        m.put("hotEvents", info.hotEvents == null ? List.of() : info.hotEvents.stream().map(h -> {
+            Map<String, Object> hm = new LinkedHashMap<>();
+            hm.put("id", h.id);
+            hm.put("label", h.label);
+            hm.put("pageId", h.pageId);
+            return hm;
+        }).toList());
+        m.put("nearbyPlayers", info.nearbyPlayers == null ? List.of() : info.nearbyPlayers.stream().map(p -> {
+            Map<String, Object> pm = new LinkedHashMap<>();
+            pm.put("playerId", p.playerId);
+            pm.put("name", p.name);
+            pm.put("level", p.level);
+            pm.put("zoneId", p.zoneId);
+            return pm;
+        }).toList());
+        return m;
+    }
+
+    // ── 拍卖行 (Auction) ───────────────────────────────
+
+    @GetMapping("/auction/list")
+    public ResponseEntity<Map<String, Object>> auctionList(@RequestParam(defaultValue = "all") String tab,
+                                                           @RequestParam(defaultValue = "1") int page,
+                                                           HttpSession session) {
+        long userId = requireLogin(session);
+        var res = auctionService.listAuctions(tab, userId);
+        List<Map<String, Object>> items = res.items.stream().map(p -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("auctionId", p.auctionId);
+            m.put("itemId", p.itemId);
+            m.put("itemName", p.itemName);
+            m.put("itemQuality", p.itemQuality);
+            m.put("sellerId", p.sellerId);
+            m.put("sellerName", p.sellerName);
+            m.put("currentBid", p.currentBid);
+            m.put("buyNowPrice", p.buyNowPrice);
+            m.put("bidCount", p.bidCount);
+            m.put("endTime", p.endTime);
+            m.put("status", p.status);
+            m.put("myBid", p.myBid);
+            return m;
+        }).toList();
+        return ok(Map.of("items", items, "total", res.total));
+    }
+
+    @PostMapping("/auction/bid")
+    public ResponseEntity<Map<String, Object>> auctionBid(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String auctionId = (String) body.get("auctionId");
+        long amount = ((Number) body.get("amount")).longValue();
+        String username = (String) session.getAttribute("username");
+        try {
+            auctionService.placeBid(auctionId, userId, username != null ? username : "玩家" + userId, amount);
+            return ok(Map.of("msg", "出价成功"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/auction/buy-now")
+    public ResponseEntity<Map<String, Object>> auctionBuyNow(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String auctionId = (String) body.get("auctionId");
+        try {
+            auctionService.buyNow(auctionId, userId);
+            return ok(Map.of("msg", "购买成功"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/auction/list-item")
+    public ResponseEntity<Map<String, Object>> auctionListItem(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String username = (String) session.getAttribute("username");
+        String itemId = (String) body.get("itemId");
+        String itemName = (String) body.getOrDefault("itemName", "物品");
+        String itemQuality = (String) body.getOrDefault("itemQuality", "white");
+        long startPrice = ((Number) body.getOrDefault("startPrice", 100)).longValue();
+        long buyNowPrice = ((Number) body.getOrDefault("buyNowPrice", 0)).longValue();
+        int durationHours = ((Number) body.getOrDefault("durationHours", 24)).intValue();
+        try {
+            auctionService.listItem(userId, username != null ? username : "玩家" + userId,
+                    itemId, itemName, itemQuality, startPrice, buyNowPrice, durationHours);
+            return ok(Map.of("msg", "上架成功"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    @PostMapping("/auction/cancel")
+    public ResponseEntity<Map<String, Object>> auctionCancel(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String auctionId = (String) body.get("auctionId");
+        try {
+            auctionService.cancelListing(auctionId, userId);
+            return ok(Map.of("msg", "已撤回"));
+        } catch (Exception e) {
+            return err(e.getMessage());
+        }
+    }
+
+    // ── 留言板 (Message Board) ─────────────────────────
+
+    @GetMapping("/message-board/list")
+    public ResponseEntity<Map<String, Object>> messageBoardList(@RequestParam(defaultValue = "world") String zoneId,
+                                                                HttpSession session) {
+        requireLogin(session);
+        var msgs = boardMessages.getOrDefault(zoneId, new CopyOnWriteArrayList<>());
+        var sorted = new ArrayList<>(msgs);
+        sorted.sort((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")));
+        return ok(Map.of("messages", sorted.stream().limit(50).toList()));
+    }
+
+    @PostMapping("/message-board/post")
+    public ResponseEntity<Map<String, Object>> messageBoardPost(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String content = (String) body.get("content");
+        if (content == null || content.isBlank()) return err("内容不能为空");
+        if (content.length() > 140) return err("内容不能超过140字");
+        String zoneId = (String) body.getOrDefault("zoneId", "world");
+        String username = (String) session.getAttribute("username");
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("id", java.util.UUID.randomUUID().toString());
+        msg.put("authorId", userId);
+        msg.put("authorName", username != null ? username : "玩家" + userId);
+        msg.put("content", content);
+        msg.put("zoneId", zoneId);
+        msg.put("createdAt", System.currentTimeMillis());
+        boardMessages.computeIfAbsent(zoneId, k -> new CopyOnWriteArrayList<>()).add(0, msg);
+        return ok(Map.of("msg", "发布成功"));
+    }
+
+    // ── 婚介 (Marriage) ────────────────────────────────
+
+    @GetMapping("/marriage/status")
+    public ResponseEntity<Map<String, Object>> marriageStatus(HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> partner = marriageMap.get(userId);
+        Map<String, Object> pending = proposeMap.get(userId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("married", partner != null);
+        if (partner != null) data.put("partner", partner);
+        data.put("hasPendingProposal", pending != null);
+        if (pending != null) data.put("proposal", pending);
+        return ok(data);
+    }
+
+    @GetMapping("/marriage/matchmaking")
+    public ResponseEntity<Map<String, Object>> marriageMatchmaking(HttpSession session) {
+        long userId = requireLogin(session);
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        // Return online players not already married (simplified)
+        marriageMap.forEach((pid, v) -> {/* skip married */});
+        // Mock a few candidates from session context
+        candidates.add(Map.of("playerId", 10001L, "name", "云中仙", "level", 50, "intro", "寻觅有缘人"));
+        candidates.add(Map.of("playerId", 10002L, "name", "梦里人", "level", 38, "intro", "共游书境"));
+        return ok(Map.of("candidates", candidates));
+    }
+
+    @PostMapping("/marriage/propose")
+    public ResponseEntity<Map<String, Object>> marriagePropose(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long targetId = ((Number) body.get("targetPlayerId")).longValue();
+        if (marriageMap.containsKey(userId)) return err("您已婚配");
+        if (marriageMap.containsKey(targetId)) return err("对方已婚配");
+        String username = (String) session.getAttribute("username");
+        proposeMap.put(targetId, Map.of("fromId", userId, "fromName", username != null ? username : "玩家" + userId, "createdAt", System.currentTimeMillis()));
+
+        // Auto-accept for demo
+        long now = System.currentTimeMillis();
+        marriageMap.put(userId, Map.of("partnerId", targetId, "partnerName", "玩家" + targetId, "createdAt", now));
+        marriageMap.put(targetId, Map.of("partnerId", userId, "partnerName", username != null ? username : "玩家" + userId, "createdAt", now));
+        proposeMap.remove(targetId);
+        return ok(Map.of("msg", "结婚成功！"));
+    }
+
+    @PostMapping("/marriage/divorce")
+    public ResponseEntity<Map<String, Object>> marriageDivorce(HttpSession session) {
+        long userId = requireLogin(session);
+        Map<String, Object> partner = marriageMap.remove(userId);
+        if (partner == null) return err("您尚未婚配");
+        long partnerId = ((Number) partner.get("partnerId")).longValue();
+        marriageMap.remove(partnerId);
+        return ok(Map.of("msg", "已离婚"));
+    }
+
+    // ── 在线奖励 (Online Rewards) ──────────────────────
+
+    @GetMapping("/event/online-rewards")
+    public ResponseEntity<Map<String, Object>> onlineRewards(HttpSession session) {
+        requireLogin(session);
+        List<Map<String, Object>> rewards = List.of(
+            Map.of("rewardId", "online_30m",  "label", "在线30分钟", "gold", 100, "claimed", false),
+            Map.of("rewardId", "online_1h",   "label", "在线1小时",  "gold", 300, "claimed", false),
+            Map.of("rewardId", "online_3h",   "label", "在线3小时",  "gold", 800, "claimed", false)
+        );
+        return ok(Map.of("rewards", rewards));
+    }
+
+    @PostMapping("/event/claim-online")
+    public ResponseEntity<Map<String, Object>> claimOnlineReward(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        String rewardId = (String) body.get("rewardId");
+        return ok(Map.of("msg", "领取成功", "rewardId", rewardId));
     }
 }

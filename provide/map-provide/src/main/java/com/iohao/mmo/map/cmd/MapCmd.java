@@ -29,8 +29,14 @@ public interface MapCmd {
     int cmd = CmdModule.mapCmd;
     /** 进入地图 */
     int enterMap = 1;
-    /** 移动 */
+    /** 移动（自由坐标） */
     int move = 2;
+    /** 获取当前区域信息 */
+    int getZoneInfo = 3;
+    /** 移动到相邻区域 */
+    int moveToZone = 4;
+    /** 获取附近玩家 */
+    int getNearbyPlayers = 5;
 
     static CmdInfo of(int subCmd) {
         return CmdInfo.of(cmd, subCmd);

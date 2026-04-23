@@ -34,20 +34,20 @@ public class LocalImageProvider implements AiImageProvider {
     public LocalImageProvider(AiProperties.Image.Local cfg) {
         this.cfg = cfg;
         this.client = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(cfg.getTimeoutSec(), TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                // ComfyUI (uvicorn) 空闲连接会被远端静默关闭，下一次复用即触发 "unexpected end of stream"。
-                // 关闭连接池复用，强制每次都新建 TCP 连接；首图冷启动 21s 的成本里，握手几 ms 不影响体验。
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
+                .writeTimeout(15, TimeUnit.SECONDS)
+                // 单次 HTTP 调用上限：ComfyUI 控制面（/prompt、/history、/view）必须快速返回；
+                // 服务端卡死时不让 OkHttp 钉死 Tomcat 线程，整图生成周期由 waitHistory 轮询控制。
+                .callTimeout(15, TimeUnit.SECONDS)
+                // ComfyUI (uvicorn) 空闲连接会被远端静默关闭，下次复用即触发 "unexpected end of stream"。
+                // 禁用连接池复用，强制每次新建 TCP；握手成本相对整体推理耗时可忽略。
                 .connectionPool(new ConnectionPool(0, 1, TimeUnit.NANOSECONDS))
                 .retryOnConnectionFailure(true)
                 .build();
     }
 
-    /**
-     * POST 在 HTTP/1.1 上默认不会自动重试失败连接；这里针对 "unexpected end of stream" / SocketException
-     * 做一次显式重试，覆盖 ComfyUI 偶发的连接被 RST 场景。
-     */
+    /** 瞬态连接异常（半关闭 socket / RST）再试一次；其他异常（含 callTimeout）原样抛出。 */
     private Response executeWithRetry(Request req) throws IOException {
         try {
             return client.newCall(req).execute();
@@ -58,7 +58,7 @@ public class LocalImageProvider implements AiImageProvider {
                     || msg.contains("Broken pipe");
             if (!staleConn) throw first;
             log.warn("ComfyUI 连接被服务端关闭，重试一次: {}", msg);
-            return client.newCall(req.newBuilder().build()).execute();
+            return client.newCall(req).execute();
         }
     }
 

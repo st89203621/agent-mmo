@@ -1,0 +1,109 @@
+{
+  "zones": [
+    {
+      "zoneId": "main_city",
+      "nameTemplate": "主城",
+      "coordX": 2,
+      "coordY": 2,
+      "type": "trade_hub",
+      "description": "交易买卖中心，安全区域",
+      "sceneHint": "繁华城市广场，商贾云集",
+      "exits": [
+        { "direction": "西", "target": "social_district", "labelTemplate": "婚介代练(1,2)" },
+        { "direction": "南", "target": "hunting_ground",  "labelTemplate": "猎场宝山(2,1)" }
+      ],
+      "hotEvents": [
+        { "id": "divine_pet", "label": "★天降神宠★", "pageId": "wheel" },
+        { "id": "recharge",   "label": "【充值礼包】", "pageId": "activity" },
+        { "id": "all_level",  "label": "【全民冲级】", "pageId": "activity" },
+        { "id": "all_pet",    "label": "【全民神宠】", "pageId": "activity" }
+      ]
+    },
+    {
+      "zoneId": "social_district",
+      "nameTemplate": "隔世小镇",
+      "coordX": 1,
+      "coordY": 2,
+      "type": "social_hub",
+      "description": "社交娱乐中心，热闹非凡",
+      "sceneHint": "古朴小镇街道，花灯处处",
+      "exits": [
+        { "direction": "东", "target": "main_city",     "labelTemplate": "主城(2,2)" },
+        { "direction": "北", "target": "north_gate",    "labelTemplate": "小镇北门(1,3)" },
+        { "direction": "南", "target": "plaza",         "labelTemplate": "小镇广场(1,1)" }
+      ],
+      "hotEvents": []
+    },
+    {
+      "zoneId": "hunting_ground",
+      "nameTemplate": "猎场宝山",
+      "coordX": 2,
+      "coordY": 1,
+      "type": "combat",
+      "description": "危险战斗区域，丰厚奖励",
+      "sceneHint": "荒野山林，妖兽出没",
+      "exits": [
+        { "direction": "北", "target": "main_city",  "labelTemplate": "主城(2,2)" },
+        { "direction": "东", "target": "pvp_arena",  "labelTemplate": "杀戮阶梯(3,1)" }
+      ],
+      "hotEvents": [
+        { "id": "world_boss", "label": "【世界Boss】", "pageId": "world-boss" }
+      ]
+    },
+    {
+      "zoneId": "pvp_arena",
+      "nameTemplate": "杀戮阶梯",
+      "coordX": 3,
+      "coordY": 1,
+      "type": "pvp",
+      "description": "PvP竞技圣地，强者角逐",
+      "sceneHint": "血色擂台，刀光剑影",
+      "exits": [
+        { "direction": "西", "target": "hunting_ground", "labelTemplate": "猎场宝山(2,1)" }
+      ],
+      "hotEvents": [
+        { "id": "arena", "label": "【天下擂台】", "pageId": "team-battle" }
+      ]
+    },
+    {
+      "zoneId": "north_gate",
+      "nameTemplate": "小镇北门",
+      "coordX": 1,
+      "coordY": 3,
+      "type": "transition",
+      "description": "通往秘境的北方关口",
+      "sceneHint": "古旧城门，远山如黛",
+      "exits": [
+        { "direction": "南", "target": "social_district", "labelTemplate": "隔世小镇(1,2)" }
+      ],
+      "hotEvents": []
+    },
+    {
+      "zoneId": "plaza",
+      "nameTemplate": "小镇广场",
+      "coordX": 1,
+      "coordY": 1,
+      "type": "social_hub",
+      "description": "玩家聚集的热闹广场",
+      "sceneHint": "宽阔广场，人声鼎沸",
+      "exits": [
+        { "direction": "北", "target": "social_district", "labelTemplate": "隔世小镇(1,2)" },
+        { "direction": "东", "target": "fishing_ground",  "labelTemplate": "钓鱼场(2,1)" }
+      ],
+      "hotEvents": []
+    },
+    {
+      "zoneId": "fishing_ground",
+      "nameTemplate": "钓鱼场",
+      "coordX": 2,
+      "coordY": 1,
+      "type": "leisure",
+      "description": "宁静钓鱼胜地，放松心情",
+      "sceneHint": "湖边垂柳，清波荡漾",
+      "exits": [
+        { "direction": "西", "target": "plaza", "labelTemplate": "小镇广场(1,1)" }
+      ],
+      "hotEvents": []
+    }
+  ]
+}

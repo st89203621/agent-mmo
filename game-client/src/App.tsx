@@ -40,6 +40,8 @@ import WorldBossPage from './components/pages/WorldBossPage';
 import WheelPage from './components/pages/WheelPage';
 import MysticTomePage from './components/pages/MysticTomePage';
 import SecretRealmPage from './components/pages/SecretRealmPage';
+import AuctionPage from './components/pages/AuctionPage';
+import MessageBoardPage from './components/pages/MessageBoardPage';
 import type { PageId } from './types';
 
 /** 错误边界：防止子组件崩溃导致整个页面黑屏 */
@@ -150,6 +152,14 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   'wheel': WheelPage,
   'mystic-tome': MysticTomePage,
   'secret-realm': SecretRealmPage,
+  'auction': AuctionPage,
+  'market': TradePage,
+  'forge': ShopPage,
+  'housing': ShopPage,
+  'message-board': MessageBoardPage,
+  'stall': TradePage,
+  'destiny-path': MysticTomePage,
+  'ranking': ActivityPage,
 };
 
 export default function App() {
