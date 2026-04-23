@@ -12,6 +12,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: '主页', icon: '🏠' },
+  { id: 'scene', label: '场景', icon: '🏯' },
   { id: 'explore', label: '探索', icon: '🗺️' },
   { id: 'coexplore', label: '同游', icon: '🤝' },
   { id: 'activity', label: '活动', icon: '🔥' },
@@ -38,7 +39,6 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'inventory': { label: '背包', back: 'character' },
   'title': { label: '称号', back: 'character' },
   'guild': { label: '盟会', back: 'character' },
-  'scene': { label: '场景', back: 'character' },
   'treasure-mountain': { label: '宝山', back: 'guild' },
   'fate-map': { label: '命运织机', back: 'character' },
   'world-boss': { label: '诸神黄昏', back: 'activity' },
