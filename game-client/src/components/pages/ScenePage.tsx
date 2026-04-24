@@ -1,134 +1,138 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { fetchCurrentZone, moveToZone, fetchNearbyPlayers } from '../../services/api';
+import { fetchCurrentZone, fetchNearbyPlayers, moveToZone } from '../../services/api';
+import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
 import { toast } from '../../store/toastStore';
-import type { ZoneInfo, NearbyPlayer } from '../../types';
+import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
 
-const DIR_ARROW: Record<string, string> = {
-  '东': '→', '西': '←', '南': '↓', '北': '↑',
-};
-
-const FUNC_ITEMS = [
-  { id: 'auction',  icon: '🏛️', label: '拍卖' },
-  { id: 'shop',     icon: '🛒', label: '商城' },
-  { id: 'forge',    icon: '⚒️',  label: '神匠' },
-  { id: 'housing',  icon: '🏠', label: '家产' },
-  { id: 'market',   icon: '🏪', label: '集市' },
-  { id: 'stall',    icon: '🎪', label: '小摊' },
-  { id: 'wheel',    icon: '🎡', label: '砸蛋' },
-  { id: 'pet',      icon: '🐲', label: '宝宝' },
-] as const;
-
-const TELEPORT_GROUPS = [
-  {
-    label: '功能区',
-    items: [
-      { label: '充值礼包', pageId: 'activity' },
-      { label: '在线领奖', pageId: 'activity' },
-      { label: '探险',    pageId: 'explore' },
-      { label: '活动',    pageId: 'activity' },
-    ],
-  },
-  {
-    label: '经济区',
-    items: [
-      { label: '商城',   pageId: 'shop' },
-      { label: '集市',   pageId: 'market' },
-      { label: '小摊',   pageId: 'stall' },
-      { label: '拍卖行', pageId: 'auction' },
-    ],
-  },
-  {
-    label: '战斗区',
-    items: [
-      { label: '追杀',   pageId: 'battle' },
-      { label: '武斗',   pageId: 'team-battle' },
-      { label: '狩猎',   pageId: 'explore' },
-      { label: '世界Boss', pageId: 'world-boss' },
-    ],
-  },
-  {
-    label: '社交区',
-    items: [
-      { label: '婚介',   pageId: 'fate-map' },
-      { label: '游乐',   pageId: 'activity' },
-      { label: '钓鱼',   pageId: 'treasure-mountain' },
-      { label: '留言板', pageId: 'message-board' },
-    ],
-  },
-] as const;
-
-const DEFAULT_ZONE: ZoneInfo = {
+const FALLBACK_ZONE: ZoneInfo = {
   zoneId: 'main_city',
   name: '主城',
   coordX: 2,
   coordY: 2,
-  description: '交易买卖中心，安全区域',
-  sceneHint: '',
-  exits: [
-    { direction: '西', targetZoneId: 'social_district', label: '婚介代练(1,2)' },
-    { direction: '南', targetZoneId: 'hunting_ground',  label: '猎场宝山(2,1)' },
-  ],
+  description: '气盖山河区的主枢纽，通往拍卖、集市、婚介与猎场。',
+  sceneHint: '主城夜景',
+  exits: [],
   nearbyPlayers: [],
   hotEvents: [
-    { id: 'divine_pet', label: '★天降神宠★', pageId: 'wheel' },
-    { id: 'recharge',   label: '【充值礼包】', pageId: 'activity' },
-    { id: 'all_level',  label: '【全民冲级】', pageId: 'activity' },
-    { id: 'all_pet',    label: '【全民神宠】', pageId: 'activity' },
+    { id: 'wheel', label: '天降神宠', pageId: 'wheel' },
+    { id: 'boss', label: '世界 Boss', pageId: 'world-boss' },
   ],
 };
 
+type CompassSlot = 'nw' | 'n' | 'ne' | 'w' | 'center' | 'e' | 'sw' | 's' | 'se';
+
+interface CompassCell {
+  slot: CompassSlot;
+  label: string;
+  coord?: string;
+  action?: () => void;
+  state: 'empty' | 'center' | 'exit';
+}
+
+const SLOT_ORDER: CompassSlot[] = ['nw', 'n', 'ne', 'w', 'center', 'e', 'sw', 's', 'se'];
+
+function getCompassSlot(dx: number, dy: number): CompassSlot | null {
+  if (dx === 0 && dy === -1) return 'n';
+  if (dx === 0 && dy === 1) return 's';
+  if (dx === -1 && dy === 0) return 'w';
+  if (dx === 1 && dy === 0) return 'e';
+  if (dx === -1 && dy === -1) return 'nw';
+  if (dx === 1 && dy === -1) return 'ne';
+  if (dx === -1 && dy === 1) return 'sw';
+  if (dx === 1 && dy === 1) return 'se';
+  return null;
+}
+
 export default function ScenePage() {
-  const { navigateTo, currentBookWorld } = useGameStore();
-  const [zone, setZone] = useState<ZoneInfo>(DEFAULT_ZONE);
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const [zone, setZone] = useState<ZoneInfo>(FALLBACK_ZONE);
   const [nearby, setNearby] = useState<NearbyPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
-  const [showTeleport, setShowTeleport] = useState(false);
 
-  const bookName = currentBookWorld?.title || '七世轮回';
-  const zoneName = currentBookWorld ? `${bookName.slice(0, 3)}·${zone.name}` : zone.name;
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [currentZone, nearbyPlayers] = await Promise.all([
+      fetchCurrentZone().catch(() => FALLBACK_ZONE),
+      fetchNearbyPlayers().catch(() => ({ players: [] })),
+    ]);
+    setZone(currentZone);
+    setNearby(nearbyPlayers.players || []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    Promise.all([
-      fetchCurrentZone().catch(() => DEFAULT_ZONE),
-      fetchNearbyPlayers().catch(() => ({ players: [] })),
-    ]).then(([z, np]) => {
-      setZone(z);
-      setNearby(np.players || []);
-    }).finally(() => setLoading(false));
-  }, []);
+    load();
+  }, [load]);
+
+  const place = useMemo(() => getPlaceInfo(zone.zoneId), [zone.zoneId]);
+  const quickActions: QuickAction[] = place.quickActions.length
+    ? place.quickActions
+    : BOTTOM_ACTIONS.map((item) => ({ id: item.id, label: item.label, pageId: item.pageId }));
+  const notices = place.notices.length ? place.notices : zone.hotEvents.map((item) => item.label);
+  const primaryNpc = place.npcs[0] ?? {
+    id: 'guide',
+    name: '梦中人',
+    role: '传送使者',
+    line: '你心之所向，是何处？',
+    pageId: 'teleport' as const,
+  };
 
   const handleMove = useCallback(async (targetZoneId: string) => {
     if (moving) return;
     setMoving(true);
     try {
-      const newZone = await moveToZone(targetZoneId);
-      setZone(newZone);
-      const np = await fetchNearbyPlayers().catch(() => ({ players: [] }));
-      setNearby(np.players || []);
-      toast.success(`已到达 ${newZone.name}`);
+      const nextZone = await moveToZone(targetZoneId);
+      toast.success(`已到达 ${nextZone.name}`);
+      setZone(nextZone);
+      navigateTo('place', { zoneId: nextZone.zoneId });
     } catch {
       toast.error('移动失败');
+    } finally {
+      setMoving(false);
     }
-    setMoving(false);
-  }, [moving]);
+  }, [moving, navigateTo]);
 
-  const handleFuncBtn = useCallback((id: string) => {
-    navigateTo(id as Parameters<typeof navigateTo>[0]);
-  }, [navigateTo]);
+  const compass = useMemo<CompassCell[]>(() => {
+    const cells = new Map<CompassSlot, CompassCell>();
+    cells.set('center', {
+      slot: 'center',
+      label: '你在此',
+      coord: `(${place.coord[0]},${place.coord[1]})`,
+      state: 'center',
+    });
 
-  const handleTeleport = useCallback((pageId: string) => {
-    setShowTeleport(false);
-    navigateTo(pageId as Parameters<typeof navigateTo>[0]);
-  }, [navigateTo]);
+    for (const exit of place.exits.length ? place.exits : zone.exits) {
+      const target = getPlaceInfo(exit.targetZoneId);
+      const dx = target.coord[0] - place.coord[0];
+      const dy = target.coord[1] - place.coord[1];
+      const slot = getCompassSlot(dx, dy);
+      if (!slot) continue;
+      cells.set(slot, {
+        slot,
+        label: target.title,
+        coord: `(${target.coord[0]},${target.coord[1]})`,
+        state: 'exit',
+        action: () => handleMove(exit.targetZoneId),
+      });
+    }
+
+    return SLOT_ORDER.map((slot) => cells.get(slot) ?? {
+      slot,
+      label: '',
+      coord: undefined,
+      action: undefined,
+      state: 'empty',
+    });
+  }, [handleMove, place, zone.exits]);
 
   if (loading) {
     return (
       <div className={styles.page}>
-        <div className={styles.topBar}>
-          <div style={{ color: 'var(--gold-dim)', fontSize: 14, textAlign: 'center' }}>加载中...</div>
+        <div className={styles.appbar}>
+          <div className={styles.loading}>正在载入主城情报...</div>
         </div>
       </div>
     );
@@ -136,154 +140,146 @@ export default function ScenePage() {
 
   return (
     <div className={styles.page}>
-      {/* 顶部状态栏 */}
-      <div className={styles.topBar}>
-        <div className={styles.topRow}>
-          <div className={styles.zoneTitle}>
-            {zoneName}
-            <span className={styles.zoneCoord}>
-              ({zone.coordX},{zone.coordY})
-            </span>
+      <div className={styles.appbar}>
+        <div className={styles.row1}>
+          <div className={styles.loc}>
+            <span className={styles.book}>气盖山河</span>
+            <span className={styles.zone}>{place.region} · {place.title}</span>
+            <span className={styles.coord}>({place.coord[0]},{place.coord[1]})</span>
           </div>
-          <div className={styles.topActions}>
-            <button className={styles.topBtn} onClick={() => navigateTo('quest')}>任务</button>
-            <button className={styles.topBtn} onClick={() => navigateTo('story')}>聊天</button>
-            <button className={styles.teleportBtn} onClick={() => setShowTeleport(true)}>传送</button>
+          <div className={styles.icons}>
+            <button className={`${styles.icon} ${styles.dot}`} onClick={() => navigateTo('messages')} type="button">信</button>
+            <button className={styles.icon} onClick={() => navigateTo('friend')} type="button">友</button>
+            <button className={styles.icon} onClick={() => navigateTo('world-map')} type="button">图</button>
+            <button className={styles.icon} onClick={() => navigateTo('teleport')} type="button">传</button>
           </div>
         </div>
-        <div className={styles.zoneDesc}>{zone.description}</div>
       </div>
 
       <div className={styles.scrollArea}>
-        {/* 热门活动横幅 */}
-        {zone.hotEvents.length > 0 && (
-          <div className={styles.eventBanner}>
-            {zone.hotEvents.map(e => (
-              <button
-                key={e.id}
-                className={`${styles.eventTag} ${e.id === 'divine_pet' ? styles.eventTagHot : styles.eventTagNew}`}
-                onClick={() => handleTeleport(e.pageId)}
+        <section className={styles.hero}>
+          <div className={styles.badges}>
+            {notices.slice(0, 3).map((notice) => (
+              <span
+                key={notice}
+                className={`${styles.badge} ${notice.includes('Boss') ? styles.badgeHot : ''}`.trim()}
               >
-                {e.label}
-              </button>
+                {notice}
+              </span>
             ))}
           </div>
-        )}
 
-        {/* 功能宫格 */}
-        <div className={styles.section}>
-          <div className={styles.sectionLabel}>功能</div>
-          <div className={styles.funcGrid}>
-            {FUNC_ITEMS.map(f => (
-              <button
-                key={f.id}
-                className={styles.funcBtn}
-                onClick={() => handleFuncBtn(f.id)}
-              >
-                <span className={styles.funcIcon}>{f.icon}</span>
-                <span className={styles.funcLabel}>{f.label}</span>
-                {(f.id === 'auction' || f.id === 'market') && (
-                  <span className={styles.funcNew} />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 地图导航 */}
-        {zone.exits.length > 0 && (
-          <div className={styles.mapNav}>
-            <div className={styles.mapNavTitle}>地图导航</div>
-            <div className={styles.mapExits}>
-              {zone.exits.map(exit => (
-                <button
-                  key={exit.targetZoneId}
-                  className={styles.exitBtn}
-                  disabled={moving}
-                  onClick={() => handleMove(exit.targetZoneId)}
-                >
-                  <span className={styles.dirArrow}>{DIR_ARROW[exit.direction] || exit.direction}</span>
-                  {exit.direction}: {exit.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 附近玩家 */}
-        {nearby.length > 0 && (
-          <div className={styles.section}>
-            <div className={styles.sectionLabel}>四周（{nearby.length}人在线）</div>
-            <div className={styles.nearbyList}>
-              {nearby.map(p => (
-                <div
-                  key={p.playerId}
-                  className={styles.nearbyCard}
-                  onClick={() => navigateTo('story')}
-                >
-                  <div className={styles.nearbyAvatar}>
-                    {p.portraitUrl
-                      ? <img src={p.portraitUrl} alt={p.name} />
-                      : p.name.charAt(0)}
-                  </div>
-                  <div className={styles.nearbyName}>{p.name}</div>
-                  <div className={styles.nearbyLv}>Lv.{p.level}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 角色面板（底部） */}
-      <div className={styles.playerPanel}>
-        {([
-          { id: 'character',  icon: '⚔️',  label: '状态' },
-          { id: 'inventory',  icon: '🎒', label: '道具' },
-          { id: 'scene',      icon: '👥', label: '四周' },
-          { id: 'story',      icon: '💬', label: '消息' },
-          { id: 'pet',        icon: '🐲', label: '宝宝' },
-          { id: 'activity',   icon: '⚙️',  label: '功能' },
-        ] as { id: string; icon: string; label: string }[]).map(p => (
           <button
-            key={p.id}
-            className={styles.panelBtn}
-            onClick={() => p.id === 'scene' ? undefined : handleFuncBtn(p.id)}
+            className={styles.namecard}
+            onClick={() => navigateTo(primaryNpc.pageId)}
+            type="button"
           >
-            <span className={styles.panelBtnIcon}>{p.icon}</span>
-            <span className={styles.panelBtnLabel}>{p.label}</span>
+            <div className={styles.namecardName}>{primaryNpc.name} · {primaryNpc.role}</div>
+            <div className={styles.namecardSub}>{primaryNpc.line} {'>'}</div>
           </button>
-        ))}
-      </div>
 
-      {/* 传送面板 */}
-      {showTeleport && (
-        <div className={styles.overlay} onClick={() => setShowTeleport(false)}>
-          <div className={styles.teleportPanel} onClick={e => e.stopPropagation()}>
-            <div className={styles.teleportTitle}>传送</div>
-            <div className={styles.teleportNpc}>梦中人：我可以送你到：</div>
-            {TELEPORT_GROUPS.map(group => (
-              <div key={group.label} className={styles.teleportGroup}>
-                <div className={styles.teleportGroupLabel}>{group.label}</div>
-                <div className={styles.teleportBtns}>
-                  {group.items.map(item => (
-                    <button
-                      key={item.label}
-                      className={styles.teleportItemBtn}
-                      onClick={() => handleTeleport(item.pageId)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <button className={styles.teleportClose} onClick={() => setShowTeleport(false)}>
-              返回游戏
-            </button>
+          <div className={styles.heroText}>
+            <div className={styles.heroTitle}>{place.landscape}</div>
+            <div className={styles.heroSub}>{place.description}</div>
           </div>
+        </section>
+
+        <div className={styles.sect}>
+          地 图
+          <button className={styles.more} onClick={() => navigateTo('world-map')} type="button">
+            更多 ›
+          </button>
         </div>
-      )}
+
+        <div className={styles.compass}>
+          {compass.map((cell) => {
+            if (cell.state === 'empty') {
+              return <div key={cell.slot} className={`${styles.compassCell} ${styles.empty}`} />;
+            }
+
+            const className = [
+              styles.compassCell,
+              cell.state === 'center' ? styles.center : '',
+            ].join(' ').trim();
+
+            if (cell.state === 'center') {
+              return (
+                <div key={cell.slot} className={className}>
+                  <span>{cell.label}</span>
+                  {cell.coord && <span className={styles.compassCoord}>{cell.coord}</span>}
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={cell.slot}
+                className={className}
+                disabled={moving}
+                onClick={cell.action}
+                type="button"
+              >
+                <span>{cell.label}</span>
+                {cell.coord && <span className={styles.compassCoord}>{cell.coord}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={styles.sect}>
+          功 能
+          <button className={styles.more} onClick={() => navigateTo('teleport')} type="button">
+            更多 ›
+          </button>
+        </div>
+
+        <div className={styles.menu4}>
+          {quickActions.map((item) => (
+            <button
+              key={item.id}
+              className={`${styles.menuItem} ${item.badge === 'hot' ? styles.hot : ''}`.trim()}
+              onClick={() => navigateTo(item.pageId)}
+              type="button"
+            >
+              <span className={styles.menuIcon}>{item.label.slice(0, 1)}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.sect}>
+          附 近 玩 家
+          <button className={styles.more} onClick={() => navigateTo('nearby')} type="button">
+            更多 ›
+          </button>
+        </div>
+
+        <div className={styles.nearby}>
+          {nearby.length === 0 ? (
+            <div className={styles.playerTag}>当前暂无玩家</div>
+          ) : nearby.map((player) => (
+            <button
+              key={player.playerId}
+              className={styles.playerTag}
+              onClick={() => navigateTo('chat', { targetId: player.playerId, targetName: player.name })}
+              type="button"
+            >
+              <span>{player.name}</span>
+              <span className={styles.playerLevel}>Lv.{player.level}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.sect}>
+          场 景 情 报
+        </div>
+
+        <div className={styles.infoBlock}>
+          <div className={styles.infoLine}>场景提示：{zone.sceneHint || place.title}</div>
+          <div className={styles.infoLine}>当前活动：{notices[0] || '暂无限时活动'}</div>
+          <div className={styles.infoLine}>可前往玩法：先移动到地方屏，再触发婚介、战斗、交易等功能。</div>
+        </div>
+      </div>
     </div>
   );
 }

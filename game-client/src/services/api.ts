@@ -1449,7 +1449,16 @@ export function joinCoexplore(sessionId: string): Promise<CoexploreSessionData> 
 
 // ── 区域/地图 ──────────────────────────────────────
 
-import type { ZoneInfo, NearbyPlayer, AuctionItem, MarketListing, BoardMessage, RankingEntry } from '../types';
+import type {
+  ZoneInfo,
+  NearbyPlayer,
+  AuctionItem,
+  MarketListing,
+  BoardMessage,
+  RankingEntry,
+  FriendProfile,
+  MailItem,
+} from '../types';
 
 export function fetchCurrentZone(): Promise<ZoneInfo> {
   return request('/zone/current');
@@ -1545,13 +1554,28 @@ export function fetchMarriageStatus(): Promise<{
   isMarried: boolean; spouseId?: number; spouseName?: string;
   spousePortraitUrl?: string; marriageDate?: number; buffDescription?: string;
 }> {
-  return request('/marriage/status');
+  return request<{
+    married: boolean;
+    partner?: { partnerId: number; partnerName: string; createdAt: number };
+  }>('/marriage/status').then((data) => ({
+    isMarried: !!data.married,
+    spouseId: data.partner?.partnerId,
+    spouseName: data.partner?.partnerName,
+    marriageDate: data.partner?.createdAt,
+    buffDescription: data.married ? '夫妻同心 · 经验加成 +5%' : undefined,
+  }));
 }
 
 export function fetchMatchmakingList(): Promise<{
   candidates: { playerId: number; name: string; level: number; fateScore: number; portraitUrl?: string }[];
 }> {
-  return request('/marriage/matchmaking');
+  return request<{ candidates: { playerId: number; name: string; level: number; intro?: string; portraitUrl?: string }[] }>('/marriage/matchmaking')
+    .then((data) => ({
+      candidates: (data.candidates || []).map((item, index) => ({
+        ...item,
+        fateScore: Math.max(55, 92 - index * 11),
+      })),
+    }));
 }
 
 export function proposeMarriage(targetPlayerId: number): Promise<{ success: boolean; msg: string }> {
@@ -1576,6 +1600,44 @@ export function postBoardMessage(content: string, zoneId?: string): Promise<Boar
   return request('/message-board/post', {
     method: 'POST',
     body: JSON.stringify({ content, zoneId }),
+  });
+}
+
+// ── 玩友 / 邮件 ──────────────────────────────────────
+
+export function fetchFriends(): Promise<{ friends: FriendProfile[] }> {
+  return request('/friend/list');
+}
+
+export function addFriend(targetPlayerId: number): Promise<{ success: boolean; msg: string }> {
+  return request('/friend/add', {
+    method: 'POST',
+    body: JSON.stringify({ targetPlayerId }),
+  });
+}
+
+export function removeFriend(targetPlayerId: number): Promise<{ success: boolean; msg: string }> {
+  return request('/friend/remove', {
+    method: 'POST',
+    body: JSON.stringify({ targetPlayerId }),
+  });
+}
+
+export function fetchMailList(): Promise<{ mails: MailItem[] }> {
+  return request('/mail/list');
+}
+
+export function readMail(mailId: string): Promise<MailItem> {
+  return request('/mail/read', {
+    method: 'POST',
+    body: JSON.stringify({ mailId }),
+  });
+}
+
+export function claimMailReward(mailId: string): Promise<{ success: boolean; reward?: string }> {
+  return request('/mail/claim', {
+    method: 'POST',
+    body: JSON.stringify({ mailId }),
   });
 }
 

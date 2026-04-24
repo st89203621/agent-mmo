@@ -35,7 +35,7 @@ export default function CharCreatePage() {
       const res = await initPerson(finalName, gender, features, profession);
       setPlayer(playerId, res.name, '');
       setPersonCreated(true);
-      navigateTo('story');
+      navigateTo('home');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '创建失败');
     }

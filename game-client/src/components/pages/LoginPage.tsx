@@ -27,7 +27,7 @@ export default function LoginPage() {
       const fn = mode === 'login' ? login : register;
       const data = await fn(username.trim(), password.trim());
       setPlayer(String(data.userId), data.nickname || data.username, '');
-      navigateTo('story');
+      navigateTo('char-select');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '操作失败');
     } finally {
@@ -50,15 +50,15 @@ export default function LoginPage() {
       <IosStatus />
 
       <div className={styles.logo}>
-        <div className={styles.logoMain}>七 世 轮 回</div>
+        <div className={styles.logoMain}>气 盖 山 河</div>
         <div className={styles.logoSub}>· 气 盖 山 河 ·</div>
-        <div className={styles.logoEn}>SEVEN REINCARNATIONS · OVER MOUNTAINS AND RIVERS</div>
+        <div className={styles.logoEn}>LUNHUI ONLINE · OVER MOUNTAINS AND RIVERS</div>
       </div>
 
       <div className={styles.portrait}>
         <div className={styles.portraitMain}>
           <span className={styles.portraitMask}>轮</span>
-          <span className={styles.portraitTip}>丹 青 · 开 篇</span>
+          <span className={styles.portraitTip}>江 湖 · 开 篇</span>
         </div>
       </div>
 
@@ -121,11 +121,11 @@ export default function LoginPage() {
           onClick={submit}
           disabled={loading}
         >
-          {loading ? '请 稍 候' : '开 启 轮 回'}
+          {loading ? '请 稍 候' : '进 入 江 湖'}
         </button>
       </div>
 
-      <div className={styles.footer}>以 A I 智 能 体 为 核 心 的 情 感 向 R P G</div>
+      <div className={styles.footer}>复刻 lunhui 原版手机 MMO 体验</div>
     </div>
   );
 }

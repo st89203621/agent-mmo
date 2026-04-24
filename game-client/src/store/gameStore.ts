@@ -13,6 +13,7 @@ interface GameState {
   pageParams: Record<string, unknown>;
 
   navigateTo: (page: PageId, params?: Record<string, unknown>) => void;
+  replaceTo: (page: PageId, params?: Record<string, unknown>) => void;
   setBookWorld: (book: BookWorld | null) => void;
   setNpcsInScene: (npcs: NpcInfo[]) => void;
   setConnected: (connected: boolean) => void;
@@ -39,6 +40,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
     set({ currentPage: page, previousPage: current, pageParams: params || {} });
+  },
+  replaceTo: (page, params) => {
+    set({ currentPage: page, pageParams: params || {} });
   },
 
   setBookWorld: (book) => set({ currentBookWorld: book }),

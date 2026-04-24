@@ -340,8 +340,115 @@ export interface RankingEntry {
   portraitUrl?: string;
 }
 
+export interface ScreenState {
+  page: PageId;
+  title: string;
+  subtitle?: string;
+  zoneId?: string;
+  overlay?: boolean;
+}
+
+export interface QuickAction {
+  id: string;
+  label: string;
+  pageId: PageId;
+  badge?: 'hot' | 'new';
+}
+
+export interface NpcCard {
+  id: string;
+  name: string;
+  role: string;
+  line: string;
+  pageId: PageId;
+}
+
+export interface MonsterCard {
+  id: string;
+  name: string;
+  level: number;
+  reward: string;
+  pageId: PageId;
+}
+
+export interface PlaceInfo {
+  zoneId: string;
+  region: string;
+  title: string;
+  description: string;
+  coord: [number, number];
+  landscape: string;
+  notices: string[];
+  quickActions: QuickAction[];
+  npcs: NpcCard[];
+  monsters: MonsterCard[];
+  exits: ZoneExit[];
+}
+
+export interface StallInfo {
+  stallId: string;
+  ownerId: number;
+  ownerName: string;
+  stallName: string;
+  zoneId: string;
+  items: MarketListing[];
+}
+
+export interface FriendProfile {
+  playerId: number;
+  name: string;
+  level: number;
+  lastSeen: string;
+  zoneId?: string;
+  intro?: string;
+  relation?: 'friend' | 'nearby' | 'guild';
+  portraitUrl?: string;
+}
+
+export interface MailItem {
+  id: string;
+  title: string;
+  content: string;
+  senderName: string;
+  createdAt: number;
+  read: boolean;
+  reward?: string;
+  rewardClaimed?: boolean;
+}
+
+export interface ChatChannelMessage {
+  messageId: string;
+  senderId: number;
+  senderName: string;
+  content: string;
+  channel: 'world' | 'guild' | 'team' | 'private';
+  timestamp: number;
+  receiverId?: number;
+}
+
+export interface QuestState {
+  questId: string;
+  title: string;
+  description: string;
+  progress: number;
+  target: number;
+  status: 'available' | 'accepted' | 'completed';
+  rewards: string;
+}
+
+export interface BossState {
+  bossName: string;
+  currentHp: number;
+  maxHp: number;
+  myDamage: number;
+  cooldownSeconds: number;
+}
+
 /** 页面ID枚举 */
 export type PageId =
+  | 'login' | 'char-select' | 'hub' | 'place' | 'teleport'
+  | 'status' | 'nearby' | 'messages' | 'chat' | 'matchmaking'
+  | 'friend' | 'mail' | 'world-map' | 'hunt' | 'events' | 'vip' | 'settings'
   | 'home' | 'story' | 'battle' | 'explore' | 'memory' | 'rebirth'
   | 'character' | 'equip-detail' | 'enchant' | 'skill-tree'
   | 'inventory' | 'pet' | 'pet-summon' | 'book-world'

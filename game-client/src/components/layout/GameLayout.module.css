@@ -1,123 +1,97 @@
-.layout {
+.stage {
   width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top, rgba(177, 128, 48, 0.1), transparent 34%),
+    linear-gradient(180deg, #0f0b09 0%, #16110d 42%, #0d0907 100%);
+}
+
+.app {
+  width: min(100%, 460px);
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  color: var(--text);
-  max-width: 430px;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
+  border-left: 1px solid rgba(201, 168, 76, 0.14);
+  border-right: 1px solid rgba(201, 168, 76, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.08),
+    0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .content {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  position: relative;
-  background: var(--bg);
 }
 
-/* ─── 顶栏扩展：货币槽位（AppBar 右侧 icons 内联渲染） ─── */
-.currency {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--accent-gold);
-}
-
-.currency .gold::before {
-  content: '金 ';
-  color: var(--text-dim);
-  letter-spacing: 1px;
-}
-
-.currency .diamond {
-  color: var(--accent-azure);
-}
-
-.currency .diamond::before {
-  content: '钻 ';
-  color: var(--text-dim);
-  letter-spacing: 1px;
-}
-
-/* ─── 底部 Tabbar · fusion 风 ─── */
 .nav {
-  height: 58px;
-  padding-bottom: var(--safe-bottom);
-  box-sizing: content-box;
-  background: var(--bg-raised);
-  border-top: 1px solid var(--border);
-  display: flex;
   flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-  max-width: 430px;
-  width: 100%;
-  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: linear-gradient(180deg, #16110d 0%, #0f0b09 100%);
+  border-top: 1px solid var(--border);
 }
 
 .navBtn {
-  flex: 1;
+  border: 0;
+  padding: 10px 2px 12px;
+  background: transparent;
+  color: var(--text-dim);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 10px;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-  background: none;
-  border: none;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  font-family: var(--font-serif);
-  position: relative;
-  padding: 0;
-  transition: color var(--transition-fast);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .navBtn:active {
-  transform: scale(0.96);
+  background: rgba(201, 168, 76, 0.08);
+  transform: scale(0.98);
 }
 
 .navIcon {
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--text-dim);
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  color: var(--accent-gold);
   font-family: var(--font-mono);
-  font-size: 11px;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.navBtn.active {
-  color: var(--accent-gold);
-}
-
-.navBtn.active .navIcon {
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
-}
-
-.navBtn.active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: var(--accent-gold);
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .navLabel {
   font-size: 10px;
-  line-height: 1;
-  letter-spacing: 2px;
+}
+
+.active {
+  color: var(--text);
+}
+
+.active .navIcon {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  background: rgba(162, 43, 29, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(162, 43, 29, 0.15);
+}
+
+@media (max-width: 560px) {
+  .stage {
+    background: var(--bg);
+  }
+
+  .app {
+    width: 100%;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
 }

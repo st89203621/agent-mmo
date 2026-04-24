@@ -218,6 +218,10 @@ public class GameApiController {
     private final ConcurrentHashMap<Long, Map<String, Object>> marriageMap = new ConcurrentHashMap<>();
     /** 求婚请求：targetId→{fromId, fromName, createdAt} */
     private final ConcurrentHashMap<Long, Map<String, Object>> proposeMap = new ConcurrentHashMap<>();
+    /** 好友列表：playerId -> friends */
+    private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> friendMap = new ConcurrentHashMap<>();
+    /** 邮件列表：playerId -> mails */
+    private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> mailMap = new ConcurrentHashMap<>();
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -3355,6 +3359,46 @@ public class GameApiController {
         return m;
     }
 
+    private CopyOnWriteArrayList<Map<String, Object>> createDefaultFriends(long userId) {
+        CopyOnWriteArrayList<Map<String, Object>> list = new CopyOnWriteArrayList<>();
+        list.add(createFriendProfile(10001L, "云中仙", "刚刚在线", "常驻婚介代练区，爱聊副本和拍卖行情。"));
+        list.add(createFriendProfile(10002L, "梦里人", "1小时前", "最近在拍卖行扫货，偶尔一起打世界 Boss。"));
+        return list;
+    }
+
+    private Map<String, Object> createFriendProfile(long playerId, String name, String lastSeen, String intro) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("playerId", playerId);
+        item.put("name", name);
+        item.put("level", 30 + (int) (playerId % 20));
+        item.put("lastSeen", lastSeen);
+        item.put("zoneId", "main_city");
+        item.put("intro", intro);
+        item.put("relation", "friend");
+        return item;
+    }
+
+    private CopyOnWriteArrayList<Map<String, Object>> createDefaultMails(long userId) {
+        CopyOnWriteArrayList<Map<String, Object>> mails = new CopyOnWriteArrayList<>();
+        mails.add(createMail("mail_welcome_" + userId, "开服贺礼", "欢迎来到气盖山河区，以下是你的开服物资。", "系统", "绑定元宝 * 188", false));
+        mails.add(createMail("mail_boss_" + userId, "世界 Boss 集结", "今晚 21:00 世界 Boss 开启，请准时到猎场宝山集合。", "活动使者", null, true));
+        mails.add(createMail("mail_tax_" + userId, "拍卖结算", "你有一笔拍卖收入已到账，请查收。", "拍卖行", "金币 * 12000", false));
+        return mails;
+    }
+
+    private Map<String, Object> createMail(String id, String title, String content, String senderName, String reward, boolean read) {
+        Map<String, Object> mail = new LinkedHashMap<>();
+        mail.put("id", id);
+        mail.put("title", title);
+        mail.put("content", content);
+        mail.put("senderName", senderName);
+        mail.put("createdAt", System.currentTimeMillis() - new Random().nextInt(7200_000));
+        mail.put("read", read);
+        mail.put("reward", reward);
+        mail.put("rewardClaimed", false);
+        return mail;
+    }
+
     private Map<String, Object> dialogueToMap(String sessionId, DialogueMessage msg) {
         Map<String, Object> m = new HashMap<>();
         if (msg == null) return m;
@@ -4421,7 +4465,77 @@ public class GameApiController {
         msg.put("zoneId", zoneId);
         msg.put("createdAt", System.currentTimeMillis());
         boardMessages.computeIfAbsent(zoneId, k -> new CopyOnWriteArrayList<>()).add(0, msg);
-        return ok(Map.of("msg", "发布成功"));
+        return ok(msg);
+    }
+
+    // ── 玩友 (Friend) ────────────────────────────────
+
+    @GetMapping("/friend/list")
+    public ResponseEntity<Map<String, Object>> friendList(HttpSession session) {
+        long userId = requireLogin(session);
+        var list = friendMap.computeIfAbsent(userId, this::createDefaultFriends);
+        return ok(Map.of("friends", list));
+    }
+
+    @PostMapping("/friend/add")
+    public ResponseEntity<Map<String, Object>> friendAdd(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long targetId = ((Number) body.get("targetPlayerId")).longValue();
+        String targetName = "玩家" + targetId;
+        Map<String, Object> friend = createFriendProfile(targetId, targetName, "刚刚在线", "在主城闲逛，欢迎切磋。");
+        var list = friendMap.computeIfAbsent(userId, this::createDefaultFriends);
+        boolean exists = list.stream().anyMatch(item -> Objects.equals(((Number) item.get("playerId")).longValue(), targetId));
+        if (!exists) {
+            list.add(0, friend);
+        }
+        return ok(Map.of("success", true, "msg", "已添加玩友"));
+    }
+
+    @PostMapping("/friend/remove")
+    public ResponseEntity<Map<String, Object>> friendRemove(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        long targetId = ((Number) body.get("targetPlayerId")).longValue();
+        var list = friendMap.computeIfAbsent(userId, this::createDefaultFriends);
+        list.removeIf(item -> Objects.equals(((Number) item.get("playerId")).longValue(), targetId));
+        return ok(Map.of("success", true, "msg", "已删除玩友"));
+    }
+
+    // ── 邮件 (Mail) ────────────────────────────────
+
+    @GetMapping("/mail/list")
+    public ResponseEntity<Map<String, Object>> mailList(HttpSession session) {
+        long userId = requireLogin(session);
+        var list = mailMap.computeIfAbsent(userId, this::createDefaultMails);
+        return ok(Map.of("mails", list));
+    }
+
+    @PostMapping("/mail/read")
+    public ResponseEntity<Map<String, Object>> mailRead(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String mailId = (String) body.get("mailId");
+        var list = mailMap.computeIfAbsent(userId, this::createDefaultMails);
+        Map<String, Object> mail = list.stream()
+                .filter(item -> Objects.equals(item.get("id"), mailId))
+                .findFirst()
+                .orElse(null);
+        if (mail == null) return err("邮件不存在");
+        mail.put("read", true);
+        return ok(mail);
+    }
+
+    @PostMapping("/mail/claim")
+    public ResponseEntity<Map<String, Object>> mailClaim(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String mailId = (String) body.get("mailId");
+        var list = mailMap.computeIfAbsent(userId, this::createDefaultMails);
+        Map<String, Object> mail = list.stream()
+                .filter(item -> Objects.equals(item.get("id"), mailId))
+                .findFirst()
+                .orElse(null);
+        if (mail == null) return err("邮件不存在");
+        mail.put("read", true);
+        mail.put("rewardClaimed", true);
+        return ok(Map.of("success", true, "reward", mail.getOrDefault("reward", "奖励已领取")));
     }
 
     // ── 婚介 (Marriage) ────────────────────────────────
@@ -4484,17 +4598,17 @@ public class GameApiController {
     public ResponseEntity<Map<String, Object>> onlineRewards(HttpSession session) {
         requireLogin(session);
         List<Map<String, Object>> rewards = List.of(
-            Map.of("rewardId", "online_30m",  "label", "在线30分钟", "gold", 100, "claimed", false),
-            Map.of("rewardId", "online_1h",   "label", "在线1小时",  "gold", 300, "claimed", false),
-            Map.of("rewardId", "online_3h",   "label", "在线3小时",  "gold", 800, "claimed", false)
+            Map.of("rewardId", "online_30m", "label", "在线30分钟", "requiredMinutes", 30, "rewardDesc", "金币 * 100", "claimed", false, "available", true),
+            Map.of("rewardId", "online_1h", "label", "在线1小时", "requiredMinutes", 60, "rewardDesc", "金币 * 300", "claimed", false, "available", true),
+            Map.of("rewardId", "online_3h", "label", "在线3小时", "requiredMinutes", 180, "rewardDesc", "金币 * 800", "claimed", false, "available", false)
         );
-        return ok(Map.of("rewards", rewards));
+        return ok(Map.of("rewards", rewards, "onlineMinutes", 78));
     }
 
     @PostMapping("/event/claim-online")
     public ResponseEntity<Map<String, Object>> claimOnlineReward(@RequestBody Map<String, Object> body, HttpSession session) {
         requireLogin(session);
         String rewardId = (String) body.get("rewardId");
-        return ok(Map.of("msg", "领取成功", "rewardId", rewardId));
+        return ok(Map.of("success", true, "reward", rewardId + " 已领取"));
     }
 }
