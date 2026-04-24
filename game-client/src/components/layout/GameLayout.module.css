@@ -3,73 +3,13 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: var(--bg);
+  color: var(--text);
   max-width: 430px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
-}
-
-.layout[data-page="home"] {
-  background: transparent;
-}
-
-/* 全局顶栏（子页面时显示） */
-.topBar {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 12px;
-  background: var(--ink);
-  border-bottom: 1px solid var(--gold-dim);
-  flex-shrink: 0;
-  gap: 8px;
-}
-
-.backBtn {
-  background: none;
-  border: none;
-  color: var(--gold);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 8px;
-  font-family: var(--font-ui);
-}
-
-.backBtn:active {
-  opacity: 0.7;
-}
-
-.topTitle {
-  flex: 1;
-  color: var(--paper);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  font-family: var(--font-ui);
-}
-
-.currency {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  font-family: var(--font-ui);
-}
-
-.gold::before {
-  content: '\1FAAA ';
-}
-
-.gold {
-  color: #d4a84c;
-}
-
-.diamond::before {
-  content: '\1F48E ';
-}
-
-.diamond {
-  color: #7ec8e3;
+  box-shadow: var(--shadow-lg);
 }
 
 .content {
@@ -77,16 +17,43 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
+  background: var(--bg);
 }
 
-.nav {
+/* ─── 顶栏扩展：货币槽位（AppBar 右侧 icons 内联渲染） ─── */
+.currency {
   display: flex;
+  gap: 8px;
   align-items: center;
-  justify-content: space-around;
-  height: var(--nav-height);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent-gold);
+}
+
+.currency .gold::before {
+  content: '金 ';
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.currency .diamond {
+  color: var(--accent-azure);
+}
+
+.currency .diamond::before {
+  content: '钻 ';
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* ─── 底部 Tabbar · fusion 风 ─── */
+.nav {
+  height: 58px;
   padding-bottom: var(--safe-bottom);
-  background: var(--ink);
-  border-top: 1px solid var(--gold-dim);
+  box-sizing: content-box;
+  background: var(--bg-raised);
+  border-top: 1px solid var(--border);
+  display: flex;
   flex-shrink: 0;
   position: relative;
   z-index: 10;
@@ -96,34 +63,61 @@
 }
 
 .navBtn {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
   background: none;
   border: none;
-  color: var(--paper-darker);
-  font-size: 10px;
-  padding: 6px 12px;
   cursor: pointer;
+  font-family: var(--font-serif);
+  position: relative;
+  padding: 0;
   transition: color var(--transition-fast);
-  font-family: var(--font-ui);
 }
 
 .navBtn:active {
-  transform: scale(0.92);
-}
-
-.navBtn.active {
-  color: var(--gold);
+  transform: scale(0.96);
 }
 
 .navIcon {
-  font-size: 20px;
-  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.navBtn.active {
+  color: var(--accent-gold);
+}
+
+.navBtn.active .navIcon {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.navBtn.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent-gold);
 }
 
 .navLabel {
   font-size: 10px;
   line-height: 1;
+  letter-spacing: 2px;
 }

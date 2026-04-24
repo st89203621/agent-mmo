@@ -1,0 +1,100 @@
+.appbar {
+  padding: 8px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.row1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.loc {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  flex: 1;
+}
+
+.book {
+  color: var(--accent-gold);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.zone {
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.coord {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.icons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.icon:hover,
+.icon:active {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.icon.dot::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  background: var(--accent-red);
+  border-radius: 50%;
+}
+
+.back {
+  min-width: 32px;
+  padding: 0 8px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--accent-gold);
+  font-size: 13px;
+  font-family: var(--font-serif);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.back:active {
+  border-color: var(--accent-gold);
+}

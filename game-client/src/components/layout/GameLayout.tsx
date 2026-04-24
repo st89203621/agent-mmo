@@ -2,6 +2,7 @@ import React from 'react';
 import type { PageId } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
+import { AppBar, AppBarIcon, IosStatus } from '../common/fusion';
 import styles from './GameLayout.module.css';
 
 interface NavItem {
@@ -61,23 +62,27 @@ export default function GameLayout({ children }: Props) {
 
   const subPage = SUB_PAGES[currentPage];
 
+  const handleBack = () => {
+    navigateTo(previousPage && previousPage !== currentPage ? previousPage : subPage.back);
+  };
+
   return (
     <div className={styles.layout} data-page={currentPage}>
-      {/* 全局顶栏：子页面返回 + 货币 */}
       {subPage && (
-        <div className={styles.topBar}>
-          <button
-            className={styles.backBtn}
-            onClick={() => navigateTo(previousPage && previousPage !== currentPage ? previousPage : subPage.back)}
-          >
-            &larr; 返回
-          </button>
-          <span className={styles.topTitle}>{subPage.label}</span>
-          <span className={styles.currency}>
-            <span className={styles.gold}>{gold}</span>
-            <span className={styles.diamond}>{diamond}</span>
-          </span>
-        </div>
+        <>
+          <IosStatus />
+          <AppBar
+            book="七世轮回"
+            zone={subPage.label}
+            onBack={handleBack}
+            icons={
+              <span className={styles.currency}>
+                <span className={styles.gold}>{gold}</span>
+                <span className={styles.diamond}>{diamond}</span>
+              </span>
+            }
+          />
+        </>
       )}
 
       <main className={styles.content}>
@@ -85,17 +90,24 @@ export default function GameLayout({ children }: Props) {
       </main>
 
       <nav className={styles.nav}>
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            className={`${styles.navBtn} ${currentPage === item.id ? styles.active : ''}`}
-            onClick={() => navigateTo(item.id)}
-          >
-            <span className={styles.navIcon}>{item.icon}</span>
-            <span className={styles.navLabel}>{item.label}</span>
-          </button>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const active = currentPage === item.id;
+          return (
+            <button
+              key={item.id}
+              className={`${styles.navBtn} ${active ? styles.active : ''}`.trim()}
+              onClick={() => navigateTo(item.id)}
+              type="button"
+            >
+              <span className={styles.navIcon}>{item.icon}</span>
+              <span className={styles.navLabel}>{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
     </div>
   );
 }
+
+/** 供其他组件复用：AppBar + IosStatus */
+export { AppBar, AppBarIcon, IosStatus };

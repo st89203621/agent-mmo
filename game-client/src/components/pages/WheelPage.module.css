@@ -1,230 +1,382 @@
-/* 天命之轮 - 转盘抽奖 */
+/* ═══════════════════════════════════════
+   WheelPage · 仿 fusion #40 幸运转盘
+   ═══════════════════════════════════════ */
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-serif);
+  overflow: hidden;
+  position: relative;
+}
 
-/* 转盘容器 */
-.wheelWrap {
+/* ─── 顶部横幅 ─── */
+.hero {
+  padding: 14px 14px 10px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at center, rgba(212, 131, 59, 0.2), transparent 65%),
+    linear-gradient(180deg, #2A1C10, #0A0807);
+  border-bottom: 1px solid var(--accent-gold-dim);
+  position: relative;
+  flex-shrink: 0;
+}
+.heroTitle {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: var(--accent-gold);
+  text-shadow: 0 0 12px rgba(200, 169, 104, 0.5);
+}
+.heroSub {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-orange);
+  letter-spacing: 3px;
+}
+
+/* ─── 转盘舞台 ─── */
+.stage {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 16px;
-  position: relative;
+  justify-content: flex-start;
+  padding: 18px 14px 8px;
+  overflow-y: auto;
 }
+.stage::-webkit-scrollbar { width: 0; }
 
-.wheelOuter {
+.wheelBox {
   position: relative;
   width: 280px;
   height: 280px;
-  margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
-.wheelCanvas {
+.pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 22px solid var(--accent-gold);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  z-index: 3;
+}
+.pointer::after {
+  content: '';
+  position: absolute;
+  top: -22px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 8px rgba(199, 62, 58, 0.7);
+}
+
+.wheel {
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 4px solid var(--gold);
-  box-shadow: 0 0 20px rgba(201, 168, 76, 0.3), inset 0 0 20px rgba(0,0,0,0.2);
-  transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+  border: 3px solid var(--accent-gold);
+  box-shadow:
+    0 0 28px rgba(200, 169, 104, 0.35),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  background:
+    conic-gradient(
+      from -22.5deg,
+      rgba(199, 62, 58, 0.55) 0deg 45deg,
+      rgba(42, 32, 24, 0.95) 45deg 90deg,
+      rgba(127, 183, 126, 0.4) 90deg 135deg,
+      rgba(42, 32, 24, 0.95) 135deg 180deg,
+      rgba(212, 131, 59, 0.5) 180deg 225deg,
+      rgba(42, 32, 24, 0.95) 225deg 270deg,
+      rgba(155, 123, 181, 0.45) 270deg 315deg,
+      rgba(42, 32, 24, 0.95) 315deg 360deg
+    );
+  transition: transform 3.2s cubic-bezier(0.17, 0.67, 0.28, 1);
 }
 
-.wheelSpinning {
-  /* override transition for active spin */
-}
-
-.wheelPointer {
+.slice {
   position: absolute;
-  top: -12px;
+  top: 0;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-  z-index: 2;
+  width: 1px;
+  height: 50%;
+  transform-origin: bottom center;
+  pointer-events: none;
 }
+.sliceInner {
+  position: absolute;
+  left: -60px;
+  top: 28px;
+  width: 120px;
+  text-align: center;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.sliceIcon {
+  display: block;
+  font-size: 18px;
+  color: var(--accent-gold);
+  margin-bottom: 2px;
+  font-family: var(--font-serif);
+}
+.sliceRare .sliceIcon { color: var(--accent-orange); }
+.sliceLegend .sliceIcon { color: var(--accent-red); text-shadow: 0 0 8px rgba(199, 62, 58, 0.8); }
 
-.wheelCenter {
+.hub {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-  border: 3px solid rgba(255,255,255,0.3);
+  background: radial-gradient(circle, var(--accent-gold) 0%, var(--accent-gold-dim) 70%, #5C4A20 100%);
+  border: 3px solid var(--bg-ink);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-main);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--paper);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--bg-ink);
   cursor: pointer;
-  z-index: 2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 4;
+  box-shadow: 0 0 20px rgba(200, 169, 104, 0.5);
   transition: transform var(--transition-fast);
 }
+.hub:active { transform: translate(-50%, -50%) scale(0.94); }
+.hub:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.wheelCenter:active {
-  transform: translate(-50%, -50%) scale(0.95);
-}
-
-/* 免费次数 */
-.freeRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.freeBadge {
-  padding: 4px 14px;
-  background: rgba(80, 180, 120, 0.12);
-  border: 1px solid rgba(80, 180, 120, 0.3);
-  border-radius: 999px;
-  font-size: 12px;
-  color: #50b478;
-  font-weight: 600;
-}
-
-.costBadge {
-  padding: 4px 14px;
-  background: rgba(201, 168, 76, 0.12);
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--gold);
-}
-
-/* 抽奖按钮 */
-.spinBtn {
+/* ─── 状态条 ─── */
+.meta {
   width: 100%;
-  max-width: 280px;
+  max-width: 320px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  letter-spacing: 1px;
+}
+.metaFree { color: var(--accent-jade); font-weight: 700; }
+.metaCost { color: var(--accent-gold); font-weight: 700; }
+
+/* ─── 双按钮 ─── */
+.cta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + var(--safe-bottom));
+  background: var(--bg-raised);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.ctaBtn {
   padding: 14px;
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--paper);
-  font-size: 16px;
+  text-align: center;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 4px;
+  font-family: var(--font-serif);
+  border: none;
+  color: var(--text);
   cursor: pointer;
-  font-family: var(--font-main);
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+.ctaBtn:active { transform: scale(0.97); }
+.ctaBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ctaOnce {
+  background: none;
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+}
+.ctaTen {
+  background: linear-gradient(180deg, var(--accent-red), #8A2A28);
+  box-shadow: 0 0 14px rgba(199, 62, 58, 0.35);
 }
 
-.spinBtn:active { transform: scale(0.97); }
-.spinBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* ─── 奖池预览 ─── */
+.pool {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 14px;
+}
+.poolH {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--accent-gold);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.poolGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.poolItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+.poolItemRare {
+  border-color: var(--accent-gold-dim);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.08), var(--bg-panel));
+}
+.poolIcon {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+.poolName {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-align: center;
+}
+.poolItemRare .poolIcon { color: var(--accent-orange); }
 
-/* 结果弹窗 */
-.resultOverlay {
-  position: fixed;
+/* ─── 战报 ─── */
+.log {
+  width: 100%;
+  max-width: 320px;
+  margin-top: 14px;
+  padding-bottom: 10px;
+}
+.logH {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--accent-gold);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  text-align: center;
+}
+.logRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+.logRow:last-child { border-bottom: none; }
+.logTime { color: var(--text-faint); letter-spacing: 1px; }
+.logReward { color: var(--accent-gold); font-weight: 700; }
+.logEmpty {
+  padding: 20px 0;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+/* ─── 结果弹窗 ─── */
+.overlay {
+  position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(10, 9, 8, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 50;
   animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(4px);
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
-.resultCard {
-  background: var(--paper);
-  border: 2px solid var(--gold);
-  border-radius: var(--radius-md);
-  padding: 28px 24px;
+.card {
+  min-width: 280px;
+  padding: 22px 26px;
+  background: var(--bg-panel);
+  border: 1px solid var(--accent-gold);
+  box-shadow: 0 0 30px rgba(200, 169, 104, 0.4);
   text-align: center;
-  min-width: 240px;
-  animation: resultPop 0.4s ease;
+  animation: cardPop 0.45s ease;
 }
-
-@keyframes resultPop {
-  from { transform: scale(0.8); opacity: 0; }
+@keyframes cardPop {
+  from { transform: scale(0.85); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
-
-.resultIcon { font-size: 48px; margin-bottom: 12px; }
-
-.resultName {
-  font-family: var(--font-main);
-  font-size: 18px;
-  color: var(--gold);
-  margin-bottom: 4px;
+.cardTag {
+  font-size: 10px;
+  letter-spacing: 6px;
+  color: var(--accent-orange);
+  margin-bottom: 12px;
 }
-
-.resultDesc {
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.6;
-  margin-bottom: 16px;
+.cardIcon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 12px;
+  border: 2px solid var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: var(--accent-gold);
+  background: var(--bg-ink);
+  font-weight: 900;
 }
-
-.resultBtn {
-  padding: 10px 32px;
-  background: var(--gold);
-  color: var(--paper);
+.cardName {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--accent-gold);
+  margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(200, 169, 104, 0.5);
+}
+.cardDesc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+.cardBtn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(180deg, var(--accent-red), #8A2A28);
   border: none;
-  border-radius: var(--radius-md);
+  color: var(--text);
+  font-family: var(--font-serif);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 4px;
   cursor: pointer;
-  font-family: var(--font-ui);
+  transition: transform var(--transition-fast);
 }
-
-/* 奖品列表 */
-.prizeSection {
-  padding: 0 16px 16px;
-  width: 100%;
-}
-
-.prizeTitle {
-  font-family: var(--font-main);
-  font-size: 14px;
-  color: var(--ink);
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--paper-darker);
-}
-
-.prizeGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.prizeItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-sm);
-}
-
-.prizeIcon { font-size: 24px; }
-.prizeName { font-size: 10px; color: var(--ink); opacity: 0.7; text-align: center; }
-.prizeRare { border-color: rgba(201, 168, 76, 0.3); background: linear-gradient(135deg, var(--paper-dark), rgba(201, 168, 76, 0.05)); }
-
-/* 抽奖记录 */
-.historySection {
-  padding: 0 16px 16px;
-  width: 100%;
-}
-
-.historyItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--paper-darker);
-  font-size: 12px;
-  color: var(--ink);
-}
-
-.historyItem:last-child { border-bottom: none; }
-.historyTime { opacity: 0.4; font-size: 11px; }
-.historyReward { color: var(--gold-dim); font-weight: 600; }
+.cardBtn:active { transform: scale(0.97); }

@@ -1,0 +1,51 @@
+.iosStatus {
+  padding: 4px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.right {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.sig::before {
+  content: '● ● ●';
+  letter-spacing: 1px;
+}
+
+.batt {
+  display: inline-block;
+  width: 22px;
+  height: 10px;
+  border: 1px solid var(--text);
+  border-radius: 2px;
+  position: relative;
+}
+
+.batt::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 2px;
+  width: 2px;
+  height: 4px;
+  background: var(--text);
+}
+
+.batt::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  width: 75%;
+  background: var(--accent-jade);
+}

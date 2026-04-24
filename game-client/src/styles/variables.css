@@ -1,26 +1,48 @@
 :root {
-  /* 核心配色 - 古风卷轴 */
-  --ink: #0e0b09;
-  --gold: #c9a84c;
-  --gold-dim: #a68a3a;
-  --paper: #f5ede0;
-  --paper-dark: #e8dcc8;
-  --paper-darker: #d4c4a8;
-  --red: #8b2500;
-  --red-light: #c0392b;
-  --green: #2e7d32;
-  --blue: #1565c0;
-  --purple: #6a1b9a;
+  /* ═══ Fusion 主色 · 墨黑卷轴 ═══ */
+  --bg: #14110F;
+  --bg-ink: #0D0B0A;
+  --bg-panel: #1C1815;
+  --bg-raised: #252018;
+  --bg-hover: #2E2720;
+  --border: #3D342A;
+  --border-gold: #7A6547;
+  --text: #EDE5D3;
+  --text-dim: #8A7E6E;
+  --text-faint: #5C5145;
+  --accent-red: #C73E3A;
+  --accent-gold: #C8A968;
+  --accent-gold-dim: #8E7840;
+  --accent-jade: #7FB77E;
+  --accent-blood: #B4413C;
+  --accent-azure: #6A8FB0;
+  --accent-purple: #9B7BB5;
+  --accent-orange: #D4833B;
 
-  /* 品质色 */
-  --quality-common: #9e9e9e;
-  --quality-uncommon: #4caf50;
-  --quality-rare: #2196f3;
-  --quality-epic: #9c27b0;
-  --quality-legendary: #ff9800;
-  --quality-mythic: #f44336;
+  /* ═══ 旧 token · 按"语义用途"映射，保持 60+ 文件引用不破
+        旧主题：paper=浅背景 / ink=深文字
+        新主题反转：paper→深背景 / ink→浅文字，语义保持一致 ═══ */
+  --paper: var(--bg);             /* 主背景 · 墨 */
+  --paper-dark: var(--bg-panel);  /* 卡片/面板背景 · 深墨 */
+  --paper-darker: var(--text-faint); /* 双面 token：作文字是次要可读 / 作边框头像占位是深棕灰 */
+  --ink: var(--text);             /* 主文字 · 米白 */
+  --gold: var(--accent-gold);
+  --gold-dim: var(--accent-gold-dim);
+  --red: var(--accent-red);
+  --red-light: var(--accent-blood);
+  --green: var(--accent-jade);
+  --blue: var(--accent-azure);
+  --purple: var(--accent-purple);
 
-  /* 情绪色调 */
+  /* ═══ 品质色 · 按 fusion 配色重映射 ═══ */
+  --quality-common: #9E9E9E;
+  --quality-uncommon: var(--accent-jade);
+  --quality-rare: var(--accent-azure);
+  --quality-epic: var(--accent-purple);
+  --quality-legendary: var(--accent-orange);
+  --quality-mythic: var(--accent-red);
+
+  /* ═══ 情绪色 · 保留立绘情绪语义 ═══ */
   --emotion-calm: #7ca8c6;
   --emotion-happy: #f0c040;
   --emotion-sad: #6b7b8d;
@@ -34,27 +56,30 @@
   --emotion-melancholy: #9098a8;
   --emotion-playful: #c0d060;
 
-  /* 布局 */
+  /* ═══ 字体 · fusion 同源 ═══ */
+  --font-serif: 'Noto Serif SC', '霞鹜文楷', 'Songti SC', 'STSong', 'SimSun', serif;
+  --font-ui: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Sarasa Mono SC', 'Consolas', monospace;
+  --font-main: var(--font-serif);
+
+  /* ═══ 布局 ═══ */
   --nav-height: 56px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* 字体 */
-  --font-main: 'Noto Serif SC', 'STSong', 'SimSun', serif;
-  --font-ui: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* ═══ 圆角 · fusion 偏方正 ═══ */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* ═══ 阴影 · 墨底增强 ═══ */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-gold: 0 0 12px rgba(200, 169, 104, 0.35);
 
-  /* 阴影 */
-  --shadow-sm: 0 1px 3px rgba(14, 11, 9, 0.12);
-  --shadow-md: 0 4px 12px rgba(14, 11, 9, 0.15);
-  --shadow-lg: 0 8px 24px rgba(14, 11, 9, 0.2);
-
-  /* 过渡 */
+  /* ═══ 过渡 ═══ */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.3s ease;
   --transition-slow: 0.6s ease;

@@ -1,0 +1,12 @@
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+
+.scroll::-webkit-scrollbar {
+  width: 0;
+}
