@@ -1,137 +1,153 @@
-import React, { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { initPerson } from '../../services/api';
-import styles from './PageSkeleton.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const HAIR_OPTIONS = ['长发', '短发', '束发', '披肩'];
-const OUTFIT_OPTIONS = ['素衣', '华裳', '铠甲', '道袍'];
+const HAIR_OPTIONS = ['长 发', '短 发', '束 发', '披 肩'] as const;
+const OUTFIT_OPTIONS = ['素 衣', '华 裳', '铠 甲', '道 袍'] as const;
 
 type Profession = 'ATTACK' | 'DEFENSE' | 'AGILITY';
 
 const PROFESSIONS: { id: Profession; name: string; desc: string }[] = [
-  { id: 'ATTACK', name: '无坚不摧', desc: '天生惊人攻击力，一招灰飞烟灭' },
-  { id: 'DEFENSE', name: '金刚护体', desc: '防高血厚，死亡边缘反败为胜' },
-  { id: 'AGILITY', name: '行动敏捷', desc: '超高敏捷，附加暴击，传闻真正的王者' },
+  { id: 'ATTACK',  name: '无坚不摧', desc: '天生惊人攻击 · 一招灰飞烟灭' },
+  { id: 'DEFENSE', name: '金刚护体', desc: '防高血厚 · 绝境反败为胜' },
+  { id: 'AGILITY', name: '行动敏捷', desc: '高敏暴击 · 真正的王者' },
 ];
 
 export default function CharCreatePage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const playerId = usePlayerStore((s) => s.playerId);
+  const setPlayer = usePlayerStore((s) => s.setPlayer);
+  const setPersonCreated = usePlayerStore((s) => s.setPersonCreated);
+
   const [name, setName] = useState('');
   const [gender, setGender] = useState<'male' | 'female'>('female');
-  const [hair, setHair] = useState(HAIR_OPTIONS[0]);
-  const [outfit, setOutfit] = useState(OUTFIT_OPTIONS[0]);
+  const [hair, setHair] = useState<string>(HAIR_OPTIONS[0]);
+  const [outfit, setOutfit] = useState<string>(OUTFIT_OPTIONS[0]);
   const [profession, setProfession] = useState<Profession>('ATTACK');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const { navigateTo } = useGameStore();
-  const { setPlayer, playerId, setPersonCreated } = usePlayerStore();
 
   const handleCreate = useCallback(async () => {
     const finalName = name.trim() || `旅人${Date.now() % 10000}`;
     setCreating(true);
     setError('');
     try {
-      const features = `${hair}，${outfit}`;
+      const features = `${hair.replace(/\s/g, '')}，${outfit.replace(/\s/g, '')}`;
       const res = await initPerson(finalName, gender, features, profession);
       setPlayer(playerId, res.name, '');
       setPersonCreated(true);
       navigateTo('home');
-    } catch (e: unknown) {
+    } catch (e) {
       setError(e instanceof Error ? e.message : '创建失败');
     }
     setCreating(false);
   }, [name, gender, hair, outfit, profession, playerId, setPlayer, setPersonCreated, navigateTo]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>创建角色</h2>
-        <p className={styles.subtitle}>踏入轮回之前，先塑你今世之身</p>
-      </div>
-      <div className={styles.scrollArea}>
-        <div className={styles.createPreview}>
-          <div className={styles.avatarLarge}>
-            {gender === 'female' ? '👩' : '👨'}
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>塑 身</span>
+            <span className={styles.appbarZone}>轮回之前 · 塑今世之身</span>
           </div>
         </div>
+      </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>角色名</h3>
+      <div className={styles.scrollPlain}>
+        <div className={styles.ccHero}>
+          <div className={styles.ccHeroTitle}>{gender === 'female' ? '红 颜' : '铁 骨'}</div>
+          <div className={styles.ccHeroSub}>{name.trim() || '未 名 侠 客'}</div>
+        </div>
+
+        <div className={styles.ccSection}>
+          <div className={styles.ccLabel}>角 色 名</div>
           <input
-            style={{
-              width: '100%', padding: '10px 12px',
-              background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
-              borderRadius: 'var(--radius-md)', color: 'var(--ink)',
-              fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box',
-            }}
+            className={styles.ccInput}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="请输入角色名（可留空自动生成）"
+            placeholder="请输入角色名 · 留空自动生成"
             maxLength={12}
           />
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>职业</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className={styles.ccSection}>
+          <div className={styles.ccLabel}>职 业 路 线</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {PROFESSIONS.map((p) => (
               <button
                 key={p.id}
-                className={`${styles.optionBtn} ${profession === p.id ? styles.optionActive : ''}`}
+                className={`${styles.ccOption} ${profession === p.id ? styles.ccOptionOn : ''}`.trim()}
                 onClick={() => setProfession(p.id)}
-                style={{ textAlign: 'left', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '2px' }}
+                type="button"
+                style={{ textAlign: 'left', padding: 12 }}
               >
-                <span style={{ fontWeight: 600 }}>{p.name}</span>
-                <span style={{ fontSize: '12px', opacity: 0.7 }}>{p.desc}</span>
+                <div style={{ fontSize: 14, letterSpacing: 3 }}>{p.name}</div>
+                <div style={{ fontSize: 10, marginTop: 4, color: 'var(--text-dim)', letterSpacing: 1 }}>{p.desc}</div>
               </button>
             ))}
           </div>
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>性别</h3>
-          <div className={styles.optionRow}>
-            <button className={`${styles.optionBtn} ${gender === 'female' ? styles.optionActive : ''}`}
-                    onClick={() => setGender('female')}>女</button>
-            <button className={`${styles.optionBtn} ${gender === 'male' ? styles.optionActive : ''}`}
-                    onClick={() => setGender('male')}>男</button>
+        <div className={styles.ccSection}>
+          <div className={styles.ccLabel}>性 别</div>
+          <div className={styles.ccGridHalf}>
+            <button
+              className={`${styles.ccOption} ${gender === 'female' ? styles.ccOptionOn : ''}`.trim()}
+              onClick={() => setGender('female')}
+              type="button"
+            >女</button>
+            <button
+              className={`${styles.ccOption} ${gender === 'male' ? styles.ccOptionOn : ''}`.trim()}
+              onClick={() => setGender('male')}
+              type="button"
+            >男</button>
           </div>
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>发型</h3>
-          <div className={styles.optionRow}>
+        <div className={styles.ccSection}>
+          <div className={styles.ccLabel}>发 型</div>
+          <div className={styles.ccGridHalf}>
             {HAIR_OPTIONS.map((h) => (
               <button
                 key={h}
-                className={`${styles.optionBtn} ${hair === h ? styles.optionActive : ''}`}
+                className={`${styles.ccOption} ${hair === h ? styles.ccOptionOn : ''}`.trim()}
                 onClick={() => setHair(h)}
-              >
-                {h}
-              </button>
+                type="button"
+              >{h}</button>
             ))}
           </div>
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>服饰</h3>
-          <div className={styles.optionRow}>
+        <div className={styles.ccSection}>
+          <div className={styles.ccLabel}>服 饰</div>
+          <div className={styles.ccGridHalf}>
             {OUTFIT_OPTIONS.map((c) => (
               <button
                 key={c}
-                className={`${styles.optionBtn} ${outfit === c ? styles.optionActive : ''}`}
+                className={`${styles.ccOption} ${outfit === c ? styles.ccOptionOn : ''}`.trim()}
                 onClick={() => setOutfit(c)}
-              >
-                {c}
-              </button>
+                type="button"
+              >{c}</button>
             ))}
           </div>
         </div>
 
-        {error && <p style={{ color: 'var(--red)', fontSize: '13px', textAlign: 'center' }}>{error}</p>}
+        {error && (
+          <div style={{ margin: '10px 14px 0', color: 'var(--accent-red)', fontSize: 12, textAlign: 'center', letterSpacing: 2 }}>
+            {error}
+          </div>
+        )}
 
-        <button className={styles.primaryBtn} onClick={handleCreate} disabled={creating}>
-          {creating ? '创建中...' : '确认创建'}
+        <button
+          className={styles.ccSubmit}
+          onClick={handleCreate}
+          disabled={creating}
+          type="button"
+        >
+          {creating ? '塑 身 中 ...' : '✦ 确 认 塑 身'}
         </button>
       </div>
     </div>

@@ -1,47 +1,59 @@
-import { useEffect, useState, useCallback } from 'react';
-import { fetchBagItems, useBagItem, type BagItemData } from '../../services/api';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { fetchBagItems, useBagItem, type BagItemData, type BagCapacity } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
+import { Bar } from '../common/fusion';
 import styles from './lunhui/LunhuiPages.module.css';
 
-const GRID_SIZE = 20;
-
-const TABS = [
-  { key: '', label: '全部' },
-  { key: 'equipment', label: '装备' },
-  { key: 'consumable', label: '消耗' },
-  { key: 'other', label: '其他' },
+const TABS: { key: string; label: string; match: (item: BagItemData) => boolean }[] = [
+  { key: 'all', label: '全部', match: () => true },
+  { key: 'equipment', label: '装备', match: (i) => i.category === 'equipment' },
+  { key: 'consumable', label: '丹药', match: (i) => i.category === 'consumable' },
+  { key: 'material', label: '材料', match: (i) => i.category === 'material' },
+  { key: 'pet', label: '宝宝', match: (i) => i.category === 'pet' },
+  { key: 'other', label: '其他', match: (i) => !['equipment', 'consumable', 'material', 'pet'].includes(i.category || '') },
 ];
 
 function qualityClass(q?: string) {
-  if (q === 'orange') return styles.invOrange;
-  if (q === 'purple') return styles.invPurple;
-  if (q === 'blue') return styles.invBlue;
-  if (q === 'green') return styles.invGreen;
-  if (q === 'white') return styles.invWhite;
-  return '';
+  switch (q) {
+    case 'orange': return styles.invOrange;
+    case 'purple': return styles.invPurple;
+    case 'blue': return styles.invBlue;
+    case 'green': return styles.invGreen;
+    case 'white': return styles.invWhite;
+    default: return '';
+  }
 }
 
+const EQUIP_POSITION_LABEL: Record<number, string> = {
+  1: '武器', 2: '头盔', 3: '战甲', 4: '护腕', 5: '战靴', 6: '戒指', 7: '项链', 8: '腰带',
+};
+
 export default function InventoryPage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
   const [items, setItems] = useState<BagItemData[]>([]);
+  const [capacity, setCapacity] = useState<BagCapacity | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BagItemData | null>(null);
   const [operating, setOperating] = useState(false);
-  const [tab, setTab] = useState('');
-  const { navigateTo } = useGameStore();
+  const [tab, setTab] = useState('all');
 
   const loadBag = useCallback(() => {
     setLoading(true);
     fetchBagItems()
-      .then((res) => setItems(res.items || []))
-      .catch(() => setItems([]))
+      .then((res) => {
+        setItems(res.items || []);
+        setCapacity(res.capacity || null);
+      })
+      .catch(() => {
+        setItems([]);
+        setCapacity(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    loadBag();
-  }, [loadBag]);
+  useEffect(() => { loadBag(); }, [loadBag]);
 
   const handleUse = useCallback(async () => {
     if (!selected) return;
@@ -64,16 +76,16 @@ export default function InventoryPage() {
     setOperating(false);
   }, [loadBag, selected]);
 
-  const filtered = tab
-    ? items.filter((item) => {
-      if (tab === 'equipment') return item.category === 'equipment';
-      if (tab === 'consumable') return item.category === 'consumable';
-      return item.category !== 'equipment' && item.category !== 'consumable';
-    })
-    : items;
+  const filtered = useMemo(() => {
+    const tabDef = TABS.find((t) => t.key === tab) ?? TABS[0];
+    return items.filter(tabDef.match);
+  }, [items, tab]);
 
+  const usedCount = capacity?.used ?? items.length;
+  const maxCount = capacity?.max ?? Math.max(items.length, 40);
+  const minSlots = Math.max(maxCount, 20);
   const slots: (BagItemData | null)[] = [...filtered];
-  while (slots.length < GRID_SIZE) slots.push(null);
+  while (slots.length < minSlots) slots.push(null);
 
   return (
     <div className={styles.mockPage}>
@@ -81,25 +93,33 @@ export default function InventoryPage() {
         <div className={styles.appbarRow}>
           <div className={styles.appbarLoc}>
             <span className={styles.appbarBook}>背 包</span>
-            <span className={styles.appbarZone}>{items.length} 件物品 · 可从此装备/使用</span>
+            <span className={styles.appbarZone}>道具 · 装备</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('market')} type="button">售</button>
+            <button className={styles.appbarIcon} onClick={loadBag} type="button" aria-label="整理">整</button>
           </div>
         </div>
       </div>
 
-      <div className={styles.invTabs}>
+      <div className={`${styles.invTabs} ${styles.invTabsScroller}`}>
         {TABS.map((item) => (
           <button
             key={item.key}
             className={`${styles.invTab} ${tab === item.key ? styles.invTabOn : ''}`.trim()}
-            onClick={() => {
-              setTab(item.key);
-              setSelected(null);
-            }}
+            onClick={() => { setTab(item.key); setSelected(null); }}
             type="button"
           >
             {item.label}
           </button>
         ))}
+      </div>
+
+      <div className={styles.invCapbar}>
+        <span className={styles.capLabel}>容量</span>
+        <span className={styles.capValue}>{usedCount} / {maxCount}</span>
+        <Bar kind="gold" current={usedCount} max={maxCount} />
+        <button className={styles.invCapExt} onClick={() => toast.info('扩容卡暂未开放')} type="button">＋ 扩容卡</button>
       </div>
 
       <div className={styles.scrollPlain}>
@@ -114,10 +134,11 @@ export default function InventoryPage() {
                   className={`${styles.invSlot} ${item ? `${styles.invSlotHasItem} ${qualityClass(item.quality)}` : ''} ${selected?.id === item?.id ? styles.invSlotSelected : ''}`.trim()}
                   onClick={() => item && setSelected(item.id === selected?.id ? null : item)}
                   type="button"
+                  disabled={!item}
                 >
                   {item ? (item.icon || item.name?.slice(0, 1) || '物') : ''}
-                  {item?.quantity && item.quantity > 1 && <span className={styles.invQty}>{item.quantity}</span>}
-                  {item?.equipId && <span className={styles.invBind}>装</span>}
+                  {item && item.quantity > 1 && <span className={styles.invQty}>{item.quantity}</span>}
+                  {item?.equipId && <span className={styles.invBind}>绑</span>}
                 </button>
               ))}
             </div>
@@ -127,13 +148,17 @@ export default function InventoryPage() {
                 <div>
                   <span className={styles.invDetailName}>{selected.name || selected.itemTypeId}</span>
                   {selected.quality && <span className={styles.invDetailTag}>{selected.quality}</span>}
-                  {selected.equipId && <span className={styles.invDetailBind}>[装备]</span>}
+                  {selected.equipId && <span className={styles.invDetailBind}>[已绑]</span>}
                 </div>
-                <div className={styles.invDetailLevel}>{selected.description || '暂无详细说明'}</div>
+                <div className={styles.invDetailLevel}>
+                  {selected.description || '暂无详细说明'}
+                </div>
                 <div className={styles.invDetailAttrs}>
                   <span>数量 <span className={styles.plusValue}>{selected.quantity}</span></span>
-                  <span>类别 <span className={styles.plusValue}>{selected.category || 'other'}</span></span>
-                  {selected.equipPosition && <span>部位 <span className={styles.plusValue}>{selected.equipPosition}</span></span>}
+                  {selected.category && <span>类别 <span className={styles.plusValue}>{selected.category}</span></span>}
+                  {selected.equipPosition != null && (
+                    <span>部位 <span className={styles.plusValue}>{EQUIP_POSITION_LABEL[selected.equipPosition] || selected.equipPosition}</span></span>
+                  )}
                 </div>
                 <div className={styles.invDetailOps}>
                   {(selected.effectType || selected.category === 'consumable') && !selected.equipId && (
@@ -142,14 +167,12 @@ export default function InventoryPage() {
                     </button>
                   )}
                   {selected.equipId && (
-                    <button className={`${styles.invOp} ${styles.invOpGold}`} onClick={() => navigateTo('character')} type="button">
-                      装备
-                    </button>
-                  )}
-                  {selected.equipId && (
-                    <button className={styles.invOp} onClick={() => navigateTo('forge', { equipId: selected.equipId })} type="button">
-                      鬼炉
-                    </button>
+                    <>
+                      <button className={styles.invOp} onClick={() => navigateTo('character')} type="button">装备</button>
+                      <button className={`${styles.invOp} ${styles.invOpGold}`} onClick={() => navigateTo('forge', { equipId: selected.equipId })} type="button">神匠</button>
+                      <button className={`${styles.invOp} ${styles.invOpGold}`} onClick={() => navigateTo('enchant', { equipId: selected.equipId })} type="button">附魂</button>
+                      <button className={`${styles.invOp} ${styles.invOpRed}`} onClick={() => toast.info('典当功能开发中')} type="button">典当</button>
+                    </>
                   )}
                 </div>
               </div>

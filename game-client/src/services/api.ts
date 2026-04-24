@@ -374,7 +374,12 @@ export interface BagItemData {
   effectType?: string;
 }
 
-export function fetchBagItems(): Promise<{ items: BagItemData[] }> {
+export interface BagCapacity {
+  used: number;
+  max: number;
+}
+
+export function fetchBagItems(): Promise<{ items: BagItemData[]; capacity?: BagCapacity }> {
   return request('/bag/list');
 }
 
@@ -1224,6 +1229,7 @@ export interface GuildData {
   notice: string;
   totalConstruction: number;
   totalHonor: number;
+  createTime?: number;
   myPosition?: string;
   myContribution?: number;
   myConstruction?: number;
@@ -1596,11 +1602,43 @@ export function fetchMessageBoard(zoneId?: string): Promise<{ messages: BoardMes
   return request(`/message-board/list${q}`);
 }
 
-export function postBoardMessage(content: string, zoneId?: string): Promise<BoardMessage> {
+export function postBoardMessage(
+  content: string,
+  zoneId?: string,
+  type: 'user' | 'ad' | 'trade' = 'user',
+): Promise<BoardMessage> {
   return request('/message-board/post', {
     method: 'POST',
-    body: JSON.stringify({ content, zoneId }),
+    body: JSON.stringify({ content, zoneId, type }),
   });
+}
+
+// ── VIP ──────────────────────────────────────
+
+export interface VipBenefit {
+  key: string;
+  name: string;
+  unlockLevel: number;
+}
+
+export interface VipMilestone {
+  level: number;
+  cost: number;
+  reward: string;
+}
+
+export interface VipInfo {
+  level: number;
+  currentExp: number;
+  nextLevelExp: number;
+  benefits: VipBenefit[];
+  milestones: VipMilestone[];
+  monthlyCardActive: boolean;
+  monthlyCardExpireAt: number;
+}
+
+export function fetchVipInfo(): Promise<VipInfo> {
+  return request('/vip/info');
 }
 
 // ── 玩友 / 邮件 ──────────────────────────────────────

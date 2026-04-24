@@ -1,134 +1,160 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { addBookFromWeb, fetchBookWorlds, selectBookWorld } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import type { BookWorld } from '../../types';
-import styles from './PageSkeleton.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-/** P13 · 书籍世界选择页 */
+type AddMsg = { kind: 'ok' | 'err'; text: string } | null;
+
 export default function BookWorldPage() {
+  const setBookWorld = useGameStore((s) => s.setBookWorld);
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const currentWorldIndex = usePlayerStore((s) => s.currentWorldIndex);
+
   const [books, setBooks] = useState<BookWorld[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [adding, setAdding] = useState(false);
-  const [addMsg, setAddMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [addMsg, setAddMsg] = useState<AddMsg>(null);
+  const [entering, setEntering] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { setBookWorld } = useGameStore();
-  const { currentWorldIndex } = usePlayerStore();
-
-  const loadBooks = useCallback(() => {
-    fetchBookWorlds()
-      .then((res) => setBooks(res.books))
-      .catch(() => {});
+  const loadBooks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchBookWorlds();
+      setBooks(res.books || []);
+    } catch {
+      setBooks([]);
+    }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadBooks();
-  }, [loadBooks]);
+  useEffect(() => { loadBooks(); }, [loadBooks]);
 
   useEffect(() => {
-    if (showAdd && inputRef.current) {
-      inputRef.current.focus();
+    if (showAdd) {
+      inputRef.current?.focus();
     }
   }, [showAdd]);
 
-  const handleSelect = async (book: BookWorld) => {
-    await selectBookWorld(currentWorldIndex, book.id);
-    setBookWorld(book);
-  };
+  const handleSelect = useCallback(async (book: BookWorld) => {
+    setEntering(book.id);
+    try {
+      await selectBookWorld(currentWorldIndex, book.id);
+      setBookWorld(book);
+    } finally {
+      setEntering(null);
+    }
+  }, [currentWorldIndex, setBookWorld]);
 
-  const handleAdd = async () => {
+  const handleAdd = useCallback(async () => {
     const title = addTitle.trim();
     if (!title) return;
-
     setAdding(true);
     setAddMsg(null);
-
     try {
       const res = await addBookFromWeb(title);
-      setAddMsg({ type: 'success', text: res.msg });
+      setAddMsg({ kind: 'ok', text: res.msg });
       setAddTitle('');
-      loadBooks();
-      // 3秒后关闭提示
-      setTimeout(() => setAddMsg(null), 3000);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '添加失败';
-      setAddMsg({ type: 'error', text: msg });
-    } finally {
-      setAdding(false);
+      await loadBooks();
+      window.setTimeout(() => setAddMsg(null), 3000);
+    } catch (e) {
+      setAddMsg({ kind: 'err', text: e instanceof Error ? e.message : '添加失败' });
     }
-  };
+    setAdding(false);
+  }, [addTitle, loadBooks]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !adding) {
-      handleAdd();
-    }
-  };
+  const firstChar = (s: string) => (s || '').trim().slice(0, 1) || '书';
 
   return (
-    <div className={styles.page}>
-      <div className={styles.headerRow}>
-        <div className={styles.headerLeft}>
-          <h2 className={styles.title}>书籍世界</h2>
-          <p className={styles.subtitle}>选择一部作品，踏入那个世界</p>
-        </div>
-        <button className={styles.addToggleBtn} onClick={() => setShowAdd(!showAdd)}>
-          {showAdd ? '收起' : '添加书籍'}
-        </button>
-      </div>
-
-      {showAdd && (
-        <>
-          <div className={styles.addBookBar}>
-            <input
-              ref={inputRef}
-              className={styles.addBookInput}
-              placeholder={'输入书名，如"雪中悍刀行"'}
-              value={addTitle}
-              onChange={(e) => setAddTitle(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={adding}
-            />
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>书 境</span>
+            <span className={styles.appbarZone}>入一本书 · 化身其中</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('home')} type="button" aria-label="首页">家</button>
             <button
-              className={styles.addBookBtn}
-              onClick={handleAdd}
-              disabled={adding || !addTitle.trim()}
+              className={styles.appbarIcon}
+              onClick={() => setShowAdd((v) => !v)}
+              type="button"
+              aria-label={showAdd ? '收起' : '新增'}
             >
-              {adding ? '获取中...' : '搜索添加'}
+              {showAdd ? '×' : '＋'}
             </button>
           </div>
-          {adding && (
-            <div className={styles.addBookLoading}>
-              正在从网络获取书籍并分析角色，请稍候...
-            </div>
-          )}
-          {addMsg && (
-            <div className={addMsg.type === 'success' ? styles.addBookSuccess : styles.addBookError}>
-              {addMsg.text}
-            </div>
-          )}
-        </>
-      )}
+        </div>
+      </div>
 
-      <div className={styles.scrollArea}>
-        {books.length === 0 ? (
-          <div className={styles.empty}>
-            <span className={styles.placeholderIcon}>📚</span>
-            <p>加载书籍中...</p>
-          </div>
+      <div className={styles.scrollPlain}>
+        <div className={styles.bwHero}>
+          <div className={styles.bwHeroTitle}>书 籍 世 界</div>
+          <div className={styles.bwHeroSub}>选一部作品 · 踏入那个世界</div>
+          {showAdd && (
+            <>
+              <div className={styles.bwAddBar}>
+                <input
+                  ref={inputRef}
+                  className={styles.bwAddInput}
+                  placeholder="输入书名，如《雪中悍刀行》"
+                  value={addTitle}
+                  onChange={(e) => setAddTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !adding) {
+                      e.preventDefault();
+                      handleAdd();
+                    }
+                  }}
+                  disabled={adding}
+                />
+                <button
+                  className={styles.bwAddBtn}
+                  onClick={handleAdd}
+                  disabled={adding || !addTitle.trim()}
+                  type="button"
+                >
+                  {adding ? '搜索中...' : '搜 索 入 册'}
+                </button>
+              </div>
+              {addMsg && (
+                <div className={`${styles.bwAddMsg} ${addMsg.kind === 'ok' ? styles.bwAddMsgOk : styles.bwAddMsgErr}`}>
+                  {addMsg.text}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className={styles.sectRow}>
+          藏 书 阁
+          <span className={styles.sectMore}>共 {books.length} 卷</span>
+        </div>
+
+        {loading ? (
+          <div className={styles.feedEmpty}>藏书加载中...</div>
+        ) : books.length === 0 ? (
+          <div className={styles.feedEmpty}>书海空空 · 点击右上角＋添加</div>
         ) : (
-          <div className={styles.bookGrid}>
+          <div className={styles.bwGrid}>
             {books.map((book) => (
-              <button key={book.id} className={styles.bookCard} onClick={() => handleSelect(book)}>
-                <div className={styles.bookCover}>
-                  <span className={styles.bookEmoji}>📖</span>
+              <button
+                key={book.id}
+                className={styles.bwCard}
+                onClick={() => handleSelect(book)}
+                disabled={entering === book.id}
+                type="button"
+              >
+                <div className={styles.bwCardCover}>{firstChar(book.title)}</div>
+                <div className={styles.bwCardTitle}>
+                  {entering === book.id ? '入册中...' : book.title}
                 </div>
-                <div className={styles.bookInfo}>
-                  <span className={styles.bookTitle}>{book.title}</span>
-                  <span className={styles.bookAuthor}>{book.author}</span>
-                  <span className={styles.bookCategory}>{book.category}</span>
-                </div>
+                <div className={styles.bwCardAuthor}>{book.author || '佚名'}</div>
+                {book.category && <div className={styles.bwCardCategory}>{book.category}</div>}
               </button>
             ))}
           </div>

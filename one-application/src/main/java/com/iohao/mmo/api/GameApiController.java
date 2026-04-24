@@ -222,6 +222,8 @@ public class GameApiController {
     private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> friendMap = new ConcurrentHashMap<>();
     /** 邮件列表：playerId -> mails */
     private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> mailMap = new ConcurrentHashMap<>();
+    /** 集市挂单：listingId -> listing */
+    private final ConcurrentHashMap<String, Map<String, Object>> marketListings = new ConcurrentHashMap<>();
 
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
@@ -1212,8 +1214,14 @@ public class GameApiController {
             items.add(m);
         }
 
-        return ok(Map.of("items", items));
+        Map<String, Object> capacity = new LinkedHashMap<>();
+        capacity.put("used", items.size());
+        capacity.put("max", BAG_DEFAULT_CAPACITY);
+        return ok(Map.of("items", items, "capacity", capacity));
     }
+
+    /** 背包默认容量上限（扩容卡功能落地后改为 Bag 实体字段） */
+    private static final int BAG_DEFAULT_CAPACITY = 40;
 
     @PostMapping("/bag/use")
     public ResponseEntity<Map<String, Object>> useBagItem(@RequestBody Map<String, Object> body, HttpSession session) {
@@ -3356,6 +3364,7 @@ public class GameApiController {
         m.put("notice", g.getNotice());
         m.put("totalConstruction", g.getTotalConstruction());
         m.put("totalHonor", g.getTotalHonor());
+        m.put("createTime", g.getCreateTime());
         return m;
     }
 
@@ -4446,7 +4455,12 @@ public class GameApiController {
         var msgs = boardMessages.getOrDefault(zoneId, new CopyOnWriteArrayList<>());
         var sorted = new ArrayList<>(msgs);
         sorted.sort((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")));
-        return ok(Map.of("messages", sorted.stream().limit(50).toList()));
+        var out = sorted.stream().limit(50).map(m -> {
+            Map<String, Object> copy = new LinkedHashMap<>(m);
+            copy.putIfAbsent("type", "user");
+            return copy;
+        }).toList();
+        return ok(Map.of("messages", out));
     }
 
     @PostMapping("/message-board/post")
@@ -4456,6 +4470,7 @@ public class GameApiController {
         if (content == null || content.isBlank()) return err("内容不能为空");
         if (content.length() > 140) return err("内容不能超过140字");
         String zoneId = (String) body.getOrDefault("zoneId", "world");
+        String type = sanitizeBoardType((String) body.get("type"));
         String username = (String) session.getAttribute("username");
         Map<String, Object> msg = new LinkedHashMap<>();
         msg.put("id", java.util.UUID.randomUUID().toString());
@@ -4463,9 +4478,19 @@ public class GameApiController {
         msg.put("authorName", username != null ? username : "玩家" + userId);
         msg.put("content", content);
         msg.put("zoneId", zoneId);
+        msg.put("type", type);
         msg.put("createdAt", System.currentTimeMillis());
         boardMessages.computeIfAbsent(zoneId, k -> new CopyOnWriteArrayList<>()).add(0, msg);
         return ok(msg);
+    }
+
+    /** 留言板类别白名单：user/ad/trade/system；未知值归并为 user */
+    private String sanitizeBoardType(String raw) {
+        if (raw == null) return "user";
+        return switch (raw) {
+            case "ad", "trade", "system", "user" -> raw;
+            default -> "user";
+        };
     }
 
     // ── 玩友 (Friend) ────────────────────────────────
@@ -4610,5 +4635,161 @@ public class GameApiController {
         requireLogin(session);
         String rewardId = (String) body.get("rewardId");
         return ok(Map.of("success", true, "reward", rewardId + " 已领取"));
+    }
+
+    // ── 集市 (Market / 玩家挂单) ───────────────────────
+
+    @GetMapping("/market/list")
+    public ResponseEntity<Map<String, Object>> marketList(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            HttpSession session) {
+        requireLogin(session);
+        int pageSize = 30;
+        String catFilter = (category == null || category.isBlank()) ? null : category;
+        String kwFilter = (keyword == null || keyword.isBlank()) ? null : keyword.toLowerCase(java.util.Locale.ROOT);
+        var all = marketListings.values().stream()
+                .filter(l -> "ACTIVE".equals(l.get("status")))
+                .filter(l -> catFilter == null || catFilter.equals(l.get("itemCategory")))
+                .filter(l -> kwFilter == null || ((String) l.getOrDefault("itemName", ""))
+                        .toLowerCase(java.util.Locale.ROOT).contains(kwFilter))
+                .sorted((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")))
+                .toList();
+        int total = all.size();
+        int from = Math.min(page * pageSize, total);
+        int to = Math.min(from + pageSize, total);
+        var items = all.subList(from, to).stream().map(this::marketView).toList();
+        return ok(Map.of("items", items, "total", total));
+    }
+
+    @PostMapping("/market/sell")
+    public ResponseEntity<Map<String, Object>> marketSell(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String itemId = (String) body.get("itemId");
+        if (itemId == null || itemId.isBlank()) return err("物品不能为空");
+        long price = ((Number) body.getOrDefault("price", 0)).longValue();
+        if (price <= 0) return err("价格需大于 0");
+        int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+        if (quantity <= 0) return err("数量需大于 0");
+
+        String itemName = (String) body.getOrDefault("itemName", "物品");
+        String itemCategory = (String) body.getOrDefault("itemCategory", "misc");
+        String itemQuality = (String) body.getOrDefault("itemQuality", "common");
+        String sellerName = (String) session.getAttribute("username");
+        if (sellerName == null || sellerName.isBlank()) sellerName = "玩家" + userId;
+
+        String listingId = java.util.UUID.randomUUID().toString();
+        Map<String, Object> listing = new LinkedHashMap<>();
+        listing.put("listingId", listingId);
+        listing.put("sellerId", userId);
+        listing.put("sellerName", sellerName);
+        listing.put("itemId", itemId);
+        listing.put("itemName", itemName);
+        listing.put("itemCategory", itemCategory);
+        listing.put("itemQuality", itemQuality);
+        listing.put("unitPrice", price);
+        listing.put("quantity", quantity);
+        listing.put("sold", 0);
+        listing.put("createdAt", System.currentTimeMillis());
+        listing.put("status", "ACTIVE");
+        marketListings.put(listingId, listing);
+        return ok(Map.of("listingId", listingId));
+    }
+
+    @PostMapping("/market/buy")
+    public ResponseEntity<Map<String, Object>> marketBuy(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String listingId = (String) body.get("listingId");
+        int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
+        if (quantity <= 0) return err("数量需大于 0");
+
+        Map<String, Object> listing = marketListings.get(listingId);
+        if (listing == null) return err("挂单不存在");
+        if (!"ACTIVE".equals(listing.get("status"))) return err("挂单已结束");
+        Long sellerId = ((Number) listing.get("sellerId")).longValue();
+        if (sellerId != null && sellerId == userId) return err("不能购买自己的挂单");
+
+        int remain = ((Number) listing.get("quantity")).intValue() - ((Number) listing.get("sold")).intValue();
+        if (remain <= 0) return err("库存不足");
+        int buy = Math.min(quantity, remain);
+        int newSold = ((Number) listing.get("sold")).intValue() + buy;
+        listing.put("sold", newSold);
+        if (newSold >= ((Number) listing.get("quantity")).intValue()) {
+            listing.put("status", "SOLD_OUT");
+        }
+        return ok(Map.of("success", true, "bought", buy, "remaining", remain - buy));
+    }
+
+    @GetMapping("/market/my-listings")
+    public ResponseEntity<Map<String, Object>> marketMyListings(HttpSession session) {
+        long userId = requireLogin(session);
+        var mine = marketListings.values().stream()
+                .filter(l -> ((Number) l.get("sellerId")).longValue() == userId)
+                .sorted((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")))
+                .map(this::marketView).toList();
+        return ok(Map.of("items", mine));
+    }
+
+    @PostMapping("/market/cancel")
+    public ResponseEntity<Map<String, Object>> marketCancel(@RequestBody Map<String, Object> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String listingId = (String) body.get("listingId");
+        Map<String, Object> listing = marketListings.get(listingId);
+        if (listing == null) return err("挂单不存在");
+        if (((Number) listing.get("sellerId")).longValue() != userId) return err("无权撤回");
+        if (!"ACTIVE".equals(listing.get("status"))) return err("挂单已结束");
+        listing.put("status", "CANCELLED");
+        return ok(Map.of("success", true));
+    }
+
+    private Map<String, Object> marketView(Map<String, Object> listing) {
+        Map<String, Object> v = new LinkedHashMap<>();
+        v.put("listingId", listing.get("listingId"));
+        v.put("itemId", listing.get("itemId"));
+        v.put("itemName", listing.get("itemName"));
+        v.put("itemCategory", listing.get("itemCategory"));
+        v.put("itemQuality", listing.get("itemQuality"));
+        v.put("sellerId", listing.get("sellerId"));
+        v.put("sellerName", listing.get("sellerName"));
+        v.put("unitPrice", listing.get("unitPrice"));
+        v.put("quantity", listing.get("quantity"));
+        v.put("sold", listing.get("sold"));
+        v.put("createdAt", listing.get("createdAt"));
+        return v;
+    }
+
+    // ── VIP / 成长线 ──────────────────────────────────
+
+    @GetMapping("/vip/info")
+    public ResponseEntity<Map<String, Object>> vipInfo(HttpSession session) {
+        requireLogin(session);
+        int currentLevel = 0;
+        long currentExp = 0L;
+        long nextLevelExp = 500L;
+        List<Map<String, Object>> benefits = List.of(
+            Map.of("key", "auctionFee",    "name", "拍卖手续费 -50%", "unlockLevel", 3),
+            Map.of("key", "offlineBoost",  "name", "离线托管时长 +8h", "unlockLevel", 5),
+            Map.of("key", "bossBonus",     "name", "世界 Boss 额外奖励", "unlockLevel", 8),
+            Map.of("key", "onlineDouble",  "name", "每日在线领奖翻倍", "unlockLevel", 10),
+            Map.of("key", "expBonus",      "name", "每日经验加成 +20%", "unlockLevel", 2),
+            Map.of("key", "gemDaily",      "name", "每日赠送 50 玩币", "unlockLevel", 4)
+        );
+        List<Map<String, Object>> milestones = List.of(
+            Map.of("level", 1, "cost", 100,  "reward", "玩币 * 200"),
+            Map.of("level", 3, "cost", 500,  "reward", "玩币 * 1500"),
+            Map.of("level", 5, "cost", 2000, "reward", "紫装宝箱 * 1"),
+            Map.of("level", 8, "cost", 8000, "reward", "金装宝箱 * 1"),
+            Map.of("level", 10, "cost", 20000, "reward", "终极尊荣座骑")
+        );
+        return ok(Map.ofEntries(
+            Map.entry("level", currentLevel),
+            Map.entry("currentExp", currentExp),
+            Map.entry("nextLevelExp", nextLevelExp),
+            Map.entry("benefits", benefits),
+            Map.entry("milestones", milestones),
+            Map.entry("monthlyCardActive", false),
+            Map.entry("monthlyCardExpireAt", 0L)
+        ));
     }
 }

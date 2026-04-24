@@ -1,168 +1,209 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { fetchShopItems, fetchPlayerCurrency, purchaseItem, type ShopItemData } from '../../services/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchShopItems,
+  fetchPlayerCurrency,
+  purchaseItem,
+  type ShopItemData,
+} from '../../services/api';
+import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
-import { QUALITY_COLOR_MAP } from '../../constants/quality';
-import styles from './PageSkeleton.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const POSITION_LABELS: Record<number, string> = { 1: '武器', 2: '护甲', 3: '饰品' };
-
-const CATEGORIES = [
+const TABS: { key: string; label: string }[] = [
   { key: '', label: '全部' },
   { key: 'hot', label: '热销' },
   { key: 'equipment', label: '装备' },
-  { key: 'consumable', label: '消耗品' },
+  { key: 'consumable', label: '丹药' },
   { key: 'material', label: '材料' },
   { key: 'special', label: '特殊' },
 ];
 
-const CURRENCY_ICON: Record<string, string> = { gold: '🪙', diamond: '💎' };
+const POSITION_LABEL: Record<number, string> = {
+  1: '武器', 2: '护甲', 3: '饰品', 4: '护腕', 5: '战靴', 6: '戒指', 7: '项链', 8: '腰带',
+};
+
+const QUALITY_TAG: Record<string, string> = {
+  legendary: '顶档',
+  epic: '稀有',
+  rare: '精良',
+  uncommon: '良品',
+  common: '普品',
+};
+
+const CURRENCY_UNIT: Record<string, string> = {
+  gold: '金币',
+  diamond: '玩币',
+};
+
+function isVip(item: ShopItemData) {
+  return item.quality === 'legendary' || item.quality === 'epic';
+}
+
+function itemIconChar(item: ShopItemData): string {
+  if (item.icon && !/^\p{Emoji}$/u.test(item.icon)) return item.icon;
+  return (item.name || item.id).slice(0, 1);
+}
 
 export default function ShopPage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const setCurrencyStore = usePlayerStore((s) => s.setCurrency);
   const [items, setItems] = useState<ShopItemData[]>([]);
   const [currency, setCurrency] = useState({ gold: 0, diamond: 0 });
-  const [category, setCategory] = useState('');
+  const [tab, setTab] = useState('');
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadItems = useCallback(async () => {
+    const res = await fetchShopItems(tab || undefined).catch(() => ({ items: [] as ShopItemData[] }));
+    setItems(res.items || []);
+  }, [tab]);
+
+  const loadCurrency = useCallback(async () => {
+    const cur = await fetchPlayerCurrency().catch(() => ({ gold: 0, diamond: 0 }));
+    setCurrency(cur);
+    setCurrencyStore(cur.gold, cur.diamond);
+  }, [setCurrencyStore]);
+
+  useEffect(() => {
     setLoading(true);
-    try {
-      const [shopRes, curRes] = await Promise.all([
-        fetchShopItems(category || undefined),
-        fetchPlayerCurrency(),
-      ]);
-      setItems(shopRes.items || []);
-      setCurrency(curRes);
-    } catch { /* noop */ }
-    setLoading(false);
-  }, [category]);
+    Promise.all([loadItems(), loadCurrency()]).finally(() => setLoading(false));
+  }, [loadItems, loadCurrency]);
 
-  useEffect(() => { loadData(); }, [loadData]);
-
-  const handleBuy = useCallback(async (itemId: string) => {
-    setBuying(itemId);
+  const handleBuy = useCallback(async (item: ShopItemData, evt?: React.MouseEvent) => {
+    evt?.stopPropagation();
+    setBuying(item.id);
     try {
-      await purchaseItem(itemId);
-      const item = items.find(i => i.id === itemId);
-      if (item?.equipPosition && item.equipPosition > 0) {
-        toast.reward(`获得装备：${item.name}`);
+      const result = await purchaseItem(item.id);
+      if (result && result.success === false) {
+        toast.error((result.message as string) || '购买失败');
+      } else if (item.equipPosition && item.equipPosition > 0) {
+        toast.reward(`获得装备 · ${item.name}`);
       } else {
-        toast.success('购买成功');
+        toast.reward(`购得 · ${item.name}`);
       }
-      await loadData();
-      const curRes = await fetchPlayerCurrency();
-      usePlayerStore.getState().setCurrency(curRes.gold, curRes.diamond);
-    } catch (e: unknown) {
+      await Promise.all([loadItems(), loadCurrency()]);
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : '购买失败');
     }
     setBuying(null);
-  }, [loadData, items]);
+  }, [loadItems, loadCurrency]);
 
-  const qualityBorder = (q: string) => QUALITY_COLOR_MAP[q] || 'var(--paper-darker)';
+  const sorted = useMemo(() => {
+    return [...items].sort((a, b) => {
+      if (a.isHot !== b.isHot) return a.isHot ? -1 : 1;
+      return b.price - a.price;
+    });
+  }, [items]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>商城</h2>
-        <p className={styles.subtitle}>🪙 {currency.gold}　💎 {currency.diamond}</p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>商 城</span>
+            <span className={styles.appbarZone}>玩币消费</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('mail')} type="button" aria-label="订单">单</button>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('ranking')} type="button" aria-label="榜单">榜</button>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.tabRow}>
-        {CATEGORIES.map(c => (
-          <button
-            key={c.key}
-            className={`${styles.tab} ${category === c.key ? styles.tabActive : ''}`}
-            onClick={() => { setCategory(c.key); setExpanded(null); }}
-          >
-            {c.label}
+      <div className={styles.shopHero}>
+        <div className={styles.shopMine}>
+          <div>
+            <div className={styles.shopMineK}>我的货币</div>
+            <div className={styles.shopMineV}>
+              <span>{currency.diamond.toLocaleString()} 玩币</span>
+              <span className={styles.shopMineSplit}>/</span>
+              <span>{currency.gold.toLocaleString()} 金币</span>
+            </div>
+          </div>
+          <button className={styles.shopTopup} onClick={() => toast.info('充值入口筹备中')} type="button">
+            ＋ 充 值
           </button>
-        ))}
+        </div>
+        <div className={styles.shopChips}>
+          {TABS.map((t) => (
+            <button
+              key={t.key || 'all'}
+              className={`${styles.shopChip} ${tab === t.key ? styles.shopChipOn : ''}`.trim()}
+              onClick={() => { setTab(t.key); setExpanded(null); }}
+              type="button"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className={styles.scrollArea}>
+      <div className={styles.shopList}>
         {loading ? (
-          <div className={styles.empty}><p>加载中...</p></div>
-        ) : items.length > 0 ? (
-          <div className={styles.cardList}>
-            {items.map(item => {
-              const isEquip = item.equipPosition && item.equipPosition > 0;
-              const isExpanded = expanded === item.id;
-              return (
-                <div
-                  key={item.id}
-                  className={styles.card}
-                  style={{
-                    cursor: 'pointer',
-                    borderLeft: `3px solid ${qualityBorder(item.quality)}`,
-                  }}
-                  onClick={() => setExpanded(isExpanded ? null : item.id)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '28px' }}>{item.icon || '📦'}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <p className={styles.cardTitle} style={{ color: qualityBorder(item.quality) }}>
-                          {item.name}
-                        </p>
-                        {isEquip && (
-                          <span style={{
-                            fontSize: '10px', padding: '1px 6px',
-                            background: 'var(--paper-darker)', color: 'var(--ink)',
-                            borderRadius: '999px', opacity: 0.7,
-                          }}>
-                            {POSITION_LABELS[item.equipPosition!] || '装备'}
-                          </span>
-                        )}
-                        {item.isHot && (
-                          <span style={{
-                            fontSize: '10px', padding: '1px 6px', background: 'var(--red, #c44)',
-                            color: '#fff', borderRadius: '999px', fontWeight: 600,
-                          }}>热</span>
-                        )}
-                      </div>
-                      <p className={styles.cardMeta}>
-                        {CURRENCY_ICON[item.currency] || ''} {item.price}
-                        {item.stock > 0 && item.stock < 100 ? ` · 库存${item.stock}` : ''}
-                      </p>
-                    </div>
-                    <button
-                      className={styles.actionBtn}
-                      style={{ marginTop: 0, fontSize: '12px', padding: '6px 14px' }}
-                      disabled={buying === item.id}
-                      onClick={(e) => { e.stopPropagation(); handleBuy(item.id); }}
-                    >
-                      {buying === item.id ? '...' : '购买'}
-                    </button>
-                  </div>
-                  {item.description && (
-                    <p className={styles.cardDesc}>{item.description}</p>
-                  )}
-
-                  {/* 展开：显示属性 */}
-                  {isExpanded && item.attributes && (
-                    <div style={{
-                      marginTop: '8px', padding: '8px',
-                      background: 'var(--paper-dark)', borderRadius: 'var(--radius-sm)',
-                      display: 'flex', flexWrap: 'wrap', gap: '8px 16px',
-                    }}>
-                      {Object.entries(item.attributes).map(([k, v]) => (
-                        <span key={k} style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.8 }}>
-                          {k} <span style={{ color: qualityBorder(item.quality), fontWeight: 600 }}>+{v}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <div className={styles.feedEmpty}>商品载入中...</div>
+        ) : sorted.length === 0 ? (
+          <div className={styles.feedEmpty}>此分类暂无上架商品</div>
         ) : (
-          <div className={styles.empty}>
-            <span className={styles.placeholderIcon}>🏪</span>
-            <p>暂无商品</p>
-          </div>
+          sorted.map((item) => {
+            const vip = isVip(item);
+            const opened = expanded === item.id;
+            const canAfford = item.currency === 'diamond'
+              ? currency.diamond >= item.price
+              : currency.gold >= item.price;
+            const classes = [
+              styles.shopItem,
+              vip ? styles.shopItemVip : '',
+              item.isHot ? styles.shopItemHot : '',
+            ].filter(Boolean).join(' ');
+            return (
+              <button
+                key={item.id}
+                className={classes}
+                onClick={() => setExpanded(opened ? null : item.id)}
+                type="button"
+              >
+                <div className={styles.shopItemIc}>{itemIconChar(item)}</div>
+                <div className={styles.shopItemInfo}>
+                  <div className={styles.shopItemNm}>
+                    {item.name}
+                    {item.isHot && <span className={styles.shopItemTag}>热销</span>}
+                    {QUALITY_TAG[item.quality] && (
+                      <span className={`${styles.shopItemTag} ${styles.shopItemTagGold}`}>
+                        {QUALITY_TAG[item.quality]}
+                      </span>
+                    )}
+                    {item.equipPosition != null && item.equipPosition > 0 && (
+                      <span className={`${styles.shopItemTag} ${styles.shopItemTagGold}`}>
+                        {POSITION_LABEL[item.equipPosition] || '装备'}
+                      </span>
+                    )}
+                  </div>
+                  {item.description && <div className={styles.shopItemDs}>{item.description}</div>}
+                </div>
+                <div className={styles.shopItemBuy}>
+                  <span className={styles.shopItemP}>{item.price.toLocaleString()}</span>
+                  <span className={styles.shopItemU}>{CURRENCY_UNIT[item.currency] || item.currency}</span>
+                  <button
+                    className={styles.shopItemB}
+                    onClick={(e) => handleBuy(item, e)}
+                    disabled={buying === item.id || !canAfford || item.stock === 0}
+                    type="button"
+                  >
+                    {buying === item.id ? '...' : (!canAfford ? '不足' : '购买')}
+                  </button>
+                </div>
+                {opened && item.attributes && Object.keys(item.attributes).length > 0 && (
+                  <div className={styles.shopItemAttrs}>
+                    {Object.entries(item.attributes).map(([k, v]) => (
+                      <span key={k}>{k}<b>+{v}</b></span>
+                    ))}
+                  </div>
+                )}
+              </button>
+            );
+          })
         )}
       </div>
     </div>

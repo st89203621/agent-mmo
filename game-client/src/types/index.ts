@@ -322,12 +322,15 @@ export interface MarriageStatus {
 }
 
 /** 留言板消息 */
+export type BoardMessageType = 'user' | 'ad' | 'trade' | 'system';
+
 export interface BoardMessage {
   id: string;
   authorId: number;
   authorName: string;
   content: string;
   zoneId?: string;
+  type?: BoardMessageType;
   createdAt: number;
 }
 

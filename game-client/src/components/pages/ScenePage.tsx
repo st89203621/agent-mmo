@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { fetchCurrentZone, fetchNearbyPlayers, moveToZone } from '../../services/api';
+import { usePlayerStore } from '../../store/playerStore';
+import {
+  fetchCurrentZone,
+  fetchNearbyPlayers,
+  fetchPersonInfo,
+  moveToZone,
+  type PersonData,
+} from '../../services/api';
 import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
 import { toast } from '../../store/toastStore';
+import { StatBar, BarBlock, BarRow } from '../common/fusion';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
 
@@ -47,19 +55,23 @@ function getCompassSlot(dx: number, dy: number): CompassSlot | null {
 
 export default function ScenePage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const playerName = usePlayerStore((s) => s.playerName);
   const [zone, setZone] = useState<ZoneInfo>(FALLBACK_ZONE);
   const [nearby, setNearby] = useState<NearbyPlayer[]>([]);
+  const [person, setPerson] = useState<PersonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [currentZone, nearbyPlayers] = await Promise.all([
+    const [currentZone, nearbyPlayers, personData] = await Promise.all([
       fetchCurrentZone().catch(() => FALLBACK_ZONE),
       fetchNearbyPlayers().catch(() => ({ players: [] })),
+      fetchPersonInfo().catch(() => null as PersonData | null),
     ]);
     setZone(currentZone);
     setNearby(nearbyPlayers.players || []);
+    setPerson(personData);
     setLoading(false);
   }, []);
 
@@ -148,13 +160,21 @@ export default function ScenePage() {
             <span className={styles.coord}>({place.coord[0]},{place.coord[1]})</span>
           </div>
           <div className={styles.icons}>
+            <button className={styles.icon} onClick={load} type="button" aria-label="刷新">⟳</button>
             <button className={`${styles.icon} ${styles.dot}`} onClick={() => navigateTo('messages')} type="button">信</button>
             <button className={styles.icon} onClick={() => navigateTo('friend')} type="button">友</button>
-            <button className={styles.icon} onClick={() => navigateTo('world-map')} type="button">图</button>
             <button className={styles.icon} onClick={() => navigateTo('teleport')} type="button">传</button>
           </div>
         </div>
       </div>
+
+      <StatBar
+        profession={person?.profession}
+        name={person?.name || playerName || '无名'}
+        level={person?.level?.level ?? 1}
+        exp={person?.level?.exp ?? 0}
+        maxExp={person?.level?.maxExp ?? 100}
+      />
 
       <div className={styles.scrollArea}>
         <section className={styles.hero}>
@@ -269,6 +289,21 @@ export default function ScenePage() {
             </button>
           ))}
         </div>
+
+        <BarBlock>
+          <BarRow
+            label="HP"
+            kind="hp"
+            current={person?.basicProperty?.hp ?? 0}
+            max={person?.basicProperty?.hp ?? 1}
+          />
+          <BarRow
+            label="MP"
+            kind="mp"
+            current={person?.basicProperty?.mp ?? 0}
+            max={person?.basicProperty?.mp ?? 1}
+          />
+        </BarBlock>
 
         <div className={styles.sect}>
           场 景 情 报

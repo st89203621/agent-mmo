@@ -1,18 +1,67 @@
 import type { ReactNode } from 'react';
 import { useGameStore } from '../../store/gameStore';
+import type { PageId } from '../../types';
 import styles from './GameLayout.module.css';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  pageId: PageId;
+  matches: PageId[];
+}
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    id: 'home',
+    label: '首页',
+    icon: '首',
+    pageId: 'home',
+    matches: ['home', 'story', 'chat'],
+  },
+  {
+    id: 'hub',
+    label: '主城',
+    icon: '主',
+    pageId: 'hub',
+    matches: [
+      'hub', 'scene', 'place', 'teleport', 'nearby', 'book-world',
+      'world-map', 'hunt', 'battle', 'dungeon', 'world-boss',
+      'team-battle', 'treasure-mountain', 'secret-realm', 'explore',
+    ],
+  },
+  {
+    id: 'housing',
+    label: '家园',
+    icon: '家',
+    pageId: 'housing',
+    matches: ['housing', 'flower'],
+  },
+  {
+    id: 'inventory',
+    label: '背包',
+    icon: '包',
+    pageId: 'inventory',
+    matches: ['inventory', 'equip-detail', 'enchant', 'forge'],
+  },
+  {
+    id: 'me',
+    label: '我的',
+    icon: '我',
+    pageId: 'status',
+    matches: [
+      'status', 'character', 'pet', 'pet-summon',
+      'friend', 'mail', 'settings', 'vip', 'achievement',
+      'title', 'codex', 'quest', 'skill-tree', 'rebirth',
+      'destiny-path', 'mystic-tome', 'fate-map', 'matchmaking',
+      'coexplore', 'memory', 'companion',
+    ],
+  },
+];
 
 interface Props {
   children: ReactNode;
 }
-
-const NAV_ACTIONS = [
-  { id: 'home', label: '首页', pageId: 'home' as const },
-  { id: 'hub', label: '主城', pageId: 'hub' as const },
-  { id: 'teleport', label: '功能', pageId: 'teleport' as const },
-  { id: 'inventory', label: '背包', pageId: 'inventory' as const },
-  { id: 'status', label: '我的', pageId: 'status' as const },
-];
 
 export default function GameLayout({ children }: Props) {
   const currentPage = useGameStore((s) => s.currentPage);
@@ -21,20 +70,20 @@ export default function GameLayout({ children }: Props) {
   return (
     <div className={styles.stage}>
       <div className={styles.app}>
-        <main className={styles.content}>{children}</main>
+        <main className={styles.content} key={currentPage}>{children}</main>
 
-        <nav className={styles.nav}>
-          {NAV_ACTIONS.map((item) => {
-            const active = currentPage === item.pageId;
+        <nav className={styles.tabbar}>
+          {NAV_ITEMS.map((item) => {
+            const active = item.matches.includes(currentPage);
             return (
               <button
                 key={item.id}
-                className={`${styles.navBtn} ${active ? styles.active : ''}`.trim()}
+                className={`${styles.tab} ${active ? styles.active : ''}`.trim()}
                 onClick={() => navigateTo(item.pageId)}
                 type="button"
               >
-                <span className={styles.navIcon}>{item.label.slice(0, 1)}</span>
-                <span className={styles.navLabel}>{item.label}</span>
+                <span className={styles.ti}>{item.icon}</span>
+                <span className={styles.label}>{item.label}</span>
               </button>
             );
           })}

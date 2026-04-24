@@ -1,0 +1,37 @@
+.statbar {
+  display: flex;
+  padding: 6px 14px;
+  background: var(--bg-ink);
+  gap: 8px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.tagClass {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--accent-red);
+  color: var(--bg-ink);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.lv {
+  color: var(--accent-gold);
+}
+
+.percent {
+  color: var(--text-dim);
+  margin-left: auto;
+}

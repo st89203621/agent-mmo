@@ -1,160 +1,217 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { fetchPets, deletePet, type PetData } from '../../services/api';
-import styles from './PageSkeleton.module.css';
+import { toast } from '../../store/toastStore';
+import { BarBlock, BarRow } from '../common/fusion';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const ELEMENT_ICONS: Record<string, string> = {
-  fire: '🔥', ice: '❄️', thunder: '⚡', wind: '🌪️',
-  earth: '🪨', water: '💧', light: '✨', dark: '🌑',
+const ELEMENT_LABEL: Record<string, string> = {
+  fire: '烈焰', ice: '寒冰', thunder: '雷霆', wind: '疾风',
+  earth: '厚土', water: '清流', light: '圣光', dark: '幽冥',
 };
 
-const TIER_COLORS: Record<number, string> = {
-  1: '#aaa', 2: '#5cb85c', 3: '#3498db', 4: '#a855f7', 5: '#f59e0b', 6: '#ef4444',
+const PET_TYPE_LABEL: Record<string, string> = {
+  beast: '神兽', mythical: '灵禽', insect: '虫妖', dragon: '真龙',
+  human: '仙人', spirit: '精魄',
 };
 
-const STAT_LABELS = [
-  { key: 'constitution', label: '体质' },
-  { key: 'magicPower', label: '魔力' },
-  { key: 'power', label: '力量' },
-  { key: 'endurance', label: '耐力' },
-  { key: 'agile', label: '敏捷' },
-] as const;
+const EXP_PER_LEVEL = 1000;
+
+const ACTIONS: { key: string; label: string; icon: string; red?: boolean }[] = [
+  { key: 'feed', label: '喂食', icon: '喂' },
+  { key: 'smash', label: '砸宠', icon: '砸', red: true },
+  { key: 'evolve', label: '进阶', icon: '进' },
+  { key: 'wash', label: '洗炼', icon: '洗' },
+  { key: 'bless', label: '祈福', icon: '祈' },
+  { key: 'rename', label: '改名', icon: '改' },
+  { key: 'stable', label: '入厩', icon: '收' },
+  { key: 'release', label: '放生', icon: '放', red: true },
+];
 
 export default function PetPage() {
-  const { navigateTo } = useGameStore();
+  const navigateTo = useGameStore((s) => s.navigateTo);
   const [pets, setPets] = useState<PetData[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<PetData | null>(null);
   const [operating, setOperating] = useState(false);
 
   const loadPets = useCallback(() => {
     setLoading(true);
     fetchPets()
-      .then((res) => setPets(res.pets || []))
-      .catch(() => {})
+      .then((res) => {
+        setPets(res.pets || []);
+        setSelectedId((prev) => prev ?? res.pets?.[0]?.id ?? null);
+      })
+      .catch(() => setPets([]))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { loadPets(); }, [loadPets]);
 
-  const handleDelete = useCallback(async () => {
+  const selected = useMemo(
+    () => pets.find((p) => p.id === selectedId) ?? pets[0] ?? null,
+    [pets, selectedId],
+  );
+
+  const handleAction = useCallback(async (key: string) => {
     if (!selected) return;
-    setOperating(true);
-    try {
-      await deletePet(selected.id);
-      setSelected(null);
-      loadPets();
-    } catch { /* noop */ }
-    setOperating(false);
-  }, [selected, loadPets]);
+    if (key === 'release') {
+      if (!window.confirm(`确认放生「${selected.nickname || selected.petTemplateId}」？`)) return;
+      setOperating(true);
+      try {
+        await deletePet(selected.id);
+        toast.success('已放生');
+        setSelectedId(null);
+        loadPets();
+      } catch {
+        toast.error('放生失败');
+      }
+      setOperating(false);
+      return;
+    }
+    if (key === 'stable') {
+      navigateTo('pet-summon');
+      return;
+    }
+    toast.info(`${ACTIONS.find((a) => a.key === key)?.label ?? '功能'}开发中`);
+  }, [selected, loadPets, navigateTo]);
+
+  const rosterSlots = 5;
+  const roster = Array.from({ length: rosterSlots }, (_, i) => pets[i] ?? null);
+  const activePet = selected;
+  const expInLevel = activePet ? activePet.mutationExp % EXP_PER_LEVEL : 0;
+  const totalQual = activePet
+    ? activePet.constitution + activePet.magicPower + activePet.power + activePet.endurance + activePet.agile
+    : 0;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>宠物</h2>
-        <p className={styles.subtitle}>{pets.length} 只宠物</p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>宝 宝</span>
+            <span className={styles.appbarZone}>
+              {activePet ? `${activePet.nickname || activePet.petTemplateId} · 出战中` : '暂无宠物'}
+            </span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('codex')} type="button">鉴</button>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('pet-summon')} type="button">助</button>
+          </div>
+        </div>
       </div>
-      <div className={styles.scrollArea}>
-        {loading ? (
-          <div className={styles.empty}><p>加载中...</p></div>
-        ) : pets.length > 0 ? (
-          <>
-            <div className={styles.cardList}>
-              {pets.map((pet) => {
-                const tc = TIER_COLORS[pet.tier] || TIER_COLORS[1];
-                return (
-                <button
-                  key={pet.id}
-                  className={styles.card}
-                  style={selected?.id === pet.id
-                    ? { borderColor: 'var(--gold)' }
-                    : pet.tier >= 4 ? { borderColor: `${tc}60` } : undefined}
-                  onClick={() => setSelected(pet.id === selected?.id ? null : pet)}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '28px' }}>
-                      {pet.icon || ELEMENT_ICONS[pet.element] || '🐾'}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <p className={styles.cardTitle}>
-                        {pet.nickname || pet.petTemplateId}
-                      </p>
-                      <p className={styles.cardMeta}>
-                        {pet.petType && `${pet.petType} · `}
-                        {pet.element && `${pet.element} · `}
-                        进化 Lv.{pet.mutationNo}
-                      </p>
-                    </div>
-                    {pet.tierName && (
-                      <span style={{
-                        fontSize: '10px', padding: '2px 8px',
-                        background: `${tc}15`, borderRadius: '999px',
-                        color: tc, fontWeight: 700,
-                        border: `1px solid ${tc}40`,
-                      }}>
-                        {pet.tierName}
-                      </span>
-                    )}
-                  </div>
 
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: '4px', marginTop: '8px',
-                  }}>
-                    {STAT_LABELS.map(({ key, label }) => (
-                      <div key={key} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--ink)', opacity: 0.5 }}>{label}</div>
-                        <div style={{ fontSize: '13px', color: 'var(--ink)', fontWeight: 600 }}>
-                          {pet[key]}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </button>
+      <div className={styles.scrollPlain}>
+        {loading ? (
+          <div className={styles.feedEmpty}>宠物载入中...</div>
+        ) : !activePet ? (
+          <div className={styles.feedEmpty} style={{ padding: '40px 16px', textAlign: 'center' }}>
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 12 }}>尚未拥有宠物</p>
+            <button className={styles.qsFast} onClick={() => navigateTo('pet-summon')} type="button">前往召唤</button>
+          </div>
+        ) : (
+          <>
+            <div className={styles.ptHero}>
+              <div className={styles.ptPic}>
+                {activePet.portraitUrl || activePet.aiImageUrl ? (
+                  <img src={activePet.portraitUrl || activePet.aiImageUrl} alt={activePet.nickname} />
+                ) : (
+                  <>丹 青<br />{activePet.nickname || activePet.petTemplateId}<br />古 风 工 笔</>
+                )}
+              </div>
+              <div className={styles.ptStats}>
+                <div className={styles.ptName}>
+                  {activePet.nickname || activePet.petTemplateId}
+                  {activePet.tierName && <span className={styles.ptTag}>{activePet.tierName}</span>}
+                </div>
+                <div className={styles.ptKv}>
+                  <span>血统</span>
+                  <span className="v">{PET_TYPE_LABEL[activePet.petType] || activePet.petType || '灵兽'}</span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>属性</span>
+                  <span className="v">{ELEMENT_LABEL[activePet.element] || activePet.element || '—'}</span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>进阶</span>
+                  <span className="v">Lv {activePet.mutationNo}</span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>资质</span>
+                  <span className="v">{totalQual}<span className="up">+{activePet.propertyPointNum}</span></span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>攻击</span>
+                  <span className="v">{activePet.power}<span className="up">+{activePet.power >> 3}</span></span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>防御</span>
+                  <span className="v">{activePet.endurance}<span className="up">+{activePet.endurance >> 3}</span></span>
+                </div>
+                <div className={styles.ptKv}>
+                  <span>技能位</span>
+                  <span className="v">{activePet.maxSkill}</span>
+                </div>
+              </div>
+            </div>
+
+            <BarBlock>
+              <BarRow label="经验" kind="exp" current={expInLevel} max={EXP_PER_LEVEL} />
+              <BarRow label="资质" kind="soul" current={activePet.propertyPointNum} max={100} />
+            </BarBlock>
+
+            <div className={styles.sectRow}>
+              宠 物 列 表
+              <span className={styles.sectMore}>{pets.length} / {rosterSlots} 槽</span>
+            </div>
+
+            <div className={styles.ptRoster}>
+              {roster.map((pet, idx) => {
+                if (!pet) {
+                  return (
+                    <button
+                      key={`empty-${idx}`}
+                      className={`${styles.ptSlot} ${styles.ptSlotEmp}`}
+                      onClick={() => navigateTo('pet-summon')}
+                      type="button"
+                    >
+                      <span>空</span>
+                      <span className={styles.ptSlotN}>＋</span>
+                    </button>
+                  );
+                }
+                const on = pet.id === activePet.id;
+                return (
+                  <button
+                    key={pet.id}
+                    className={`${styles.ptSlot} ${on ? styles.ptSlotOn : ''}`.trim()}
+                    onClick={() => setSelectedId(pet.id)}
+                    type="button"
+                  >
+                    <span>{(pet.nickname || pet.petTemplateId).slice(0, 2)}</span>
+                    <span className={styles.ptSlotN}>L{pet.mutationNo}</span>
+                  </button>
                 );
               })}
             </div>
 
-            {selected && (
-              <div style={{
-                marginTop: '12px', padding: '12px', background: 'var(--paper-dark)',
-                borderRadius: 'var(--radius-md)', border: '1px solid var(--paper-darker)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: 600 }}>
-                  {selected.nickname || selected.petTemplateId}
-                </span>
-                <button
-                  style={{
-                    background: 'none', border: '1px solid var(--red, #c44)',
-                    borderRadius: 'var(--radius-md)', padding: '6px 16px',
-                    fontSize: '13px', color: 'var(--red, #c44)', cursor: 'pointer',
-                  }}
-                  disabled={operating}
-                  onClick={handleDelete}
-                >
-                  {operating ? '...' : '放生'}
-                </button>
-              </div>
-            )}
+            <div className={styles.sectRow}>宝 宝 操 作</div>
 
-            <button
-              className={styles.actionBtn}
-              style={{ marginTop: '16px', width: '100%', textAlign: 'center' }}
-              onClick={() => navigateTo('pet-summon')}
-            >
-              召唤新宠物
-            </button>
+            <div className={styles.ptAct}>
+              {ACTIONS.map((action) => (
+                <button
+                  key={action.key}
+                  className={`${styles.ptActBtn} ${action.red ? styles.ptActRed : ''}`.trim()}
+                  onClick={() => handleAction(action.key)}
+                  disabled={operating}
+                  type="button"
+                >
+                  <span className={styles.ptActIc}>{action.icon}</span>
+                  {action.label}
+                </button>
+              ))}
+            </div>
           </>
-        ) : (
-          <div className={styles.empty}>
-            <span className={styles.placeholderIcon}>🐾</span>
-            <p>尚未拥有宠物</p>
-            <p className={styles.hint}>使用宠物蛋在召唤页孵化</p>
-            <button className={styles.actionBtn} onClick={() => navigateTo('pet-summon')}>
-              前往召唤
-            </button>
-          </div>
         )}
       </div>
     </div>

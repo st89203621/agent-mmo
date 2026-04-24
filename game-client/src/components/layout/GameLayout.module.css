@@ -25,62 +25,77 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
-.nav {
+.tabbar {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  background: linear-gradient(180deg, #16110d 0%, #0f0b09 100%);
+  display: flex;
+  height: 58px;
+  padding-bottom: var(--safe-bottom);
+  box-sizing: content-box;
+  background: var(--bg-raised);
   border-top: 1px solid var(--border);
 }
 
-.navBtn {
+.tab {
+  flex: 1;
   border: 0;
-  padding: 10px 2px 12px;
   background: transparent;
   color: var(--text-dim);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
+  font-family: var(--font-serif);
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  position: relative;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
 
-.navBtn:active {
-  background: rgba(201, 168, 76, 0.08);
-  transform: scale(0.98);
+.tab:active {
+  background: var(--bg-hover);
+  transform: scale(0.97);
 }
 
-.navIcon {
-  width: 28px;
-  height: 28px;
+.ti {
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(201, 168, 76, 0.28);
-  color: var(--accent-gold);
+  border: 1px solid var(--text-dim);
+  color: var(--text-dim);
   font-family: var(--font-mono);
-  font-size: 13px;
-  background: rgba(255, 255, 255, 0.02);
+  font-size: 11px;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.navLabel {
+.label {
   font-size: 10px;
+  letter-spacing: 1px;
 }
 
 .active {
-  color: var(--text);
+  color: var(--accent-gold);
 }
 
-.active .navIcon {
-  border-color: var(--accent-red);
-  color: var(--accent-red);
-  background: rgba(162, 43, 29, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(162, 43, 29, 0.15);
+.active .ti {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--accent-gold);
 }
 
 @media (max-width: 560px) {

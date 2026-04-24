@@ -1,249 +1,465 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  fetchMyGuild, fetchGuildList, fetchGuildMembers,
-  createGuild, joinGuild, leaveGuild, dissolveGuild, donateGold, kickGuildMember,
+  fetchMyGuild,
+  fetchGuildList,
+  fetchGuildMembers,
+  createGuild,
+  joinGuild,
+  leaveGuild,
+  dissolveGuild,
+  donateGold,
+  kickGuildMember,
+  type GuildData,
+  type GuildMemberData,
 } from '../../services/api';
-import type { GuildData, GuildMemberData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
-import styles from './PageSkeleton.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const POS_LABEL: Record<string, string> = { LEADER: '盟主', ELDER: '长老', MEMBER: '成员' };
+const POSITION_LABEL: Record<string, string> = {
+  LEADER: '盟主',
+  ELDER: '长老',
+  MEMBER: '成员',
+};
 
-type View = 'info' | 'members' | 'browse';
+const POSITION_WEIGHT: Record<string, number> = {
+  LEADER: 0,
+  ELDER: 1,
+  MEMBER: 2,
+};
+
+function formatDate(ts?: number) {
+  if (!ts || !Number.isFinite(ts)) return '';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function firstChar(s?: string) {
+  return (s || '').trim().slice(0, 1) || '盟';
+}
+
+function memberFirstChar(name?: string) {
+  return (name || '').trim().slice(0, 1) || '侠';
+}
 
 export default function GuildPage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const playerId = usePlayerStore((s) => s.playerId);
+  const playerName = usePlayerStore((s) => s.playerName);
+
   const [guild, setGuild] = useState<GuildData | null>(null);
   const [members, setMembers] = useState<GuildMemberData[]>([]);
   const [guildList, setGuildList] = useState<GuildData[]>([]);
-  const [view, setView] = useState<View>('info');
+  const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
   const [donateAmount, setDonateAmount] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [operating, setOperating] = useState<string | null>(null);
 
-  const loadGuild = useCallback(async () => {
+  const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchMyGuild();
-      if (data.hasGuild === false) {
+      const my = await fetchMyGuild();
+      if (my.hasGuild === false) {
         setGuild(null);
-        const list = await fetchGuildList();
+        setMembers([]);
+        const list = await fetchGuildList().catch(() => ({ guilds: [] as GuildData[] }));
         setGuildList(list.guilds);
-        setView('browse');
       } else {
-        setGuild(data);
-        setView('info');
+        setGuild(my);
+        const mem = await fetchGuildMembers().catch(() => ({ members: [] as GuildMemberData[] }));
+        setMembers(mem.members || []);
       }
-    } catch {}
-    setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const loadMembers = useCallback(async () => {
-    try {
-      const data = await fetchGuildMembers();
-      setMembers(data.members);
-    } catch {}
-  }, []);
+  useEffect(() => { refreshAll(); }, [refreshAll]);
 
-  useEffect(() => { loadGuild(); }, [loadGuild]);
-  useEffect(() => { if (view === 'members' && guild) loadMembers(); }, [view, guild, loadMembers]);
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      const pw = (POSITION_WEIGHT[a.position] ?? 9) - (POSITION_WEIGHT[b.position] ?? 9);
+      if (pw !== 0) return pw;
+      return b.contribution - a.contribution;
+    });
+  }, [members]);
+
+  const isLeader = guild?.myPosition === 'LEADER';
+  const isElder = guild?.myPosition === 'ELDER' || isLeader;
 
   const handleCreate = async () => {
-    if (!newName.trim()) { toast.warning('请输入盟会名称'); return; }
+    const trimmed = newName.trim();
+    if (!trimmed) { toast.warning('请输入盟会名称'); return; }
+    setOperating('create');
     try {
-      await createGuild(newName.trim());
+      await createGuild(trimmed);
       toast.success('盟会创建成功');
       setNewName('');
-      loadGuild();
-    } catch (e: unknown) {
+      await refreshAll();
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : '创建失败');
     }
+    setOperating(null);
   };
 
   const handleJoin = async (guildId: string) => {
-    const res = await joinGuild(guildId);
-    res.success ? toast.success('加入成功') : toast.error('加入失败');
-    loadGuild();
+    setOperating(guildId);
+    try {
+      const res = await joinGuild(guildId);
+      if (res.success) {
+        toast.success('加入成功');
+        await refreshAll();
+      } else {
+        toast.error('加入失败');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '加入失败');
+    }
+    setOperating(null);
   };
 
   const handleLeave = async () => {
-    const res = await leaveGuild();
-    res.success ? toast.success('已退出盟会') : toast.error('盟主不能退出');
-    loadGuild();
+    if (!window.confirm('确认退出盟会？')) return;
+    setOperating('leave');
+    try {
+      const res = await leaveGuild();
+      if (res.success) {
+        toast.success('已退出盟会');
+        await refreshAll();
+      } else {
+        toast.error('盟主不能退出，请先转让或解散');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '退出失败');
+    }
+    setOperating(null);
   };
 
   const handleDissolve = async () => {
-    const res = await dissolveGuild();
-    res.success ? toast.success('盟会已解散') : toast.error('解散失败');
-    loadGuild();
+    if (!window.confirm('确认解散盟会？此操作无法撤销')) return;
+    setOperating('dissolve');
+    try {
+      const res = await dissolveGuild();
+      if (res.success) {
+        toast.success('盟会已解散');
+        await refreshAll();
+      } else {
+        toast.error('解散失败');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '解散失败');
+    }
+    setOperating(null);
   };
 
   const handleDonate = async () => {
-    const amount = parseInt(donateAmount);
-    if (!amount || amount <= 0) { toast.warning('请输入捐献金额'); return; }
-    await donateGold(amount);
-    toast.success(`捐献 ${amount} 金币成功`);
-    setDonateAmount('');
-    loadGuild();
+    const amount = Number.parseInt(donateAmount, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.warning('请输入有效金额');
+      return;
+    }
+    setOperating('donate');
+    try {
+      await donateGold(amount);
+      toast.reward(`捐献 ${amount.toLocaleString()} 金币`);
+      setDonateAmount('');
+      await refreshAll();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '捐献失败');
+    }
+    setOperating(null);
   };
 
-  const handleKick = async (targetId: number) => {
-    const res = await kickGuildMember(targetId);
-    res.success ? toast.success('已踢出') : toast.error('操作失败');
-    loadMembers();
+  const handleKick = async (target: GuildMemberData) => {
+    if (!window.confirm(`确认将「${target.playerName}」踢出盟会？`)) return;
+    setOperating(`kick-${target.playerId}`);
+    try {
+      const res = await kickGuildMember(target.playerId);
+      if (res.success) {
+        toast.success('已踢出');
+        await refreshAll();
+      } else {
+        toast.error('操作失败');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '操作失败');
+    }
+    setOperating(null);
   };
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.header}><h2 className={styles.title}>盟会</h2></div>
-        <p style={{ textAlign: 'center', opacity: 0.5, marginTop: 40 }}>加载中...</p>
+      <div className={styles.mockPage}>
+        <div className={styles.appbar}>
+          <div className={styles.appbarRow}>
+            <div className={styles.appbarLoc}>
+              <span className={styles.appbarBook}>盟 会</span>
+            </div>
+          </div>
+        </div>
+        <div className={styles.feedEmpty}>盟会信息载入中...</div>
       </div>
     );
   }
 
-  // 未加入盟会：显示创建/浏览
   if (!guild) {
     return (
-      <div className={styles.page}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>盟会</h2>
-          <p className={styles.subtitle}>创建或加入一个盟会，结交志同道合的伙伴</p>
-        </div>
-        <div className={styles.scrollArea}>
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>创建盟会（需500万金币）</h3>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                style={{
-                  flex: 1, padding: '10px 12px',
-                  background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
-                  borderRadius: 'var(--radius-md)', color: 'var(--ink)',
-                  fontSize: '14px', fontFamily: 'inherit',
-                }}
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                placeholder="盟会名称"
-                maxLength={12}
-              />
-              <button className={styles.primaryBtn} onClick={handleCreate} style={{ width: 'auto', padding: '10px 20px' }}>
-                创建
-              </button>
+      <div className={styles.mockPage}>
+        <div className={styles.appbar}>
+          <div className={styles.appbarRow}>
+            <div className={styles.appbarLoc}>
+              <span className={styles.appbarBook}>盟 会</span>
+              <span className={styles.appbarZone}>尚未加入</span>
+            </div>
+            <div className={styles.appbarIcons}>
+              <button className={styles.appbarIcon} onClick={refreshAll} type="button" aria-label="刷新">⟳</button>
             </div>
           </div>
+        </div>
 
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>可加入的盟会</h3>
-            {guildList.length === 0 && <p style={{ opacity: 0.5, fontSize: 13 }}>暂无盟会</p>}
-            {guildList.map(g => (
-              <div key={g.guildId} className={styles.card} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 600 }}>{g.name}</span>
-                  <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.6 }}>
-                    Lv.{g.level} | {g.memberCount}/{g.maxMembers}人 | 盟主: {g.leaderName}
-                  </span>
-                </div>
-                <button className={styles.smallBtn} onClick={() => handleJoin(g.guildId)}>加入</button>
-              </div>
-            ))}
+        <div className={styles.guJoinBanner}>
+          <div className={styles.guJoinTitle}>择 盟 而 聚</div>
+          <div className={styles.guJoinSub}>创建盟会需 500 万金币 · 或加入现有盟会</div>
+          <div className={styles.guJoinCreate}>
+            <input
+              className={styles.guDonateInput}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="盟会名称（不超过12字）"
+              maxLength={12}
+            />
+            <button
+              className={styles.guDonateBtn}
+              onClick={handleCreate}
+              disabled={operating === 'create'}
+              type="button"
+            >
+              {operating === 'create' ? '...' : '创 盟'}
+            </button>
           </div>
+        </div>
+
+        <div className={styles.sectRow}>
+          可 加 入 的 盟 会
+          <span className={styles.sectMore}>{guildList.length} 个</span>
+        </div>
+
+        <div className={styles.guList}>
+          {guildList.length === 0 ? (
+            <div className={styles.feedEmpty}>当前无可加入的盟会，自立山头吧</div>
+          ) : (
+            guildList.map((g) => (
+              <div key={g.guildId} className={styles.guListItem}>
+                <div className={styles.guListCrest}>{firstChar(g.name)}</div>
+                <div className={styles.guListBody}>
+                  <div className={styles.guListName}>{g.name}</div>
+                  <div className={styles.guListMeta}>
+                    Lv {g.level} · {g.memberCount}/{g.maxMembers} 人 · 盟主 {g.leaderName}
+                  </div>
+                </div>
+                <button
+                  className={styles.guListJoin}
+                  onClick={() => handleJoin(g.guildId)}
+                  disabled={operating === g.guildId || g.memberCount >= g.maxMembers}
+                  type="button"
+                >
+                  {operating === g.guildId ? '...' : (g.memberCount >= g.maxMembers ? '已满' : '加入')}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
   }
 
-  // 已加入盟会
-  const isLeader = guild.myPosition === 'LEADER';
-  const isElder = guild.myPosition === 'ELDER' || isLeader;
+  const myPositionLabel = POSITION_LABEL[guild.myPosition || 'MEMBER'] || '成员';
+  const createDateText = formatDate(guild.createTime);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{guild.name}</h2>
-        <p className={styles.subtitle}>Lv.{guild.level} | {POS_LABEL[guild.myPosition || 'MEMBER']}</p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>盟 会</span>
+            <span className={styles.appbarZone}>{guild.name}</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('chat')} type="button" aria-label="盟聊">聊</button>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('ranking')} type="button" aria-label="贡献榜">贡</button>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.tabRow}>
-        <button className={`${styles.tabBtn} ${view === 'info' ? styles.tabActive : ''}`}
-                onClick={() => setView('info')}>盟会信息</button>
-        <button className={`${styles.tabBtn} ${view === 'members' ? styles.tabActive : ''}`}
-                onClick={() => setView('members')}>成员 ({guild.memberCount})</button>
-      </div>
+      <div className={styles.scrollPlain}>
+        <div className={styles.guBanner}>
+          <div className={styles.guCrest}>{firstChar(guild.name)}</div>
+          <div className={styles.guName}>
+            <div className={styles.guN1}>{guild.name}</div>
+            <div className={styles.guN2}>
+              盟主 · {guild.leaderName}
+              {createDateText && ` · 创盟 ${createDateText}`}
+            </div>
+          </div>
+        </div>
 
-      <div className={styles.scrollArea}>
-        {view === 'info' && (
+        <div className={styles.guStats}>
+          <div className={styles.guStatItem}>
+            <div className={styles.guStatV}>Lv {guild.level}</div>
+            <div className={styles.guStatK}>盟等</div>
+          </div>
+          <div className={styles.guStatItem}>
+            <div className={styles.guStatV}>{guild.memberCount}/{guild.maxMembers}</div>
+            <div className={styles.guStatK}>成员</div>
+          </div>
+          <div className={styles.guStatItem}>
+            <div className={styles.guStatV}>{guild.totalConstruction.toLocaleString()}</div>
+            <div className={styles.guStatK}>建设</div>
+          </div>
+          <div className={styles.guStatItem}>
+            <div className={styles.guStatV}>{guild.totalHonor.toLocaleString()}</div>
+            <div className={styles.guStatK}>荣誉</div>
+          </div>
+        </div>
+
+        <div className={styles.sectRow}>我 的 数 据</div>
+        <div className={styles.guOccupy}>
+          <div className={styles.guRow}>
+            <span className={styles.guRowK}>职 位</span>
+            <span className={styles.guRowV}>{myPositionLabel}</span>
+          </div>
+          <div className={styles.guRow}>
+            <span className={styles.guRowK}>个人贡献</span>
+            <span className={`${styles.guRowV} ${styles.guRowVRed}`}>
+              {(guild.myContribution ?? 0).toLocaleString()}
+            </span>
+          </div>
+          <div className={styles.guRow}>
+            <span className={styles.guRowK}>个人建设</span>
+            <span className={styles.guRowV}>{(guild.myConstruction ?? 0).toLocaleString()}</span>
+          </div>
+          <div className={styles.guRow}>
+            <span className={styles.guRowK}>个人荣誉</span>
+            <span className={`${styles.guRowV} ${styles.guRowVGreen}`}>
+              {(guild.myHonor ?? 0).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.guDonateRow}>
+          <input
+            className={styles.guDonateInput}
+            type="number"
+            min={1}
+            value={donateAmount}
+            onChange={(e) => setDonateAmount(e.target.value)}
+            placeholder="捐献金额 · 金币"
+          />
+          <button
+            className={styles.guDonateBtn}
+            onClick={handleDonate}
+            disabled={operating === 'donate'}
+            type="button"
+          >
+            {operating === 'donate' ? '...' : '捐 献'}
+          </button>
+        </div>
+
+        {guild.notice && (
           <>
-            <div className={styles.card}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 13 }}>
-                <div>盟主: <b>{guild.leaderName}</b></div>
-                <div>人数: <b>{guild.memberCount}/{guild.maxMembers}</b></div>
-                <div>总建设: <b>{guild.totalConstruction}</b></div>
-                <div>总荣誉: <b>{guild.totalHonor}</b></div>
+            <div className={styles.sectRow}>盟 会 公 告</div>
+            <div className={styles.guOccupy}>
+              <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>
+                {guild.notice}
               </div>
-            </div>
-
-            <div className={styles.card}>
-              <h4 style={{ fontSize: 13, margin: '0 0 6px', opacity: 0.7 }}>我的数据</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 13 }}>
-                <div>贡献: <b>{guild.myContribution}</b></div>
-                <div>建设: <b>{guild.myConstruction}</b></div>
-                <div>荣誉: <b>{guild.myHonor}</b></div>
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <h3 className={styles.sectionTitle}>捐献金币</h3>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  style={{
-                    flex: 1, padding: '8px 12px',
-                    background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
-                    borderRadius: 'var(--radius-md)', color: 'var(--ink)', fontSize: '14px', fontFamily: 'inherit',
-                  }}
-                  type="number"
-                  value={donateAmount}
-                  onChange={e => setDonateAmount(e.target.value)}
-                  placeholder="金额"
-                />
-                <button className={styles.smallBtn} onClick={handleDonate}>捐献</button>
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <button className={styles.actionBtn}
-                style={{ width: '100%', marginTop: 0 }}
-                onClick={() => useGameStore.getState().navigateTo('treasure-mountain')}>
-                宝山探宝
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              {!isLeader && <button className={styles.smallBtn} onClick={handleLeave} style={{ color: 'var(--red)' }}>退出盟会</button>}
-              {isLeader && <button className={styles.smallBtn} onClick={handleDissolve} style={{ color: 'var(--red)' }}>解散盟会</button>}
             </div>
           </>
         )}
 
-        {view === 'members' && (
-          <>
-            {members.sort((a, b) => {
-              const order: Record<string, number> = { LEADER: 0, ELDER: 1, MEMBER: 2 };
-              return (order[a.position] ?? 9) - (order[b.position] ?? 9);
-            }).map(m => (
-              <div key={m.playerId} className={styles.card} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontWeight: 600 }}>{m.playerName}</span>
-                  <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.6 }}>
-                    {POS_LABEL[m.position]} | 贡献{m.contribution} | 建设{m.construction} | 荣誉{m.honor}
-                  </span>
+        <div className={styles.sectRow}>
+          盟 友 名 册
+          <span className={styles.sectMore}>共 {sortedMembers.length} 人</span>
+        </div>
+        <div className={styles.guMembers}>
+          {sortedMembers.length === 0 ? (
+            <div className={styles.feedEmpty}>盟会尚无其他成员</div>
+          ) : (
+            sortedMembers.map((m) => {
+              const isSelf = !!playerId && String(m.playerId) === String(playerId);
+              const titleCls =
+                m.position === 'LEADER' ? styles.guMemberTitle :
+                m.position === 'ELDER' ? `${styles.guMemberTitle} ${styles.guMemberTitleGold}` : '';
+              return (
+                <div key={m.playerId} className={styles.guMember}>
+                  <div className={styles.guMemberAv}>{memberFirstChar(m.playerName)}</div>
+                  <div className={styles.guMemberInfo}>
+                    <div className={styles.guMemberNm}>
+                      {titleCls && <span className={titleCls}>{POSITION_LABEL[m.position]}</span>}
+                      {m.playerName}
+                      {isSelf && <span className={styles.guMemberSelf}>（你）</span>}
+                    </div>
+                    <div className={styles.guMemberSt}>
+                      建设 {m.construction} · 荣誉 {m.honor}
+                    </div>
+                  </div>
+                  <div className={styles.guMemberContribution}>贡 {m.contribution}</div>
+                  {isElder && m.position === 'MEMBER' && !isSelf && (
+                    <button
+                      className={styles.guMemberKick}
+                      onClick={() => handleKick(m)}
+                      disabled={operating === `kick-${m.playerId}`}
+                      type="button"
+                    >
+                      踢
+                    </button>
+                  )}
                 </div>
-                {isElder && m.position === 'MEMBER' && (
-                  <button className={styles.smallBtn} onClick={() => handleKick(m.playerId)}
-                          style={{ fontSize: 11, color: 'var(--red)' }}>踢出</button>
-                )}
-              </div>
-            ))}
-          </>
+              );
+            })
+          )}
+        </div>
+
+        <div className={styles.guActions}>
+          <button
+            className={styles.guAct}
+            onClick={() => navigateTo('treasure-mountain')}
+            type="button"
+          >
+            宝 山
+          </button>
+          <button
+            className={styles.guAct}
+            onClick={() => navigateTo('world-boss')}
+            type="button"
+          >
+            盟 战
+          </button>
+          {isLeader ? (
+            <button
+              className={`${styles.guAct} ${styles.guActRed}`}
+              onClick={handleDissolve}
+              disabled={operating === 'dissolve'}
+              type="button"
+            >
+              解 散
+            </button>
+          ) : (
+            <button
+              className={`${styles.guAct} ${styles.guActRed}`}
+              onClick={handleLeave}
+              disabled={operating === 'leave'}
+              type="button"
+            >
+              退 出
+            </button>
+          )}
+        </div>
+
+        {playerName && (
+          <div style={{ padding: '8px 14px 16px', fontSize: 10, color: 'var(--text-dim)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+            当前视角 · {playerName}
+          </div>
         )}
       </div>
     </div>

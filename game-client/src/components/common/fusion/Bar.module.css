@@ -1,0 +1,73 @@
+.bar {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: middle;
+}
+
+.bar span {
+  display: inline-block;
+  width: 7px;
+  height: 10px;
+  background: var(--text-faint);
+}
+
+.hp span.on {
+  background: var(--accent-blood);
+  box-shadow: 0 0 3px rgba(180, 65, 60, 0.6);
+}
+
+.mp span.on {
+  background: var(--accent-azure);
+  box-shadow: 0 0 3px rgba(106, 143, 176, 0.6);
+}
+
+.rage span.on {
+  background: var(--accent-orange);
+  box-shadow: 0 0 3px rgba(212, 131, 59, 0.7);
+}
+
+.exp span.on {
+  background: var(--accent-jade);
+}
+
+.soul span.on {
+  background: var(--accent-purple);
+}
+
+.gold span.on {
+  background: var(--accent-gold);
+}
+
+.barBlock {
+  padding: 8px 14px;
+  background: var(--bg-ink);
+  border-bottom: 1px solid var(--border);
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.barRow .label {
+  color: var(--text-dim);
+  width: 32px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.barRow .val {
+  color: var(--text);
+  min-width: 70px;
+  font-size: 10px;
+}
+
+.barRow .note {
+  color: var(--text-faint);
+  font-size: 10px;
+  margin-left: auto;
+}

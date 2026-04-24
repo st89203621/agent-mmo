@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '../../store/toastStore';
 import { usePlayerStore } from '../../store/playerStore';
+import { useGameStore } from '../../store/gameStore';
 import {
   fetchWorldBoss,
   attackWorldBoss,
@@ -8,7 +9,7 @@ import {
   type WorldBossData,
   type BossRankEntry,
 } from '../../services/api';
-import styles from './WorldBossPage.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
 const HP_SEGMENTS = 20;
 
@@ -43,6 +44,7 @@ function avatarChar(name: string): string {
 
 export default function WorldBossPage() {
   const playerId = usePlayerStore((s) => s.playerId);
+  const navigateTo = useGameStore((s) => s.navigateTo);
   const [boss, setBoss] = useState<WorldBossData | null>(null);
   const [rank, setRank] = useState<BossRankEntry[]>([]);
   const [myDamage, setMyDamage] = useState(0);
@@ -130,125 +132,153 @@ export default function WorldBossPage() {
   );
 
   const bossDead = (boss?.currentHp ?? 0) <= 0;
-  const attackLabel = bossDead ? '魔 神 已 伏 诛' : cooldown > 0 ? `冷 却 ${cooldown}s` : attacking ? '攻 击 中' : '全 力 一 击';
+  const attackLabel = bossDead
+    ? '魔 神 已 伏 诛'
+    : cooldown > 0
+      ? `冷 却 ${cooldown}s`
+      : attacking
+        ? '攻 击 中'
+        : '全 力 一 击';
 
   return (
-    <div className={styles.page}>
-      {/* BOSS 立绘区 */}
-      <div className={styles.hero}>
-        <div className={styles.bossFrame}>煞</div>
-        <div className={styles.nameRow}>
-          <div className={styles.bossName}>{boss?.bossName || '混沌魔神·蚩尤'}</div>
-          <div className={styles.bossTitle}>{boss?.bossTitle || 'LV ∞ · 远古封印 · 第一形态'}</div>
+    <div className={styles.wbPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>屠 龙</span>
+            <span className={styles.appbarZone}>远 古 封 印 · 全 服 合 战</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button
+              type="button"
+              className={styles.appbarIcon}
+              onClick={() => navigateTo('guild')}
+              aria-label="盟会"
+            >盟</button>
+            <button
+              type="button"
+              className={styles.appbarIcon}
+              onClick={() => navigateTo('ranking')}
+              aria-label="排行"
+            >榜</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.wbHero}>
+        <div className={styles.wbBossFrame}>煞</div>
+        <div className={styles.wbNameRow}>
+          <div className={styles.wbBossName}>{boss?.bossName || '混沌魔神·蚩尤'}</div>
+          <div className={styles.wbBossTitle}>{boss?.bossTitle || 'LV ∞ · 远古封印 · 第一形态'}</div>
         </div>
 
         {floats.map((f) => (
           <div
             key={f.id}
-            className={`${styles.dmgFloat}${f.crit ? ` ${styles.dmgFloatCrit}` : ''}`}
+            className={`${styles.wbDmgFloat}${f.crit ? ` ${styles.wbDmgFloatCrit}` : ''}`}
           >
             -{formatNum(f.value)}{f.crit ? ' 暴击' : ''}
           </div>
         ))}
       </div>
 
-      {/* 分段血条 */}
-      <div className={styles.hp}>
-        <div className={styles.hpTop}>
-          <span className={styles.hpK}>全 服 血 量</span>
-          <span className={styles.hpV}>
+      <div className={styles.wbHp}>
+        <div className={styles.wbHpTop}>
+          <span className={styles.wbHpK}>全 服 血 量</span>
+          <span className={styles.wbHpV}>
             {boss ? `${formatNum(boss.currentHp)} / ${formatNum(boss.maxHp)}` : '…'}
           </span>
         </div>
-        <div className={styles.segWrap}>
+        <div className={styles.wbSegWrap}>
           {Array.from({ length: HP_SEGMENTS }, (_, i) => {
             const filled = i < activeSegs;
             const current = filled && i === activeSegs - 1;
-            const cls = current ? styles.segCur : filled ? styles.segOn : '';
-            return <div key={i} className={`${styles.seg}${cls ? ` ${cls}` : ''}`} />;
+            const cls = current ? styles.wbSegCur : filled ? styles.wbSegOn : '';
+            return <div key={i} className={`${styles.wbSeg}${cls ? ` ${cls}` : ''}`} />;
           })}
         </div>
-        <div className={styles.hpFooter}>
+        <div className={styles.wbHpFooter}>
           <span>剩 余 {hpPct.toFixed(1)}%</span>
           {cooldown > 0 ? (
-            <span className={styles.hpCd}>下 击 {formatCd(cooldown)}</span>
+            <span className={styles.wbHpCd}>下 击 {formatCd(cooldown)}</span>
           ) : (
             <span>可 出 击</span>
           )}
         </div>
       </div>
 
-      {/* 战斗信息 */}
-      <div className={styles.info}>
-        <div className={styles.infoRow}>
-          <span className={styles.infoK}>我 的 伤 害</span>
-          <span className={`${styles.infoV} ${styles.infoVRed}`}>{formatNum(myDamage)}</span>
+      <div className={styles.wbInfo}>
+        <div className={styles.wbInfoRow}>
+          <span className={styles.wbInfoK}>我 的 伤 害</span>
+          <span className={`${styles.wbInfoV} ${styles.wbInfoVRed}`}>{formatNum(myDamage)}</span>
         </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoK}>我 的 排 名</span>
-          <span className={`${styles.infoV} ${styles.infoVGold}`}>
+        <div className={styles.wbInfoRow}>
+          <span className={styles.wbInfoK}>我 的 排 名</span>
+          <span className={`${styles.wbInfoV} ${styles.wbInfoVGold}`}>
             {myRank > 0 ? `第 ${myRank} 位` : '未 上 榜'}
           </span>
         </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoK}>参 战 人 数</span>
-          <span className={styles.infoV}>{rank.length} 人</span>
+        <div className={styles.wbInfoRow}>
+          <span className={styles.wbInfoK}>参 战 人 数</span>
+          <span className={styles.wbInfoV}>{rank.length} 人</span>
         </div>
-        <div className={styles.infoRow}>
-          <span className={styles.infoK}>累 计 伤 害</span>
-          <span className={styles.infoV}>{formatNum(totalDamage)}</span>
+        <div className={styles.wbInfoRow}>
+          <span className={styles.wbInfoK}>累 计 伤 害</span>
+          <span className={styles.wbInfoV}>{formatNum(totalDamage)}</span>
         </div>
       </div>
 
-      {/* 奖励预览 */}
-      <div className={styles.rewards}>
+      <div className={styles.wbRewards}>
         {REWARDS.map((r) => (
-          <div key={r.name} className={styles.rewardItem}>
-            <span className={styles.rewardIcon}>{r.icon}</span>
-            <span className={styles.rewardName}>{r.name}</span>
+          <div key={r.name} className={styles.wbRewardItem}>
+            <span className={styles.wbRewardIcon}>{r.icon}</span>
+            <span className={styles.wbRewardName}>{r.name}</span>
           </div>
         ))}
       </div>
 
-      {/* 伤害榜 */}
-      <div className={styles.dmg}>
-        <div className={styles.dmgH}>— 伤 害 排 行 —</div>
+      <div className={styles.wbDmg}>
+        <div className={styles.wbDmgH}>— 伤 害 排 行 —</div>
         {rank.length > 0 ? (
           rank.map((e, i) => {
             const rk = i + 1;
             const mine = isMine(e.playerId);
-            const rkCls = i === 0 ? styles.dmgR1 : i === 1 ? styles.dmgR2 : i === 2 ? styles.dmgR3 : '';
+            const rkCls =
+              i === 0 ? styles.wbDmgR1 : i === 1 ? styles.wbDmgR2 : i === 2 ? styles.wbDmgR3 : '';
             return (
               <div
                 key={e.playerId}
-                className={`${styles.dmgRow}${rkCls ? ` ${rkCls}` : ''}`}
+                className={`${styles.wbDmgRow}${rkCls ? ` ${rkCls}` : ''}`}
               >
-                <span className={styles.dmgRk}>{rk}</span>
-                <span className={styles.dmgAv}>{avatarChar(e.playerName)}</span>
-                <span className={`${styles.dmgNm}${mine ? ` ${styles.dmgNmMine}` : ''}`}>
-                  {mine && <span className={styles.dmgTag}>[我]</span>}
+                <span className={styles.wbDmgRk}>{rk}</span>
+                <span className={styles.wbDmgAv}>{avatarChar(e.playerName)}</span>
+                <span className={`${styles.wbDmgNm}${mine ? ` ${styles.wbDmgNmMine}` : ''}`}>
+                  {mine && <span className={styles.wbDmgTag}>[我]</span>}
                   {e.playerName}
                 </span>
-                <span className={styles.dmgV}>{formatNum(e.damage)}</span>
+                <span className={styles.wbDmgV}>{formatNum(e.damage)}</span>
               </div>
             );
           })
         ) : (
-          <div className={styles.dmgEmpty}>
+          <div className={styles.wbDmgEmpty}>
             暂 无 伤 害 记 录
-            <div className={styles.dmgEmptyHint}>率 先 出 击 · 登 顶 排 行</div>
+            <div className={styles.wbDmgEmptyHint}>率 先 出 击 · 登 顶 排 行</div>
           </div>
         )}
       </div>
 
-      {/* 双按钮 */}
-      <div className={styles.ops}>
-        <button type="button" className={`${styles.opsBtn} ${styles.opsCall}`} onClick={handleRally}>
+      <div className={styles.wbOps}>
+        <button
+          type="button"
+          className={`${styles.wbOpsBtn} ${styles.wbOpsCall}`}
+          onClick={handleRally}
+        >
           召 集 盟 友
         </button>
         <button
           type="button"
-          className={`${styles.opsBtn} ${styles.opsAtk}`}
+          className={`${styles.wbOpsBtn} ${styles.wbOpsAtk}`}
           disabled={attacking || cooldown > 0 || bossDead}
           onClick={handleAttack}
         >

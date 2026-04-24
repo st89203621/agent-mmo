@@ -1,21 +1,35 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  fetchMountains, fetchMountainStatus, digMountain,
-  type MountainData, type MountainStatusData, type DigResult,
+  fetchMountains,
+  fetchMountainStatus,
+  digMountain,
+  type MountainData,
+  type MountainStatusData,
+  type DigResult,
 } from '../../services/api';
+import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
-import styles from './PageSkeleton.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const MT_THEME: Record<string, { color: string; bg: string; icon: string }> = {
-  GOLD:    { color: '#e8a642', bg: 'rgba(232,166,66,0.12)', icon: 'Au' },
-  EXP:     { color: '#5ca0d3', bg: 'rgba(92,160,211,0.12)', icon: 'XP' },
-  MATERIAL:{ color: '#6cc070', bg: 'rgba(108,192,112,0.12)', icon: 'Mt' },
-  ENCHANT: { color: '#b07cd8', bg: 'rgba(176,124,216,0.12)', icon: 'En' },
-  EQUIP:   { color: '#d3855c', bg: 'rgba(211,133,92,0.12)', icon: 'Eq' },
-  DIVINE:  { color: '#e85c5c', bg: 'rgba(232,92,92,0.12)', icon: 'Di' },
+interface Theme {
+  color: string;
+  icon: string;
+  label: string;
+}
+
+const MT_THEME: Record<string, Theme> = {
+  GOLD:     { color: 'var(--accent-gold)',   icon: '金', label: '金 山' },
+  EXP:      { color: '#5ca0d3',              icon: '验', label: '经 验 山' },
+  MATERIAL: { color: 'var(--accent-jade)',   icon: '材', label: '材 料 山' },
+  ENCHANT:  { color: '#b07cd8',              icon: '魂', label: '附魂 山' },
+  EQUIP:    { color: 'var(--accent-orange)', icon: '装', label: '装 备 山' },
+  DIVINE:   { color: 'var(--accent-red)',    icon: '神', label: '神 物 山' },
 };
 
+const DEFAULT_THEME: Theme = { color: 'var(--accent-gold)', icon: '山', label: '宝 山' };
+
 export default function TreasureMountainPage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
   const [mountains, setMountains] = useState<MountainData[]>([]);
   const [statusMap, setStatusMap] = useState<Record<string, MountainStatusData>>({});
   const [selected, setSelected] = useState<string | null>(null);
@@ -25,23 +39,32 @@ export default function TreasureMountainPage() {
 
   useEffect(() => {
     fetchMountains()
-      .then(res => setMountains(res.mountains || []))
+      .then((res) => {
+        const list = res.mountains || [];
+        setMountains(list);
+        if (list.length > 0 && !selected) setSelected(list[0].mountainType);
+      })
       .catch(() => toast.error('加载宝山失败'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selected]);
 
   const loadStatus = useCallback(async (mt: string) => {
     try {
       const status = await fetchMountainStatus(mt);
-      setStatusMap(prev => ({ ...prev, [mt]: status }));
-    } catch {}
+      setStatusMap((prev) => ({ ...prev, [mt]: status }));
+    } catch {
+      // ignore
+    }
   }, []);
+
+  useEffect(() => {
+    if (selected) loadStatus(selected);
+  }, [selected, loadStatus]);
 
   const handleSelect = useCallback((mt: string) => {
     setSelected(mt);
     setLastResult(null);
-    loadStatus(mt);
-  }, [loadStatus]);
+  }, []);
 
   const handleDig = useCallback(async () => {
     if (!selected || digging) return;
@@ -50,128 +73,109 @@ export default function TreasureMountainPage() {
       const result = await digMountain(selected);
       setLastResult(result);
       if (result.success) {
-        toast.success(result.message);
-        loadStatus(selected);
+        toast.reward(result.message);
+        await loadStatus(selected);
       } else {
         toast.warning(result.message);
       }
-    } catch (e: unknown) {
+    } catch (e) {
       toast.error(e instanceof Error ? e.message : '挖掘失败');
     }
     setDigging(false);
   }, [selected, digging, loadStatus]);
 
-  if (loading) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.header}><h2 className={styles.title}>宝山</h2></div>
-        <div className={styles.empty}><p>加载中...</p></div>
-      </div>
-    );
-  }
-
-  const selMountain = mountains.find(m => m.mountainType === selected);
+  const selMountain = useMemo(
+    () => mountains.find((m) => m.mountainType === selected) ?? null,
+    [mountains, selected],
+  );
   const selStatus = selected ? statusMap[selected] : null;
-  const selTheme = selected ? MT_THEME[selected] || MT_THEME.GOLD : null;
+  const selTheme = selected ? (MT_THEME[selected] || DEFAULT_THEME) : DEFAULT_THEME;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>宝山探宝</h2>
-        <p className={styles.subtitle}>加入盟会后可挖掘宝山获取丰厚奖励</p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>宝 山</span>
+            <span className={styles.appbarZone}>盟会专属 · 每日挖掘</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('guild')} type="button" aria-label="盟会">盟</button>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('inventory')} type="button" aria-label="背包">包</button>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.scrollArea}>
-        {/* 宝山列表 */}
-        <div className={styles.cardList}>
-          {mountains.map(mt => {
-            const theme = MT_THEME[mt.mountainType] || MT_THEME.GOLD;
-            const active = mt.mountainType === selected;
-            const status = statusMap[mt.mountainType];
-            return (
-              <div
-                key={mt.mountainType}
-                className={styles.card}
-                style={{
-                  borderColor: active ? theme.color : undefined,
-                  background: active ? theme.bg : undefined,
-                }}
-                onClick={() => handleSelect(mt.mountainType)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 8,
-                    background: theme.bg, border: `1px solid ${theme.color}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, fontWeight: 700, color: theme.color, flexShrink: 0,
-                  }}>
-                    {theme.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p className={styles.cardTitle} style={active ? { color: theme.color } : undefined}>
-                      {mt.name}
-                    </p>
-                    <p className={styles.cardMeta}>
-                      盟会等级 Lv.{mt.requiredGuildLevel} | 每日{mt.maxDigTimes}次
-                      {status ? ` | 已挖${status.digCount}次` : ''}
-                    </p>
-                    <p className={styles.cardDesc}>{mt.description}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <div className={styles.scrollPlain}>
+        <div className={styles.tmHero}>
+          <div className={styles.tmHeroTitle}>宝 山 探 秘</div>
+          <div className={styles.tmHeroSub}>加入盟会后可挖掘宝山 · 每日奖励丰厚</div>
         </div>
 
-        {mountains.length === 0 && (
-          <div className={styles.empty}>
-            <p>暂无宝山数据</p>
+        <div className={styles.sectRow}>
+          山 脉 一 览
+          <span className={styles.sectMore}>{mountains.length} 座</span>
+        </div>
+
+        {loading ? (
+          <div className={styles.feedEmpty}>山脉信息载入中...</div>
+        ) : mountains.length === 0 ? (
+          <div className={styles.feedEmpty}>当前无可用宝山 · 请先加入盟会</div>
+        ) : (
+          <div className={styles.tmList}>
+            {mountains.map((mt) => {
+              const theme = MT_THEME[mt.mountainType] || DEFAULT_THEME;
+              const active = mt.mountainType === selected;
+              const status = statusMap[mt.mountainType];
+              return (
+                <button
+                  key={mt.mountainType}
+                  className={`${styles.tmItem} ${active ? styles.tmItemOn : ''}`.trim()}
+                  onClick={() => handleSelect(mt.mountainType)}
+                  type="button"
+                >
+                  <span className={styles.tmIc} style={{ color: theme.color }}>{theme.icon}</span>
+                  <span className={styles.tmInfo}>
+                    <span className={styles.tmNm} style={{ color: active ? theme.color : undefined }}>
+                      {mt.name}
+                    </span>
+                    <span className={styles.tmMeta}>
+                      盟 Lv{mt.requiredGuildLevel} · 每日 {mt.maxDigTimes} 次
+                      {status ? ` · 已挖 ${status.digCount}` : ''}
+                    </span>
+                    <span className={styles.tmDesc}>{mt.description}</span>
+                  </span>
+                  <span className={styles.tmStat} style={{ color: theme.color }}>
+                    {theme.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* 挖掘面板 */}
-        {selMountain && selTheme && (
-          <div style={{
-            marginTop: 16, padding: 16,
-            background: selTheme.bg, border: `1px solid ${selTheme.color}`,
-            borderRadius: 'var(--radius-md)',
-          }}>
-            <h3 style={{ fontSize: 15, margin: '0 0 8px', color: selTheme.color }}>
+        {selMountain && (
+          <div className={styles.tmPanel} style={{ borderColor: selTheme.color }}>
+            <div className={styles.tmPanelTitle} style={{ color: selTheme.color }}>
               {selMountain.name}
-            </h3>
-
+            </div>
             {selStatus && (
-              <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 12 }}>
-                今日进度: {selStatus.digCount}/{selMountain.maxDigTimes} |
-                累计奖励: {selStatus.totalReward}
+              <div className={styles.tmPanelMeta}>
+                今日进度 {selStatus.digCount} / {selMountain.maxDigTimes} · 累计奖励 {selStatus.totalReward}
               </div>
             )}
-
             <button
-              className={styles.actionBtn}
-              style={{
-                background: selTheme.color, color: '#fff',
-                width: '100%', marginTop: 0,
-                opacity: digging ? 0.6 : 1,
-              }}
+              className={styles.tmDigBtn}
+              style={selTheme.color ? { background: selTheme.color } : undefined}
               disabled={digging}
               onClick={handleDig}
+              type="button"
             >
-              {digging ? '挖掘中...' : '挖掘'}
+              {digging ? '挖 掘 中 ...' : '✦ 开 始 挖 掘'}
             </button>
-
             {lastResult && lastResult.success && (
-              <div style={{
-                marginTop: 12, padding: 10,
-                background: 'rgba(255,255,255,0.06)', borderRadius: 8,
-                fontSize: 13, textAlign: 'center',
-              }}>
-                <span style={{ color: selTheme.color, fontWeight: 600 }}>
-                  +{lastResult.reward} {lastResult.rewardType}
-                </span>
-                <span style={{ opacity: 0.5, marginLeft: 8 }}>
-                  ({lastResult.digCount}/{lastResult.maxDigTimes})
-                </span>
+              <div className={styles.tmDigResult} style={{ color: selTheme.color, borderColor: selTheme.color }}>
+                + {lastResult.reward} · {lastResult.rewardType} · {lastResult.digCount}/{lastResult.maxDigTimes}
               </div>
             )}
           </div>

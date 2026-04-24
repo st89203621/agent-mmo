@@ -1,19 +1,54 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { fetchQuests, fetchAvailableQuests, acceptQuest, abandonQuest, type QuestData } from '../../services/api';
-import styles from './PageSkeleton.module.css';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchQuests,
+  fetchAvailableQuests,
+  acceptQuest,
+  abandonQuest,
+  type QuestData,
+} from '../../services/api';
+import { useGameStore } from '../../store/gameStore';
+import { toast } from '../../store/toastStore';
+import { Bar } from '../common/fusion';
+import styles from './lunhui/LunhuiPages.module.css';
 
-const QUEST_TYPE_LABELS: Record<number, string> = {
+type QuestTab = 'main' | 'active' | 'scroll' | 'achievement';
+
+const TABS: { key: QuestTab; label: string }[] = [
+  { key: 'main', label: '主线' },
+  { key: 'active', label: '活跃' },
+  { key: 'scroll', label: '卷轴' },
+  { key: 'achievement', label: '成就' },
+];
+
+const TYPE_LABEL: Record<number, string> = {
   0: '主线', 1: '师门', 2: '区域', 3: '副本', 4: '卷轴', 5: '材料', 6: '隐藏',
 };
 
-const STATUS_LABELS: Record<number, string> = {
-  0: '可接取', 1: '进行中', 2: '已完成', 3: '已领奖', 4: '已放弃',
+const TYPE_ICON: Record<number, string> = {
+  0: '团', 1: '师', 2: '域', 3: '窟', 4: '轴', 5: '材', 6: '秘',
 };
 
-type Tab = 'accepted' | 'available';
+const STATUS_AVAILABLE = 0;
+const STATUS_ACCEPTED = 1;
+const STATUS_COMPLETED = 2;
+const STATUS_CLAIMED = 3;
+
+function classifyTab(type: number): QuestTab {
+  if (type === 0) return 'main';
+  if (type === 4) return 'scroll';
+  return 'active';
+}
+
+function questNavTarget(type: number): 'battle' | 'dungeon' | 'hunt' | 'scene' {
+  if (type === 3) return 'dungeon';
+  if (type === 2) return 'hunt';
+  if (type === 4) return 'scene';
+  return 'battle';
+}
 
 export default function QuestPage() {
-  const [tab, setTab] = useState<Tab>('accepted');
+  const navigateTo = useGameStore((s) => s.navigateTo);
+  const [tab, setTab] = useState<QuestTab>('main');
   const [myQuests, setMyQuests] = useState<QuestData[]>([]);
   const [available, setAvailable] = useState<QuestData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,175 +58,201 @@ export default function QuestPage() {
     setLoading(true);
     try {
       const [mine, avail] = await Promise.all([
-        fetchQuests(),
-        fetchAvailableQuests(),
+        fetchQuests().catch(() => ({ quests: [] as QuestData[] })),
+        fetchAvailableQuests().catch(() => ({ quests: [] as QuestData[] })),
       ]);
       setMyQuests(mine.quests || []);
       setAvailable(avail.quests || []);
-    } catch { /* noop */ }
-    setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleAccept = useCallback(async (questId: string) => {
-    setOperating(questId);
+  const handleAccept = useCallback(async (quest: QuestData) => {
+    setOperating(quest.questId);
     try {
-      await acceptQuest(questId);
+      await acceptQuest(quest.questId);
+      toast.success('任务已接取');
       await loadData();
-    } catch { /* noop */ }
+    } catch {
+      toast.error('接取失败');
+    }
     setOperating(null);
   }, [loadData]);
 
-  const handleAbandon = useCallback(async (questId: string) => {
-    setOperating(questId);
+  const handleAbandon = useCallback(async (quest: QuestData) => {
+    setOperating(quest.questId);
     try {
-      await abandonQuest(questId);
+      await abandonQuest(quest.questId);
+      toast.success('已放弃任务');
       await loadData();
-    } catch { /* noop */ }
+    } catch {
+      toast.error('放弃失败');
+    }
     setOperating(null);
   }, [loadData]);
 
-  const activeQuests = myQuests.filter(q => q.status === 1);
-  const completedQuests = myQuests.filter(q => q.status === 2 || q.status === 3);
+  const allQuests = useMemo(() => {
+    const byId = new Map<string, QuestData>();
+    myQuests.forEach((q) => byId.set(q.questId, q));
+    available.forEach((q) => { if (!byId.has(q.questId)) byId.set(q.questId, q); });
+    return Array.from(byId.values());
+  }, [myQuests, available]);
 
-  const renderQuest = (quest: QuestData, mode: 'mine' | 'available') => {
-    const progress = quest.target > 0
-      ? Math.min(100, Math.round((quest.progress / quest.target) * 100))
-      : 0;
+  const groupedCount = useMemo(() => {
+    const counts: Record<QuestTab, number> = { main: 0, active: 0, scroll: 0, achievement: 0 };
+    allQuests.forEach((q) => {
+      if (q.status === STATUS_CLAIMED || q.status === 4) return;
+      counts[classifyTab(q.type)]++;
+    });
+    return counts;
+  }, [allQuests]);
+
+  const daily = useMemo(() => {
+    const total = allQuests.filter((q) => q.type !== 0 && q.status !== 4).length;
+    const done = allQuests.filter((q) => (q.status === STATUS_COMPLETED || q.status === STATUS_CLAIMED) && q.type !== 0).length;
+    const percent = total > 0 ? Math.round((done / total) * 1000) / 10 : 0;
+    return { total, done, percent };
+  }, [allQuests]);
+
+  const filtered = useMemo(() => {
+    if (tab === 'achievement') {
+      return allQuests.filter((q) => q.status === STATUS_CLAIMED);
+    }
+    return allQuests.filter((q) => q.status !== STATUS_CLAIMED && classifyTab(q.type) === tab);
+  }, [allQuests, tab]);
+
+  const renderCard = (quest: QuestData) => {
+    const isMain = quest.type === 0;
+    const isDone = quest.status === STATUS_COMPLETED || quest.status === STATUS_CLAIMED;
+    const cardCls = [styles.qsCard, isMain ? styles.qsCardMain : '', isDone ? styles.qsCardDone : '']
+      .filter(Boolean).join(' ');
     const isOperating = operating === quest.questId;
 
+    let action: { label: string; onClick: () => void; variant?: 'done' | 'gold' } | null = null;
+    if (quest.status === STATUS_AVAILABLE) {
+      action = { label: isOperating ? '...' : '接取', onClick: () => handleAccept(quest), variant: 'gold' };
+    } else if (quest.status === STATUS_ACCEPTED) {
+      action = quest.progress >= quest.target
+        ? { label: '领奖', onClick: () => toast.info('完成后请到对应场景领奖'), variant: 'gold' }
+        : { label: '前往', onClick: () => navigateTo(questNavTarget(quest.type)) };
+    } else if (quest.status === STATUS_COMPLETED) {
+      action = { label: '领奖', onClick: () => toast.info('等待服务端结算'), variant: 'gold' };
+    } else if (quest.status === STATUS_CLAIMED) {
+      action = { label: '已领', onClick: () => {}, variant: 'done' };
+    }
+
+    const showBar = quest.status === STATUS_ACCEPTED && quest.target > 0;
+    const goCls = [
+      styles.qsGo,
+      action?.variant === 'done' ? styles.qsGoDone : '',
+      action?.variant === 'gold' ? styles.qsGoGold : '',
+    ].filter(Boolean).join(' ');
+
     return (
-      <div key={quest.questId} className={styles.card} style={{ cursor: 'default' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p className={styles.cardTitle}>{quest.name}</p>
-          <span style={{
-            fontSize: '11px', padding: '2px 8px',
-            background: 'rgba(201,168,76,0.12)', borderRadius: '999px',
-            color: 'var(--gold-dim)', fontWeight: 600,
-          }}>
-            {QUEST_TYPE_LABELS[quest.type] ?? '未知'}
-          </span>
-        </div>
-
-        {quest.description && (
-          <p className={styles.cardDesc}>{quest.description}</p>
-        )}
-
-        {mode === 'mine' && quest.status === 1 && quest.target > 0 && (
-          <div style={{ marginTop: '8px' }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: '11px', color: 'var(--ink)', opacity: 0.6, marginBottom: '4px',
-            }}>
-              <span>进度</span>
-              <span>{quest.progress} / {quest.target}</span>
-            </div>
-            <div style={{
-              height: '4px', background: 'var(--paper-darker)', borderRadius: '2px', overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%', width: `${progress}%`,
-                background: progress >= 100 ? 'var(--green)' : 'var(--gold)',
-                borderRadius: '2px', transition: 'width 0.3s',
-              }} />
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-          <span className={styles.cardMeta}>
-            {quest.level > 0 ? `Lv.${quest.level}` : ''}
-            {quest.rewards ? ` · ${quest.rewards}` : ''}
-          </span>
-
-          {mode === 'available' && (
-            <button
-              className={styles.actionBtn}
-              style={{ marginTop: 0, fontSize: '12px', padding: '4px 12px' }}
-              disabled={isOperating}
-              onClick={() => handleAccept(quest.questId)}
-            >
-              {isOperating ? '...' : '接取'}
-            </button>
-          )}
-
-          {mode === 'mine' && quest.status === 1 && (
-            <button
-              style={{
-                background: 'none', border: '1px solid var(--paper-darker)',
-                borderRadius: 'var(--radius-md)', padding: '4px 12px',
-                fontSize: '12px', color: 'var(--ink)', opacity: 0.6, cursor: 'pointer',
-              }}
-              disabled={isOperating}
-              onClick={() => handleAbandon(quest.questId)}
-            >
-              {isOperating ? '...' : '放弃'}
-            </button>
-          )}
-
-          {mode === 'mine' && (quest.status === 2 || quest.status === 3) && (
-            <span style={{ fontSize: '12px', color: 'var(--green)', fontWeight: 600 }}>
-              {STATUS_LABELS[quest.status]}
+      <div key={quest.questId} className={cardCls}>
+        <div className={styles.qsIc}>{TYPE_ICON[quest.type] ?? '任'}</div>
+        <div className={styles.qsBody}>
+          <div className={styles.qsBodyTitle}>
+            <span className={styles.qsNm}>{quest.name}</span>
+            <span className={`${styles.qsTg} ${!isMain ? styles.qsTgGold : ''}`.trim()}>
+              {TYPE_LABEL[quest.type] ?? '任务'}
             </span>
+          </div>
+          {quest.description && <div className={styles.qsDs}>{quest.description}</div>}
+          {showBar ? (
+            <div className={styles.qsPr}>
+              <span className={styles.qsPrV}>{quest.progress} / {quest.target}</span>
+              <Bar kind="gold" current={quest.progress} max={quest.target} />
+            </div>
+          ) : (
+            <div className={styles.qsPr}>
+              {isDone ? (
+                <span className={`${styles.qsPrV} ${styles.qsPrVJade}`}>已完成</span>
+              ) : quest.status === STATUS_AVAILABLE ? (
+                <span className={styles.qsPrV}>可接取 · Lv {quest.level}</span>
+              ) : null}
+            </div>
+          )}
+          {quest.rewards && <div className={styles.qsRw}>奖励 {quest.rewards}</div>}
+          {quest.status === STATUS_ACCEPTED && (
+            <div className={styles.qsPr}>
+              <button
+                className={styles.qsPrV}
+                style={{ background: 'transparent', border: 0, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                onClick={() => handleAbandon(quest)}
+                disabled={isOperating}
+                type="button"
+              >
+                放弃
+              </button>
+            </div>
           )}
         </div>
+        {action && (
+          <button className={goCls} onClick={action.onClick} disabled={isOperating} type="button">
+            {action.label}
+          </button>
+        )}
       </div>
     );
   };
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>任务</h2>
-        <p className={styles.subtitle}>
-          进行中 {activeQuests.length} · 已完成 {completedQuests.length}
-        </p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>任 务</span>
+            <span className={styles.appbarZone}>今日 {daily.done} / {daily.total}</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('codex')} type="button">史</button>
+            <button className={`${styles.appbarIcon} ${styles.appbarIconDot}`} onClick={() => navigateTo('mail')} type="button">奖</button>
+          </div>
+        </div>
       </div>
 
-      <div className={styles.tabRow}>
+      <div className={styles.qsTabs}>
+        {TABS.map((item) => (
+          <button
+            key={item.key}
+            className={`${styles.qsTab} ${tab === item.key ? styles.qsTabOn : ''}`.trim()}
+            onClick={() => setTab(item.key)}
+            type="button"
+          >
+            {item.label}
+            {groupedCount[item.key] > 0 && (
+              <span className={styles.qsTabCnt}>{groupedCount[item.key]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.qsDaily}>
+        <div>
+          <div className={styles.qsDailyLabel}>今日任务完成度</div>
+          <div className={styles.qsDailyVal}>{daily.done} / {daily.total} · {daily.percent}%</div>
+        </div>
         <button
-          className={`${styles.tab} ${tab === 'accepted' ? styles.tabActive : ''}`}
-          onClick={() => setTab('accepted')}
+          className={styles.qsFast}
+          onClick={() => toast.info('快进功能待开放')}
+          type="button"
         >
-          我的任务
-        </button>
-        <button
-          className={`${styles.tab} ${tab === 'available' ? styles.tabActive : ''}`}
-          onClick={() => setTab('available')}
-        >
-          可接取
+          快进全部
+          <span className={styles.qsFastCost}>20 玩币</span>
         </button>
       </div>
 
-      <div className={styles.scrollArea}>
+      <div className={styles.qsList}>
         {loading ? (
-          <div className={styles.empty}><p>加载中...</p></div>
-        ) : tab === 'accepted' ? (
-          myQuests.length > 0 ? (
-            <div className={styles.cardList}>
-              {activeQuests.map(q => renderQuest(q, 'mine'))}
-              {completedQuests.map(q => renderQuest(q, 'mine'))}
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <span className={styles.placeholderIcon}>📜</span>
-              <p>暂无任务</p>
-              <p className={styles.hint}>切换到「可接取」查看可用任务</p>
-            </div>
-          )
+          <div className={styles.qsEmpty}>任务载入中...</div>
+        ) : filtered.length === 0 ? (
+          <div className={styles.qsEmpty}>此分类暂无任务</div>
         ) : (
-          available.length > 0 ? (
-            <div className={styles.cardList}>
-              {available.map(q => renderQuest(q, 'available'))}
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <span className={styles.placeholderIcon}>📜</span>
-              <p>暂无可接取任务</p>
-              <p className={styles.hint}>提升等级解锁更多任务</p>
-            </div>
-          )
+          filtered.map(renderCard)
         )}
       </div>
     </div>

@@ -1,93 +1,157 @@
 import { useState } from 'react';
 import { createTeam, joinTeam, leaveTeam, type TeamData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { toast } from '../../store/toastStore';
+import styles from './lunhui/LunhuiPages.module.css';
 
 export default function TeamBattlePage() {
+  const navigateTo = useGameStore((s) => s.navigateTo);
   const [team, setTeam] = useState<TeamData | null>(null);
   const [joinId, setJoinId] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigateTo = useGameStore(s => s.navigateTo);
 
   const handleCreate = async () => {
     setLoading(true);
     try {
       const t = await createTeam();
       setTeam(t);
-    } finally { setLoading(false); }
+    } catch (e) {
+      toast.error((e as Error).message || '创建失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleJoin = async () => {
-    if (!joinId.trim()) return;
+    const id = joinId.trim();
+    if (!id) return;
     setLoading(true);
     try {
-      const t = await joinTeam(joinId.trim());
+      const t = await joinTeam(id);
       setTeam(t);
-    } finally { setLoading(false); }
+      setJoinId('');
+    } catch (e) {
+      toast.error((e as Error).message || '加入失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLeave = async () => {
     if (!team) return;
-    await leaveTeam(team.teamId);
-    setTeam(null);
+    try {
+      await leaveTeam(team.teamId);
+      setTeam(null);
+    } catch (e) {
+      toast.error((e as Error).message || '离队失败');
+    }
   };
 
-  const members = team?.memberNames ? JSON.parse(team.memberNames) as string[] : [];
-  const memberIds = team?.memberIds ? JSON.parse(team.memberIds) as number[] : [];
+  const handleStart = () => toast.info('匹配系统尚在筹备 · 敬请期待');
+
+  const members: string[] = team?.memberNames ? JSON.parse(team.memberNames) : [];
+  const memberIds: number[] = team?.memberIds ? JSON.parse(team.memberIds) : [];
 
   return (
-    <div style={{ padding: '16px 20px', minHeight: '100vh', background: '#0a0a12' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-        <button onClick={() => navigateTo('home')} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>←</button>
-        <h2 style={{ color: '#e8c44a', margin: 0, fontSize: 20 }}>组队PvP</h2>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>组 队</span>
+            <span className={styles.appbarZone}>3V3 · 江 湖 争 锋</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button
+              type="button"
+              className={styles.appbarIcon}
+              onClick={() => navigateTo('home')}
+              aria-label="返回"
+            >回</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.tbHero}>
+        <div className={styles.tbHeroTitle}>3 V 3 组 队</div>
+        <div className={styles.tbHeroSub}>—— 同 道 共 征 · 以 力 破 局 ——</div>
       </div>
 
       {!team ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <button onClick={handleCreate} disabled={loading}
-            style={{ padding: '16px', borderRadius: 10, border: '2px solid #e8c44a', background: 'rgba(232,196,74,0.1)', color: '#e8c44a', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
-            {loading ? '创建中...' : '创建队伍'}
-          </button>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={joinId} onChange={e => setJoinId(e.target.value)} placeholder="输入队伍ID加入"
-              style={{ flex: 1, padding: '12px', borderRadius: 8, border: '1px solid #333', background: '#111', color: '#fff' }} />
-            <button onClick={handleJoin} disabled={loading}
-              style={{ padding: '12px 20px', borderRadius: 8, border: 'none', background: '#4caf50', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
-              加入
+        <div className={styles.scrollPlain}>
+          <div className={styles.sectRow}>
+            队 伍 组 建
+            <span className={styles.sectMore}>满员 3 / 3</span>
+          </div>
+          <div className={styles.tbSection}>
+            <button
+              type="button"
+              className={styles.tbBtnCreate}
+              onClick={handleCreate}
+              disabled={loading}
+            >
+              {loading ? '创 建 中 ...' : '✦ 创 建 队 伍'}
             </button>
+            <div className={styles.tbField}>
+              <input
+                className={styles.tbInput}
+                value={joinId}
+                onChange={(e) => setJoinId(e.target.value)}
+                placeholder="输入队伍 ID 加入"
+              />
+              <button
+                type="button"
+                className={styles.tbBtnJoin}
+                onClick={handleJoin}
+                disabled={loading || !joinId.trim()}
+              >
+                加 入
+              </button>
+            </div>
           </div>
         </div>
       ) : (
-        <div>
-          <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>队伍ID: {team.teamId}</div>
-            <div style={{ color: '#e0e0e0', fontSize: 14, marginBottom: 4 }}>状态：<span style={{ color: '#e8c44a' }}>{team.status}</span></div>
-            <div style={{ color: '#e0e0e0', fontSize: 14 }}>成员 ({team.teamSize}/3)：</div>
-            <div style={{ marginTop: 8 }}>
-              {memberIds.map((id, i) => (
-                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
-                  <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#aaa' }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ color: id === team.leaderId ? '#e8c44a' : '#ccc', fontSize: 14 }}>
-                    {members[i] || `#${id}`}
-                    {id === team.leaderId && <span style={{ marginLeft: 6, fontSize: 11, color: '#e8c44a' }}>队长</span>}
-                  </span>
-                </div>
-              ))}
+        <>
+          <div className={styles.scrollPlain}>
+            <div className={styles.tbCard}>
+              <div className={styles.tbCardHead}>
+                <span className={styles.tbCardId}>队伍 #{team.teamId}</span>
+                <span className={styles.tbCardStatus}>{team.status}</span>
+              </div>
+              <div className={styles.tbCardCount}>成 员 {team.teamSize} / 3</div>
+              {memberIds.map((id, i) => {
+                const isLeader = id === team.leaderId;
+                return (
+                  <div key={id} className={styles.tbMember}>
+                    <span className={styles.tbMemberSlot}>{i + 1}</span>
+                    <span
+                      className={`${styles.tbMemberName}${isLeader ? ` ${styles.tbMemberLeader}` : ''}`}
+                    >
+                      {members[i] || `旅人 #${id}`}
+                      {isLeader && <span className={styles.tbLeaderTag}>队 长</span>}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button onClick={handleLeave}
-              style={{ flex: 1, padding: '12px', borderRadius: 8, border: '1px solid #f44336', background: 'transparent', color: '#f44336', fontWeight: 600, cursor: 'pointer' }}>
-              离开队伍
+          <div className={styles.tbOps}>
+            <button
+              type="button"
+              className={`${styles.tbOpsBtn} ${styles.tbOpsLeave}`}
+              onClick={handleLeave}
+            >
+              离 开 队 伍
             </button>
-            <button disabled={team.teamSize < 2}
-              style={{ flex: 1, padding: '12px', borderRadius: 8, border: 'none', background: team.teamSize >= 2 ? '#e8c44a' : '#444', color: '#000', fontWeight: 700, cursor: 'pointer' }}>
-              开始匹配
+            <button
+              type="button"
+              className={`${styles.tbOpsBtn} ${styles.tbOpsStart}`}
+              onClick={handleStart}
+              disabled={team.teamSize < 2}
+            >
+              开 始 匹 配
             </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
