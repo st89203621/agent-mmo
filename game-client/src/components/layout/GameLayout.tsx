@@ -45,6 +45,10 @@ const SUB_PAGES: Record<string, { label: string; back: PageId }> = {
   'wheel': { label: '天命之轮', back: 'activity' },
   'mystic-tome': { label: '太古秘典', back: 'activity' },
   'secret-realm': { label: '鸿蒙秘境', back: 'activity' },
+  'auction': { label: '拍卖行', back: 'scene' },
+  'market': { label: '集市', back: 'scene' },
+  'trade': { label: '集市', back: 'scene' },
+  'message-board': { label: '留言板', back: 'scene' },
 };
 
 interface Props {
