@@ -19,46 +19,51 @@ export default function MessagesPage() {
   }, []);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.eyebrow}>系统 / 区域 / 玩家动态</div>
-        <div className={styles.titleRow}>
-          <div className={styles.title}>消息</div>
-          <div className={styles.subtitle}>{zoneId}</div>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>消 息</span>
+            <span className={styles.appbarZone}>区域 {zoneId} · 动态汇总</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <div className={styles.appbarIconPlain}>告</div>
+            <div className={`${styles.appbarIconPlain} ${styles.appbarIconDot}`}>新</div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.scroll}>
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>系统公告</span>
-          </div>
-          <div className={styles.list}>
-            {systemNotices.map((item) => (
-              <div key={item} className={styles.card}>
-                <div className={styles.name}>{item}</div>
+      <div className={styles.scrollPlain}>
+        <div className={styles.sectLine}>系 统 公 告</div>
+        <div className={styles.feedList}>
+          {systemNotices.map((item) => (
+            <div key={item} className={styles.feedItem}>
+              <div className={styles.feedIcon}>告</div>
+              <div className={styles.feedBody}>
+                <div className={styles.feedTitle}>系统公告</div>
+                <div className={styles.feedText}>{item}</div>
               </div>
-            ))}
-          </div>
+              <div className={styles.feedMeta}>刚刚</div>
+            </div>
+          ))}
         </div>
 
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>玩家留言摘要</span>
-          </div>
-          <div className={styles.list}>
-            {messages.length === 0 ? (
-              <div className={styles.empty}>暂无玩家动态</div>
-            ) : messages.slice(0, 8).map((item) => (
-              <div key={item.id} className={styles.card}>
-                <div className={styles.row}>
-                  <div className={styles.name}>{item.authorName}</div>
-                  <div className={styles.meta}>{new Date(item.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div className={styles.desc}>{item.content}</div>
+        <div className={styles.sectLine}>玩 家 动 态</div>
+        <div className={styles.feedList}>
+          {messages.length === 0 ? (
+            <div className={styles.feedEmpty}>暂无玩家动态</div>
+          ) : messages.slice(0, 8).map((item) => (
+            <div key={item.id} className={styles.feedItem}>
+              <div className={styles.feedIcon}>{item.authorName.slice(0, 1)}</div>
+              <div className={styles.feedBody}>
+                <div className={styles.feedTitle}>{item.authorName}</div>
+                <div className={styles.feedText}>{item.content}</div>
               </div>
-            ))}
-          </div>
+              <div className={styles.feedMeta}>
+                {new Date(item.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

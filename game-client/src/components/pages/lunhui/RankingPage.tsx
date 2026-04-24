@@ -25,36 +25,38 @@ export default function RankingPage() {
   }, [tab]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.eyebrow}>全服榜单</div>
-        <div className={styles.titleRow}>
-          <div className={styles.title}>排行榜</div>
-          <div className={styles.subtitle}>我的排名 {myRank || '未上榜'}</div>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>排 行 榜</span>
+            <span className={styles.appbarZone}>我的排名 {myRank || '未上榜'}</span>
+          </div>
         </div>
       </div>
-      <div className={styles.scroll}>
-        <div className={styles.tabs}>
-          {TABS.map(([key, label]) => (
-            <button key={key} className={`${styles.tab} ${tab === key ? styles.tabActive : ''}`} onClick={() => setTab(key)}>
-              {label}
-            </button>
-          ))}
-        </div>
 
-        <div className={styles.panel}>
-          <div className={styles.list}>
-            {entries.map((item) => (
-              <div key={`${item.rank}-${item.playerId}`} className={styles.card}>
-                <div className={styles.row}>
-                  <div className={styles.stack}>
-                    <div className={styles.name}>#{item.rank} · {item.playerName}</div>
-                    <div className={styles.meta}>数值 {item.value}</div>
-                  </div>
-                </div>
+      <div className={styles.marketTabs}>
+        {TABS.map(([key, label]) => (
+          <button key={key} className={`${styles.marketTab} ${tab === key ? styles.marketTabOn : ''}`.trim()} onClick={() => setTab(key)} type="button">
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.scrollPlain}>
+        <div className={styles.rankList}>
+          {entries.length === 0 ? (
+            <div className={styles.feedEmpty}>暂无排行数据</div>
+          ) : entries.map((item) => (
+            <div key={`${item.rank}-${item.playerId}`} className={styles.rankRow}>
+              <div className={styles.rankIndex}>#{item.rank}</div>
+              <div className={styles.rankMain}>
+                <div className={styles.rankName}>{item.playerName}</div>
+                <div className={styles.rankMeta}>玩家 ID {item.playerId}</div>
               </div>
-            ))}
-          </div>
+              <div className={styles.rankValue}>{item.value}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

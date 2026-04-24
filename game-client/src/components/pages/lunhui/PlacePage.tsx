@@ -6,6 +6,30 @@ import { toast } from '../../../store/toastStore';
 import type { PlaceInfo, ZoneInfo } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
+type PlaceCompassSlot = 'nw' | 'n' | 'ne' | 'w' | 'center' | 'e' | 'sw' | 's' | 'se';
+
+interface PlaceCompassCell {
+  slot: PlaceCompassSlot;
+  label: string;
+  coord?: string;
+  action?: () => void;
+  state: 'empty' | 'here' | 'exit';
+}
+
+const PLACE_ORDER: PlaceCompassSlot[] = ['nw', 'n', 'ne', 'w', 'center', 'e', 'sw', 's', 'se'];
+
+function getSlot(dx: number, dy: number): PlaceCompassSlot | null {
+  if (dx === 0 && dy === -1) return 'n';
+  if (dx === 0 && dy === 1) return 's';
+  if (dx === -1 && dy === 0) return 'w';
+  if (dx === 1 && dy === 0) return 'e';
+  if (dx === -1 && dy === -1) return 'nw';
+  if (dx === 1 && dy === -1) return 'ne';
+  if (dx === -1 && dy === 1) return 'sw';
+  if (dx === 1 && dy === 1) return 'se';
+  return null;
+}
+
 export default function PlacePage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
   const pageZoneId = useGameStore((s) => String(s.pageParams.zoneId || ''));
@@ -42,107 +66,142 @@ export default function PlacePage() {
     }
   }, [moving, navigateTo]);
 
+  const compass = useMemo<PlaceCompassCell[]>(() => {
+    const cells = new Map<PlaceCompassSlot, PlaceCompassCell>();
+    cells.set('center', {
+      slot: 'center',
+      label: '你 在 此',
+      coord: `(${place.coord[0]},${place.coord[1]})`,
+      state: 'here',
+    });
+
+    for (const exit of place.exits) {
+      const target = getPlaceInfo(exit.targetZoneId);
+      const slot = getSlot(target.coord[0] - place.coord[0], target.coord[1] - place.coord[1]);
+      if (!slot) continue;
+      cells.set(slot, {
+        slot,
+        label: target.title,
+        coord: `(${target.coord[0]},${target.coord[1]})`,
+        action: () => handleMove(exit.targetZoneId),
+        state: 'exit',
+      });
+    }
+
+    return PLACE_ORDER.map((slot) => cells.get(slot) ?? {
+      slot,
+      label: '',
+      coord: undefined,
+      action: undefined,
+      state: 'empty',
+    });
+  }, [handleMove, place]);
+
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.eyebrow}>{place.region}</div>
-        <div className={styles.titleRow}>
-          <div className={styles.title}>{place.title}</div>
-          <div className={styles.subtitle}>({place.coord[0]},{place.coord[1]})</div>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>{place.region} · {place.title}</span>
+            <span className={styles.appbarZone}>坐标 ({place.coord[0]},{place.coord[1]})</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('chat')} type="button">叫</button>
+            <button className={styles.appbarIcon} onClick={() => navigateTo('hub')} type="button">退</button>
+          </div>
         </div>
       </div>
 
-      <div className={styles.scroll}>
-        <div className={styles.hero}>
-          <div className={styles.heroTitle}>{place.landscape}</div>
-          <div className={styles.heroSub}>{place.description}</div>
-        </div>
-
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>场景告示</span>
-            <span className={styles.chip}>地方屏</span>
-          </div>
-          <div className={styles.list}>
-            {place.notices.map((notice) => (
-              <div key={notice} className={styles.card}>
-                <div className={styles.name}>{notice}</div>
-              </div>
-            ))}
+      <div className={styles.scrollPlain}>
+        <div className={styles.placeBg}>
+          <div className={styles.placeInk}>{place.title.slice(0, 1)}</div>
+          <div className={styles.placeText}>
+            <div className={styles.placeName}>{place.region} · {place.title}</div>
+            <div className={styles.placeCoord}>坐 标 ({place.coord[0]},{place.coord[1]})</div>
+            <div className={styles.placeMood}>{place.landscape}</div>
           </div>
         </div>
 
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>场景人物</span>
-          </div>
-          <div className={styles.list}>
-            {place.npcs.map((npc) => (
-              <div key={npc.id} className={styles.card}>
-                <div className={styles.row}>
-                  <div className={styles.stack}>
-                    <div className={styles.name}>{npc.name}</div>
-                    <div className={styles.meta}>{npc.role}</div>
-                  </div>
-                  <button className={styles.button} onClick={() => navigateTo(npc.pageId)}>
-                    前往
-                  </button>
+        <div className={styles.sectLine}>
+          出 口 · 方 位
+          <button className={styles.moreBtn} onClick={() => navigateTo('teleport')} type="button">点击传送 ›</button>
+        </div>
+
+        <div className={styles.placeCompass}>
+          {compass.map((cell) => {
+            if (cell.state === 'empty') {
+              return <div key={cell.slot} className={`${styles.placeCell} ${styles.placeCellEmpty}`} />;
+            }
+            if (cell.state === 'here') {
+              return (
+                <div key={cell.slot} className={`${styles.placeCell} ${styles.placeCellHere}`}>
+                  <span>{cell.label}</span>
+                  {cell.coord && <span className={styles.placeCellCoord}>{cell.coord}</span>}
                 </div>
-                <div className={styles.desc}>{npc.line}</div>
-              </div>
-            ))}
-          </div>
+              );
+            }
+            return (
+              <button
+                key={cell.slot}
+                className={styles.placeCell}
+                disabled={moving}
+                onClick={cell.action}
+                type="button"
+              >
+                <span>{cell.label}</span>
+                {cell.coord && <span className={styles.placeCellCoord}>{cell.coord}</span>}
+              </button>
+            );
+          })}
         </div>
 
-        {place.monsters.length > 0 && (
-          <div className={styles.panel}>
-            <div className={styles.panelTitle}>
-              <span>出没怪物</span>
-            </div>
-            <div className={styles.list}>
-              {place.monsters.map((monster) => (
-                <div key={monster.id} className={styles.card}>
-                  <div className={styles.row}>
-                    <div className={styles.stack}>
-                      <div className={styles.name}>{monster.name}</div>
-                      <div className={styles.meta}>Lv.{monster.level} · {monster.reward}</div>
-                    </div>
-                    <button className={styles.button} onClick={() => navigateTo(monster.pageId)}>
-                      迎战
-                    </button>
+        {place.npcs.length > 0 && (
+          <>
+            <div className={styles.sectLine}>N P C · 在 此 可 对 话</div>
+            <div className={styles.placeList}>
+              {place.npcs.map((npc) => (
+                <button
+                  key={npc.id}
+                  className={styles.placeRow}
+                  onClick={() => navigateTo(npc.pageId)}
+                  type="button"
+                >
+                  <div className={styles.placeIcon}>{npc.name.slice(0, 1)}</div>
+                  <div className={styles.placeBody}>
+                    <div className={styles.placeRowName}>{npc.name}</div>
+                    <div className={styles.placeRowTip}>{npc.role} · {npc.line}</div>
                   </div>
-                </div>
+                  <div className={styles.placeRowGo}>前 往</div>
+                </button>
               ))}
             </div>
-          </div>
+          </>
         )}
 
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>出口 · 方位</span>
-          </div>
-          <div className={styles.grid2}>
-            {place.exits.map((target) => (
-              <button
-                key={target.targetZoneId}
-                className={`${styles.button} ${styles.buttonAlt}`}
-                onClick={() => handleMove(target.targetZoneId)}
-                disabled={moving}
-              >
-                {target.direction} · {target.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {place.monsters.length > 0 && (
+          <>
+            <div className={styles.sectLine}>出 没 怪 物 · 可 战</div>
+            <div className={styles.placeList}>
+              {place.monsters.map((monster) => (
+                <button
+                  key={monster.id}
+                  className={`${styles.placeRow} ${styles.placeRowMob}`}
+                  onClick={() => navigateTo(monster.pageId)}
+                  type="button"
+                >
+                  <div className={styles.placeIcon}>{monster.name.slice(0, 1)}</div>
+                  <div className={styles.placeBody}>
+                    <div className={styles.placeRowName}>{monster.name}</div>
+                    <div className={styles.placeRowTip}>Lv.{monster.level} · {monster.reward}</div>
+                  </div>
+                  <div className={styles.placeRowGo}>迎 战</div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
-        <div className={styles.grid2}>
-          <button className={`${styles.button} ${styles.buttonAlt}`} onClick={() => navigateTo('hub')}>
-            返回主城
-          </button>
-          <button className={styles.button} onClick={() => navigateTo('world-map')}>
-            查看地图
-          </button>
-        </div>
+        <div className={styles.placeAct}>★ {place.notices[0] || '此地安宁，暂无异动'}</div>
       </div>
     </div>
   );

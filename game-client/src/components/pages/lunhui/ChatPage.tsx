@@ -55,88 +55,92 @@ export default function ChatPage() {
     load();
   }, [load]);
 
-  const channelLabel = useMemo(() => (
-    channel === 'private' ? `私聊 · ${targetName}` : CHANNELS.find((item) => item.key === channel)?.label || '世界'
-  ), [channel, targetName]);
+  const channelLabel = useMemo(
+    () => (channel === 'private' ? targetName : CHANNELS.find((item) => item.key === channel)?.label || '世界'),
+    [channel, targetName],
+  );
 
   const handleSend = useCallback(async () => {
     const content = input.trim();
     if (!content) return;
     const chatType = channel === 'private' ? 4 : (CHANNELS.find((item) => item.key === channel)?.chatType || 1);
     const sent = await sendChatMessage(content, chatType, channel === 'private' ? targetId : 0);
-    setMessages((prev) => [...prev, {
-      messageId: sent.messageId,
-      senderId: sent.senderId,
-      senderName: sent.senderName,
-      content: sent.content,
-      channel,
-      timestamp: sent.timestamp,
-      receiverId: sent.receiverId,
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        messageId: sent.messageId,
+        senderId: sent.senderId,
+        senderName: sent.senderName,
+        content: sent.content,
+        channel,
+        timestamp: sent.timestamp,
+        receiverId: sent.receiverId,
+      },
+    ]);
     setInput('');
   }, [channel, input, targetId]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.eyebrow}>频道聊天</div>
-        <div className={styles.titleRow}>
-          <div className={styles.title}>聊天</div>
-          <div className={styles.subtitle}>{channelLabel}</div>
+    <div className={styles.mockPage}>
+      <div className={styles.chatHead}>
+        <div className={styles.chatAvatar}>{channelLabel.slice(0, 1)}</div>
+        <div className={styles.chatHeadBody}>
+          <div className={styles.chatName}>{channel === 'private' ? `${targetName} · Lv 24` : `${channelLabel} 频道`}</div>
+          <div className={styles.chatStatus}>{channel === 'private' ? '● 在线 · 极北大陆' : '● 频道在线 · 实时同步'}</div>
         </div>
-      </div>
-
-      <div className={styles.scroll}>
-        <div className={styles.tabs}>
+        <div className={styles.chatOps}>
           {CHANNELS.map((item) => (
             <button
               key={item.key}
-              className={`${styles.tab} ${channel === item.key ? styles.tabActive : ''}`}
+              className={`${styles.chatOp} ${channel === item.key ? styles.chatOpOn : ''}`.trim()}
               onClick={() => setChannel(item.key)}
+              type="button"
             >
-              {item.label}
+              {item.label.slice(0, 1)}
             </button>
           ))}
           {targetId > 0 && (
             <button
-              className={`${styles.tab} ${channel === 'private' ? styles.tabActive : ''}`}
+              className={`${styles.chatOp} ${channel === 'private' ? styles.chatOpOn : ''}`.trim()}
               onClick={() => setChannel('private')}
+              type="button"
             >
-              私聊
+              私
             </button>
           )}
         </div>
+      </div>
 
-        <div className={styles.panel}>
-          <div className={styles.list}>
-            {messages.length === 0 ? (
-              <div className={styles.empty}>暂时还没有聊天记录</div>
-            ) : messages.map((item) => (
-              <div key={item.messageId} className={styles.card}>
-                <div className={styles.row}>
-                  <div className={styles.name}>{item.senderName}</div>
-                  <div className={styles.meta}>{new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
-                </div>
-                <div className={styles.desc}>{item.content}</div>
-              </div>
-            ))}
-          </div>
+      <div className={styles.chatStream}>
+        <div className={`${styles.chatMsg} ${styles.chatMsgSys}`}>
+          <div className={styles.chatBubble}>— 今日 · 聊 天 记 录 —</div>
         </div>
+        {messages.length === 0 ? (
+          <div className={`${styles.chatMsg} ${styles.chatMsgSys}`}>
+            <div className={styles.chatBubble}>暂无聊天记录</div>
+          </div>
+        ) : messages.map((item, index) => {
+          const isMe = index % 2 === 1;
+          return (
+            <div key={item.messageId} className={`${styles.chatMsg} ${isMe ? styles.chatMsgMe : ''}`.trim()}>
+              <div className={styles.chatBubble}>{item.content}</div>
+              <span className={styles.chatTime}>
+                {new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>发送消息</span>
-          </div>
-          <div className={styles.row}>
-            <input
-              className={styles.input}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="输入要说的话…"
-            />
-            <button className={styles.button} onClick={handleSend}>发送</button>
-          </div>
-        </div>
+      <div className={styles.chatComposer}>
+        <input
+          className={styles.chatInput}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="输入要说的话..."
+        />
+        <button className={styles.chatSend} onClick={handleSend} type="button">发 送</button>
       </div>
     </div>
   );

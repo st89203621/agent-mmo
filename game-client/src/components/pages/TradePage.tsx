@@ -1,34 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
+import { useGameStore } from '../../store/gameStore';
 import {
   fetchMarketItems, sellOnMarket, buyFromMarket,
   fetchMyMarketListings, cancelMarketListing,
 } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import type { MarketListing } from '../../types';
-import page from '../../styles/page.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
 const CATEGORIES = [
-  { key: '',          label: '全部' },
-  { key: 'weapon',    label: '武器' },
-  { key: 'armor',     label: '防具' },
-  { key: 'accessory', label: '饰品' },
-  { key: 'pet',       label: '宠物' },
-  { key: 'material',  label: '材料' },
-  { key: 'misc',      label: '道具' },
+  { key: '', label: '全部' },
+  { key: 'consumable', label: '消耗' },
+  { key: 'material', label: '材料' },
+  { key: 'equipment', label: '装备' },
+  { key: 'pet', label: '宝宝' },
+  { key: 'other', label: '任务' },
 ];
-
-const QUALITY_CLASS: Record<string, string> = {
-  white:  page.qWhite,
-  green:  page.qGreen,
-  blue:   page.qBlue,
-  purple: page.qPurple,
-  orange: page.qOrange,
-};
 
 type Tab = 'market' | 'mine';
 
 export default function TradePage() {
+  const currentPage = useGameStore((s) => s.currentPage);
   const { gold } = usePlayerStore();
   const [tab, setTab] = useState<Tab>('market');
   const [category, setCategory] = useState('');
@@ -38,6 +31,8 @@ export default function TradePage() {
   const [acting, setActing] = useState<string | null>(null);
   const [showSell, setShowSell] = useState(false);
   const [sellPrice, setSellPrice] = useState('');
+
+  const isStallMode = currentPage === 'stall';
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,11 +44,15 @@ export default function TradePage() {
         const res = await fetchMarketItems(category || undefined, keyword || undefined);
         setItems(res.items || []);
       }
-    } catch { setItems([]); }
+    } catch {
+      setItems([]);
+    }
     setLoading(false);
-  }, [tab, category, keyword]);
+  }, [category, keyword, tab]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleBuy = useCallback(async (listing: MarketListing) => {
     setActing(listing.listingId);
@@ -81,7 +80,10 @@ export default function TradePage() {
 
   const handleSell = useCallback(async () => {
     const price = parseInt(sellPrice, 10);
-    if (isNaN(price) || price <= 0) { toast.error('请输入有效价格'); return; }
+    if (isNaN(price) || price <= 0) {
+      toast.error('请输入有效价格');
+      return;
+    }
     try {
       await sellOnMarket('selected', price, 1);
       toast.success('挂单成功');
@@ -91,131 +93,108 @@ export default function TradePage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '挂单失败');
     }
-  }, [sellPrice, load]);
+  }, [load, sellPrice]);
 
   return (
-    <div className={page.page}>
-      <div className={page.header}>
-        <p className={page.subtitle}>🪙 {gold.toLocaleString()} · 玩家间自由交易</p>
+    <div className={styles.mockPage}>
+      <div className={styles.appbar}>
+        <div className={styles.appbarRow}>
+          <div className={styles.appbarLoc}>
+            <span className={styles.appbarBook}>{isStallMode ? '小 摊' : '集 市'}</span>
+            <span className={styles.appbarZone}>{items.length} 项在售 · 金币 {gold.toLocaleString()}</span>
+          </div>
+          <div className={styles.appbarIcons}>
+            <div className={styles.appbarIconPlain}>索</div>
+            <div className={styles.appbarIconPlain}>袋</div>
+          </div>
+        </div>
       </div>
 
-      <div className={page.tabRow}>
-        {(['market', 'mine'] as Tab[]).map(t => (
+      <div className={styles.marketTabs}>
+        {CATEGORIES.map((item) => (
           <button
-            key={t}
-            className={`${page.tab} ${tab === t ? page.tabActive : ''}`}
-            onClick={() => setTab(t)}
+            key={item.key}
+            className={`${styles.marketTab} ${category === item.key ? styles.marketTabOn : ''}`.trim()}
+            onClick={() => setCategory(item.key)}
+            type="button"
           >
-            {t === 'market' ? '集市' : '我的挂单'}
+            {item.label}
           </button>
         ))}
       </div>
 
-      {tab === 'market' && (
-        <>
-          <div className={page.searchRow}>
-            <div className={page.chipRow}>
-              {CATEGORIES.map(c => (
-                <button
-                  key={c.key}
-                  className={`${page.chip} ${category === c.key ? page.chipActive : ''}`}
-                  onClick={() => setCategory(c.key)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={page.searchRow}>
-            <input
-              className={page.input}
-              placeholder="搜索物品名称…"
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && load()}
-            />
-          </div>
-        </>
-      )}
-
-      <div className={page.scrollArea}>
-        {tab === 'mine' && (
-          <button className={page.dashedBtn} onClick={() => setShowSell(true)}>
-            + 挂单出售物品
+      <div className={styles.marketMine}>
+        <div className={styles.marketMineTitle}>{tab === 'mine' ? '我 的 摆 卖' : isStallMode ? '逛 摊 淘 宝' : '市 集 流 通'}</div>
+        <div className={styles.marketMineSub}>
+          {tab === 'mine' ? '查看自己的挂单并可随时撤回' : '支持按分类浏览和购买其他玩家上架物品'}
+        </div>
+        <div className={styles.marketMineActions}>
+          <button className={styles.marketMineBtn} onClick={() => setTab(tab === 'market' ? 'mine' : 'market')} type="button">
+            {tab === 'market' ? '我 的 挂 单' : '返 回 集 市'}
           </button>
-        )}
-
-        {loading ? (
-          <div className={page.empty}><p>加载中…</p></div>
-        ) : items.length === 0 ? (
-          <div className={page.empty}>
-            <span className={page.placeholderIcon}>🏪</span>
-            <p>{tab === 'mine' ? '暂无挂单' : '集市暂无商品'}</p>
-            {tab === 'market' && <span className={page.hint}>去背包选择物品挂单，赚取差价</span>}
-          </div>
-        ) : items.map(item => {
-          const qClass = QUALITY_CLASS[item.itemQuality] || page.qWhite;
-          const isActing = acting === item.listingId;
-          const remaining = item.quantity - item.sold;
-          return (
-            <div key={item.listingId} className={page.card}>
-              <div className={page.cardHeader}>
-                <span className={`${page.cardTitle} ${qClass}`}>{item.itemName}</span>
-                <span className={page.cardMeta}>{item.sellerName}</span>
-              </div>
-
-              <div className={page.cardRow}>
-                <div className={page.priceBlock}>
-                  <span className={page.priceLabel}>单价</span>
-                  <span className={page.priceValue}>🪙 {item.unitPrice.toLocaleString()}</span>
-                </div>
-                <span className={page.cardMeta}>剩 {remaining} 件</span>
-              </div>
-
-              <div className={page.actionRow}>
-                {tab === 'market' ? (
-                  <button
-                    className={page.primaryBtn}
-                    disabled={isActing}
-                    onClick={() => handleBuy(item)}
-                  >
-                    {isActing ? '…' : '购买'}
-                  </button>
-                ) : (
-                  <button
-                    className={page.dangerBtn}
-                    disabled={isActing}
-                    onClick={() => handleCancel(item.listingId)}
-                  >
-                    {isActing ? '…' : '撤回'}
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+          <button className={styles.marketMineBtn} onClick={() => setShowSell(true)} type="button">
+            摆 摊 上 架
+          </button>
+        </div>
       </div>
 
-      {/* 挂单抽屉 */}
+      {!isStallMode && tab === 'market' && (
+        <div className={styles.friendSearch}>
+          <input
+            className={styles.friendSearchInput}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && load()}
+            placeholder="搜索物品名"
+          />
+          <button className={styles.friendSearchBtn} onClick={load} type="button">搜 索</button>
+        </div>
+      )}
+
+      <div className={styles.scrollPlain}>
+        {loading ? (
+          <div className={styles.feedEmpty}>交易数据加载中...</div>
+        ) : items.length === 0 ? (
+          <div className={styles.feedEmpty}>当前没有可显示的交易条目</div>
+        ) : (
+          <div className={styles.marketList}>
+            {items.map((item) => {
+              const actingNow = acting === item.listingId;
+              return (
+                <div key={item.listingId} className={styles.marketStall}>
+                  <div className={styles.marketAvatar}>{item.sellerName.slice(0, 2)}</div>
+                  <div className={styles.marketBody}>
+                    <div className={styles.marketName}>
+                      {item.sellerName}
+                      <span className={styles.marketZone}>{item.itemCategory || '主城 (2,2)'}</span>
+                    </div>
+                    <div className={styles.marketItems}>
+                      · {item.itemName} × {item.quantity - item.sold} · <b>{item.unitPrice.toLocaleString()} 币/件</b>
+                    </div>
+                  </div>
+                  {tab === 'mine' ? (
+                    <button className={styles.marketGo} disabled={actingNow} onClick={() => handleCancel(item.listingId)} type="button">
+                      {actingNow ? '...' : '撤'}
+                    </button>
+                  ) : (
+                    <button className={styles.marketGo} disabled={actingNow} onClick={() => handleBuy(item)} type="button">
+                      {actingNow ? '...' : '逛'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {showSell && (
-        <div className={page.drawerOverlay} onClick={() => setShowSell(false)}>
-          <div className={page.drawer} onClick={e => e.stopPropagation()}>
-            <div className={page.drawerTitle}>挂单出售</div>
-            <div className={page.drawerHint}>从背包选择物品，设置单价</div>
-
-            <div className={page.field}>
-              <label className={page.fieldLabel}>单价（金币）</label>
-              <input
-                className={page.input}
-                type="number"
-                placeholder="输入价格"
-                value={sellPrice}
-                onChange={e => setSellPrice(e.target.value)}
-              />
-            </div>
-
-            <button className={page.drawerSubmit} onClick={handleSell}>确认挂单</button>
-            <button className={page.drawerCancel} onClick={() => setShowSell(false)}>取消</button>
+        <div className={styles.overlayMask} onClick={() => setShowSell(false)}>
+          <div className={styles.overlayPanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.overlayTitle}>摆 摊 上 架</div>
+            <div className={styles.overlayText}>输入单价，默认上架 1 件示例物品</div>
+            <input className={styles.overlayInput} type="number" value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} placeholder="单价" />
+            <button className={styles.overlayPrimary} onClick={handleSell} type="button">确 认 摆 卖</button>
           </div>
         </div>
       )}

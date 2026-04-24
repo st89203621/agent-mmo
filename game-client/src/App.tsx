@@ -40,6 +40,7 @@ import EventsPage from './components/pages/lunhui/EventsPage';
 import VipPage from './components/pages/lunhui/VipPage';
 import RankingPage from './components/pages/lunhui/RankingPage';
 import HousingPage from './components/pages/lunhui/HousingPage';
+import StatusPage from './components/pages/lunhui/StatusPage';
 
 class PageErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -61,7 +62,7 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   scene: ScenePage,
   place: PlacePage,
   teleport: TeleportPage,
-  status: CharacterPage,
+  status: StatusPage,
   character: CharacterPage,
   inventory: InventoryPage,
   nearby: NearbyPage,
