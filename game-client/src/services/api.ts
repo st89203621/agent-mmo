@@ -1786,8 +1786,28 @@ export interface BossRankEntry {
   damage: number;
 }
 
-export function fetchWorldBoss(): Promise<WorldBossData> {
-  return request('/world-boss/info');
+interface WorldBossRaw {
+  bossId: string;
+  name: string;
+  level: number;
+  currentHp: number;
+  totalHp: number;
+  status: string;
+  participantCount?: number;
+  myDamage?: number;
+}
+
+export async function fetchWorldBoss(): Promise<WorldBossData> {
+  const raw = await request<WorldBossRaw>('/world-boss/info');
+  return {
+    bossId: raw.bossId,
+    bossName: raw.name,
+    bossTitle: `LV ${raw.level} · 远古封印`,
+    maxHp: raw.totalHp,
+    currentHp: raw.currentHp,
+    myDamage: raw.myDamage ?? 0,
+    status: raw.status === 'dead' ? 'dead' : 'alive',
+  };
 }
 
 export function attackWorldBoss(): Promise<{ damage: number; cooldownSeconds: number; reward?: string }> {

@@ -47,7 +47,7 @@ export default function WorldBossPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [boss, setBoss] = useState<WorldBossData | null>(null);
   const [rank, setRank] = useState<BossRankEntry[]>([]);
-  const [myDamage, setMyDamage] = useState(0);
+  const [extraDamage, setExtraDamage] = useState(0);
   const [attacking, setAttacking] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [floats, setFloats] = useState<DmgFloat[]>([]);
@@ -57,9 +57,8 @@ export default function WorldBossPage() {
     try {
       const data = await fetchWorldBoss();
       setBoss(data);
-      setMyDamage(data.myDamage ?? 0);
-    } catch {
-      /* noop */
+    } catch (e) {
+      toast.error((e as Error).message || '加载世界 Boss 失败');
     }
   }, []);
 
@@ -92,7 +91,7 @@ export default function WorldBossPage() {
       const res = await attackWorldBoss();
       const dmg = res.damage ?? 0;
       const crit = dmg >= 2000;
-      setMyDamage((prev) => prev + dmg);
+      setExtraDamage((prev) => prev + dmg);
       setBoss((prev) => (prev ? { ...prev, currentHp: Math.max(0, prev.currentHp - dmg) } : prev));
 
       const id = ++floatId.current;
@@ -102,7 +101,8 @@ export default function WorldBossPage() {
       }, 900);
 
       setCooldown(res.cooldownSeconds ?? 3);
-      loadRank();
+      await loadRank();
+      setExtraDamage(0);
       if (res.reward) toast.reward(res.reward);
     } catch (e) {
       toast.error((e as Error).message || '攻击失败');
@@ -115,14 +115,19 @@ export default function WorldBossPage() {
     toast.info('已向全服发起召集 · 公会频道广播');
   }, []);
 
-  const hpPct = boss ? Math.max(0, Math.min(100, (boss.currentHp / boss.maxHp) * 100)) : 100;
-  const activeSegs = Math.ceil((hpPct / 100) * HP_SEGMENTS);
+  const hpPct = boss && boss.maxHp > 0
+    ? Math.max(0, Math.min(100, (boss.currentHp / boss.maxHp) * 100))
+    : 0;
+  const activeSegs = Math.max(0, Math.ceil((hpPct / 100) * HP_SEGMENTS));
 
-  const myRank = useMemo(() => {
-    if (!playerId) return 0;
+  const myRankRow = useMemo(() => {
+    if (!playerId) return null;
     const idx = rank.findIndex((r) => r.playerId === playerId);
-    return idx >= 0 ? idx + 1 : 0;
+    return idx >= 0 ? { idx, entry: rank[idx] } : null;
   }, [rank, playerId]);
+
+  const myRank = myRankRow ? myRankRow.idx + 1 : 0;
+  const myDamage = (myRankRow?.entry.damage ?? 0) + extraDamage;
 
   const isMine = (rowId: string) => !!playerId && rowId === playerId;
 

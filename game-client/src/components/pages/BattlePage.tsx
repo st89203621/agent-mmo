@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
@@ -6,134 +6,151 @@ import { usePhaserGame } from '../../phaser/usePhaserGame';
 import BattleScene from '../../phaser/BattleScene';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
 import {
-  startBattle, getBattleState, battleAction, fetchPersonInfo, fetchPlayerCurrency,
-  fetchBagItems, useBagItem,
-  type BattleData, type BattleUnitData, type BattleActionData, type BattleSkillData, type BagItemData,
+  battleAction,
+  fetchBagItems,
+  fetchPersonInfo,
+  fetchPlayerCurrency,
+  getBattleState,
+  startBattle,
+  useBagItem,
+  type BagItemData,
+  type BattleActionData,
+  type BattleData,
+  type BattleSkillData,
+  type BattleUnitData,
 } from '../../services/api';
-import styles from './BattlePage.module.css';
+import styles from './lunhui/LunhuiPages.module.css';
 
-/* ── 快捷栏类型 ── */
 type HotkeyBinding =
   | { type: 'skill'; data: BattleSkillData }
   | { type: 'item'; data: BagItemData }
   | null;
 
+interface FloatingNumber {
+  id: number;
+  unitId: string;
+  value: number;
+  isHeal: boolean;
+}
+
 const ACTION_DELAY = 700;
 const HOTKEY_KEYS = ['1', '2', '3', '4', '5', '6'] as const;
 const CONSUMABLE_CATEGORIES = ['consumable', 'potion', '药品', '消耗品'];
+const BAR_SEGMENTS = 10;
 
 let seqId = 0;
-interface FloatingNumber { id: number; unitId: string; value: number; isHeal: boolean }
 
-/* ── 将一个action的伤害/治疗应用到单位列表的深拷贝上 ── */
 function applyAction(
-  players: BattleUnitData[], enemies: BattleUnitData[], action: BattleActionData,
+  players: BattleUnitData[],
+  enemies: BattleUnitData[],
+  action: BattleActionData,
 ): { players: BattleUnitData[]; enemies: BattleUnitData[] } {
-  const ps = players.map(u => ({ ...u }));
-  const es = enemies.map(u => ({ ...u }));
-  const all = [...ps, ...es];
+  const nextPlayers = players.map(unit => ({ ...unit }));
+  const nextEnemies = enemies.map(unit => ({ ...unit }));
+  const allUnits = [...nextPlayers, ...nextEnemies];
 
   if (action.damage > 0 && action.targetId) {
-    const t = all.find(u => u.unitId === action.targetId);
-    if (t) t.hp = Math.max(0, t.hp - action.damage);
+    const target = allUnits.find(unit => unit.unitId === action.targetId);
+    if (target) target.hp = Math.max(0, target.hp - action.damage);
   }
+
   if (action.heal > 0) {
-    // 治疗目标是施术者自己
     const healId = action.effectType === 'heal' ? action.actorId : action.targetId;
-    const t = all.find(u => u.unitId === healId);
-    if (t) t.hp = Math.min(t.maxHp, t.hp + action.heal);
+    const target = allUnits.find(unit => unit.unitId === healId);
+    if (target) target.hp = Math.min(target.maxHp, target.hp + action.heal);
   }
+
   if (action.actionType === 'DEFEND') {
-    const a = all.find(u => u.unitId === action.actorId);
-    if (a) a.defending = true;
+    const actor = allUnits.find(unit => unit.unitId === action.actorId);
+    if (actor) actor.defending = true;
   }
-  return { players: ps, enemies: es };
+
+  return { players: nextPlayers, enemies: nextEnemies };
 }
 
-/* ═══════════ 立绘组件 ═══════════ */
-function PortraitImage({ unit, isPlayer }: { unit: BattleUnitData; isPlayer: boolean }) {
-  const transparentSrc = useTransparentPortrait(unit.portraitUrl || null);
-  if (transparentSrc) {
-    return (
-      <div className={`${styles.portraitImg} ${isPlayer ? styles.playerImg : styles.enemyImg}`}>
-        <img src={transparentSrc} alt={unit.name} draggable={false} />
-      </div>
-    );
-  }
-  return (
-    <div className={`${styles.portraitEmoji} ${isPlayer ? styles.playerEmoji : styles.enemyEmoji}`}>
-      {isPlayer ? '🧙' : '👹'}
-    </div>
-  );
+function toSegments(value: number, max: number) {
+  if (!max || max <= 0) return 0;
+  return Math.max(0, Math.min(BAR_SEGMENTS, Math.round((value / max) * BAR_SEGMENTS)));
 }
 
-const GRADE_STYLE: Record<string, { label: string; color: string }> = {
-  C: { label: 'C', color: '#9e9e9e' }, B: { label: 'B', color: '#4caf50' },
-  A: { label: 'A', color: '#2196f3' }, S: { label: 'S', color: '#ffc107' },
-  SS: { label: 'SS', color: '#ff9800' }, SSS: { label: 'SSS', color: '#e91e63' },
-};
+function logToneClass(line: string) {
+  if (/miss|未命中|闪避/i.test(line)) return styles.logMiss;
+  if (/暴|怒气|crit|\+/.test(line)) return styles.logCrit;
+  if (/伤害|击破|治疗|heal|hit/i.test(line)) return styles.logHit;
+  return '';
+}
 
-/* ═══════════ 角色区块 ═══════════ */
-function UnitBlock({ unit, isPlayer, floats, hitIds, attackAnim }: {
-  unit: BattleUnitData; isPlayer: boolean;
-  floats: FloatingNumber[]; hitIds: Set<string>; attackAnim: string | null;
+function PortraitCard({
+  unit,
+  enemy = false,
+  floats,
+}: {
+  unit: BattleUnitData | null;
+  enemy?: boolean;
+  floats: FloatingNumber[];
 }) {
-  const hpPct = unit.maxHp > 0 ? (unit.hp / unit.maxHp) * 100 : 0;
-  const mpPct = unit.maxMp > 0 ? (unit.mp / unit.maxMp) * 100 : 0;
-  const atbPct = Math.min(100, unit.actionGauge ?? 0);
-  const hpClass = hpPct > 50 ? styles.hpHigh : hpPct > 20 ? styles.hpMid : styles.hpLow;
-  const isHit = hitIds.has(unit.unitId);
-  const isAttacking = attackAnim === unit.unitId;
-  const myFloats = floats.filter(f => f.unitId === unit.unitId);
-  const gradeInfo = !isPlayer && unit.grade ? GRADE_STYLE[unit.grade] : null;
-
-  const slotCls = [
-    styles.unitSlot,
-    unit.hp <= 0 && styles.dead,
-    unit.defending && styles.defending,
-    isHit && styles.hit,
-    isAttacking && (isPlayer ? styles.attackUp : styles.attackDown),
-  ].filter(Boolean).join(' ');
+  const transparentSrc = useTransparentPortrait(unit?.portraitUrl || null);
 
   return (
-    <div className={slotCls}>
-      <div className={styles.headBar}>
-        <div className={styles.unitName}>
-          {gradeInfo && (
-            <span className={styles.gradeBadge} style={{ color: gradeInfo.color, borderColor: gradeInfo.color }}>
-              {gradeInfo.label}
-            </span>
-          )}
-          {unit.name}
+    <div className={`${styles.pf} ${enemy ? styles.pfEnemy : ''}`}>
+      {transparentSrc ? (
+        <img
+          src={transparentSrc}
+          alt={unit?.name || 'portrait'}
+          className={`${styles.pfImg} ${enemy ? styles.pfImgEnemy : styles.pfImgPlayer}`}
+          draggable={false}
+        />
+      ) : (
+        <div className={styles.pfFallback}>
+          {enemy ? '怪物' : '主角'}
+          <br />
+          {unit?.name || '未出战'}
         </div>
-        <div className={styles.barTrack}>
-          <div className={`${styles.barFill} ${hpClass}`} style={{ width: `${hpPct}%` }} />
-        </div>
-        <div className={styles.hpText}>{unit.hp}/{unit.maxHp}</div>
-        {unit.maxMp > 0 && (
-          <div className={`${styles.barTrack} ${styles.mpTrack}`}>
-            <div className={`${styles.barFill} ${styles.mp}`} style={{ width: `${mpPct}%` }} />
-          </div>
-        )}
-        <div className={`${styles.barTrack} ${styles.atbTrack}`}>
-          <div className={`${styles.barFill} ${styles.atb}`} style={{ width: `${atbPct}%` }} />
-        </div>
-      </div>
-      <PortraitImage unit={unit} isPlayer={isPlayer} />
-      {myFloats.map(f => (
-        <span key={f.id} className={`${styles.floatNumber} ${f.isHeal ? styles.heal : styles.damage}`}>
-          {f.isHeal ? '+' : '-'}{f.value}
+      )}
+
+      {floats.map(float => (
+        <span
+          key={float.id}
+          className={`${styles.dmgFloat} ${float.isHeal ? styles.dmgFloatHeal : styles.dmgFloatDamage}`}
+        >
+          {float.isHeal ? '+' : '-'}
+          {float.value}
         </span>
       ))}
     </div>
   );
 }
 
-/* ═══════════ 主战斗页面 ═══════════ */
+function SegmentBar({
+  label,
+  value,
+  max,
+  tone,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  tone: 'hp' | 'mp' | 'rage';
+}) {
+  return (
+    <div className={styles.barRow}>
+      <span className={styles.barLabel}>{label}</span>
+      <span className={styles.barVal}>{value}</span>
+      <span className={`${styles.battleBar} ${styles[`battleBar${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
+        {Array.from({ length: BAR_SEGMENTS }, (_, index) => (
+          <span
+            key={index}
+            className={`${styles.barSeg} ${index < max ? styles.barSegOn : ''}`}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 export default function BattlePage() {
   const { navigateTo, pageParams, previousPage } = useGameStore();
   const [battle, setBattle] = useState<BattleData | null>(null);
-  // 用于动画期间逐步展示的中间状态
   const [displayPlayers, setDisplayPlayers] = useState<BattleUnitData[]>([]);
   const [displayEnemies, setDisplayEnemies] = useState<BattleUnitData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,18 +162,15 @@ export default function BattlePage() {
   const [attackAnim, setAttackAnim] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
-
-  // 快捷栏（技能+道具统一）
   const [bagItems, setBagItems] = useState<BagItemData[]>([]);
   const [hotkeys, setHotkeys] = useState<HotkeyBinding[]>(HOTKEY_KEYS.map(() => null));
   const [showBindPanel, setShowBindPanel] = useState(false);
-  const [bindSlot, setBindSlot] = useState<number>(0);
+  const [bindSlot, setBindSlot] = useState(0);
   const [bindTab, setBindTab] = useState<'skill' | 'item'>('skill');
 
   const autoRef = useRef(false);
   const battleRef = useRef<BattleData | null>(null);
   const playingRef = useRef(false);
-
   const phaserRef = useRef<HTMLDivElement>(null);
   const gameRef = usePhaserGame(phaserRef, [BattleScene]);
 
@@ -164,11 +178,18 @@ export default function BattlePage() {
     return gameRef.current?.scene.getScene('BattleScene') as BattleScene | null;
   }, [gameRef]);
 
-  useEffect(() => { autoRef.current = autoMode; }, [autoMode]);
-  useEffect(() => { battleRef.current = battle; }, [battle]);
-  useEffect(() => { playingRef.current = playing; }, [playing]);
+  useEffect(() => {
+    autoRef.current = autoMode;
+  }, [autoMode]);
 
-  // battle 变化时同步 display 状态（非动画期间）
+  useEffect(() => {
+    battleRef.current = battle;
+  }, [battle]);
+
+  useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
+
   useEffect(() => {
     if (battle && !playingRef.current) {
       setDisplayPlayers(battle.playerUnits);
@@ -182,238 +203,326 @@ export default function BattlePage() {
 
   const loadBagItems = useCallback(async () => {
     try {
-      const res = await fetchBagItems();
-      setBagItems((res.items || []).filter(
-        item => item.category && CONSUMABLE_CATEGORIES.includes(item.category)
-      ));
-    } catch { /* noop */ }
+      const response = await fetchBagItems();
+      setBagItems(
+        (response.items || []).filter(
+          item => item.category && CONSUMABLE_CATEGORIES.includes(item.category),
+        ),
+      );
+    } catch {
+      setBagItems([]);
+    }
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [battleRes, personRes] = await Promise.all([getBattleState(), fetchPersonInfo(), loadBagItems()]);
+      const [battleRes, personRes] = await Promise.all([
+        getBattleState(),
+        fetchPersonInfo(),
+        loadBagItems(),
+      ]);
+
       if (battleRes.battle?.id) {
         setBattle(battleRes.battle);
         setDisplayPlayers(battleRes.battle.playerUnits);
         setDisplayEnemies(battleRes.battle.enemyUnits);
       }
+
       if (personRes.bgUrl) setBgUrl(personRes.bgUrl);
-    } catch { /* noop */ }
-    setLoading(false);
+    } catch {
+      setBattle(null);
+    } finally {
+      setLoading(false);
+    }
   }, [loadBagItems]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleStart = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await startBattle();
-      setBattle(res.battle);
+      const response = await startBattle();
+      setBattle(response.battle);
+      setDisplayPlayers(response.battle.playerUnits);
+      setDisplayEnemies(response.battle.enemyUnits);
       setFloats([]);
+      setHitIds(new Set());
+      setAttackAnim(null);
       setAutoMode(false);
       setCurrentLog(null);
-      toast.info('战斗开始！');
-    } catch { /* noop */ }
-    setLoading(false);
+      toast.info('战斗开始');
+    } catch {
+      toast.error('战斗开启失败');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  /* ── 逐个播放行动，每个行动后更新血条 ── */
-  const playActionsSequentially = useCallback(async (
-    actions: BattleActionData[],
-    startPlayers: BattleUnitData[],
-    startEnemies: BattleUnitData[],
-  ) => {
-    if (actions.length === 0) return;
-    setPlaying(true);
-    playingRef.current = true;
+  const playActionsSequentially = useCallback(
+    async (
+      actions: BattleActionData[],
+      startPlayers: BattleUnitData[],
+      startEnemies: BattleUnitData[],
+    ) => {
+      if (!actions.length) return;
 
-    const scene = getScene();
-    const { width = 400, height = 700 } = gameRef.current?.scale ?? {};
+      setPlaying(true);
+      playingRef.current = true;
 
-    let curPlayers = startPlayers.map(u => ({ ...u }));
-    let curEnemies = startEnemies.map(u => ({ ...u }));
+      const scene = getScene();
+      const { width = 400, height = 700 } = gameRef.current?.scale ?? {};
+      let currentPlayers = startPlayers.map(unit => ({ ...unit }));
+      let currentEnemies = startEnemies.map(unit => ({ ...unit }));
 
-    for (const a of actions) {
-      setCurrentLog(a);
+      for (const action of actions) {
+        setCurrentLog(action);
 
-      const allUnits = [...curPlayers, ...curEnemies];
-      const target = allUnits.find(u => u.unitId === a.targetId) || allUnits.find(u => u.name === a.targetName);
-      const actor = allUnits.find(u => u.unitId === a.actorId) || allUnits.find(u => u.name === a.actorName);
+        const allUnits = [...currentPlayers, ...currentEnemies];
+        const target =
+          allUnits.find(unit => unit.unitId === action.targetId) ||
+          allUnits.find(unit => unit.name === action.targetName);
+        const actor =
+          allUnits.find(unit => unit.unitId === action.actorId) ||
+          allUnits.find(unit => unit.name === action.actorName);
 
-      // Phaser 特效位置
-      const isTargetEnemy = target?.unitType === 'MONSTER';
-      const tx = width * 0.5;
-      const ty = isTargetEnemy ? height * 0.22 : height * 0.68;
+        const isTargetEnemy = target?.unitType === 'MONSTER';
+        const effectX = width * 0.5;
+        const effectY = isTargetEnemy ? height * 0.22 : height * 0.68;
 
-      // 攻击者冲锋
-      if (actor && a.actionType !== 'DEFEND') {
-        setAttackAnim(actor.unitId);
-      }
-
-      // 播放特效
-      if (scene) {
-        if (a.damage > 0) {
-          const et = a.effectType || (a.actionType === 'SKILL' ? 'magic_damage' : 'physical_damage');
-          scene.playEffect(et, tx, ty);
+        if (actor && action.actionType !== 'DEFEND') {
+          setAttackAnim(actor.unitId);
         }
-        if (a.heal > 0) {
-          const healId = a.effectType === 'heal' ? a.actorId : a.targetId;
-          const healUnit = allUnits.find(u => u.unitId === healId);
-          const isHealEnemy = healUnit?.unitType === 'MONSTER';
-          scene.playHeal(width * 0.5, isHealEnemy ? height * 0.22 : height * 0.68);
+
+        if (scene) {
+          if (action.damage > 0) {
+            const effectType =
+              action.effectType || (action.actionType === 'SKILL' ? 'magic_damage' : 'physical_damage');
+            scene.playEffect(effectType, effectX, effectY);
+          }
+
+          if (action.heal > 0) {
+            const healId = action.effectType === 'heal' ? action.actorId : action.targetId;
+            const healUnit = allUnits.find(unit => unit.unitId === healId);
+            const healEnemy = healUnit?.unitType === 'MONSTER';
+            scene.playHeal(width * 0.5, healEnemy ? height * 0.22 : height * 0.68);
+          }
+
+          if (action.actionType === 'DEFEND' && actor) {
+            const shieldY = actor.unitType === 'MONSTER' ? height * 0.22 : height * 0.68;
+            scene.playShield(width * 0.5, shieldY);
+          }
         }
-        if (a.actionType === 'DEFEND' && actor) {
-          const ay = actor.unitType === 'MONSTER' ? height * 0.22 : height * 0.68;
-          scene.playShield(width * 0.5, ay);
+
+        const nextFloats: FloatingNumber[] = [];
+        if (action.damage > 0 && target) {
+          nextFloats.push({
+            id: ++seqId,
+            unitId: target.unitId,
+            value: action.damage,
+            isHeal: false,
+          });
+          setHitIds(new Set([target.unitId]));
+          scene?.flashHit();
         }
-      }
 
-      // 浮动数字
-      const newFloats: FloatingNumber[] = [];
-      if (a.damage > 0 && target) {
-        newFloats.push({ id: ++seqId, unitId: target.unitId, value: a.damage, isHeal: false });
-        setHitIds(new Set([target.unitId]));
-        scene?.flashHit();
-      }
-      if (a.heal > 0) {
-        const healId = a.effectType === 'heal' ? (a.actorId || a.targetId) : a.targetId;
-        newFloats.push({ id: ++seqId, unitId: healId, value: a.heal, isHeal: true });
-      }
-      if (newFloats.length > 0) setFloats(newFloats);
-
-      // 应用此行动的伤害到中间状态 → 血条逐步更新
-      const next = applyAction(curPlayers, curEnemies, a);
-      curPlayers = next.players;
-      curEnemies = next.enemies;
-
-      // 延迟一点再更新血条，让特效先播
-      await new Promise<void>(r => setTimeout(r, 250));
-      setDisplayPlayers([...curPlayers]);
-      setDisplayEnemies([...curEnemies]);
-
-      // 等待剩余时间
-      await new Promise<void>(r => setTimeout(r, ACTION_DELAY - 250));
-      setAttackAnim(null);
-      setHitIds(new Set());
-      setFloats([]);
-    }
-
-    setCurrentLog(null);
-    setPlaying(false);
-    playingRef.current = false;
-  }, [getScene, gameRef]);
-
-  /* ── 执行技能行动 ── */
-  const handleSkillAction = useCallback(async (skill: BattleSkillData) => {
-    const b = battleRef.current;
-    if (!b || b.status !== 'ONGOING' || acting || playingRef.current) return;
-    setActing(true);
-    try {
-      const target = b.enemyUnits.find(u => u.hp > 0);
-      let actionType = 'ATTACK';
-      if (skill.effectType === 'buff_defense') actionType = 'DEFEND';
-      else if (skill.skillId !== 'attack') actionType = 'SKILL';
-
-      // 记住动画前的状态
-      const prevPlayers = b.playerUnits.map(u => ({ ...u }));
-      const prevEnemies = b.enemyUnits.map(u => ({ ...u }));
-
-      const res = await battleAction(actionType, target?.unitId, skill.skillId);
-      const newBattle = res.battle;
-      const newActions = newBattle.actionLog || [];
-
-      // 用旧状态作为起点，逐步播放
-      await playActionsSequentially(newActions, prevPlayers, prevEnemies);
-
-      // 播放完毕同步最终状态
-      setBattle(newBattle);
-      setDisplayPlayers(newBattle.playerUnits);
-      setDisplayEnemies(newBattle.enemyUnits);
-
-      if (newBattle.status === 'VICTORY') {
-        toast.reward('战斗胜利！');
-        setAutoMode(false);
-        getScene()?.flashVictory();
-        fetchPlayerCurrency().then(c => {
-          usePlayerStore.getState().setCurrency(c.gold, c.diamond);
-        }).catch(() => {});
-        // 从 rewardDetail 立即更新等级（无需额外请求）
-        if (newBattle.rewardDetail?.currentLevel != null) {
-          usePlayerStore.getState().setLevelInfo({
-            level: newBattle.rewardDetail.currentLevel,
-            exp: newBattle.rewardDetail.currentExp ?? 0,
-            maxExp: newBattle.rewardDetail.maxExp ?? 0,
+        if (action.heal > 0) {
+          const healId = action.effectType === 'heal' ? action.actorId || action.targetId : action.targetId;
+          nextFloats.push({
+            id: ++seqId,
+            unitId: healId,
+            value: action.heal,
+            isHeal: true,
           });
         }
-      } else if (newBattle.status === 'DEFEAT') {
-        toast.error('战斗失败...');
-        setAutoMode(false);
+
+        if (nextFloats.length) setFloats(nextFloats);
+
+        const nextState = applyAction(currentPlayers, currentEnemies, action);
+        currentPlayers = nextState.players;
+        currentEnemies = nextState.enemies;
+
+        await new Promise<void>(resolve => setTimeout(resolve, 250));
+        setDisplayPlayers([...currentPlayers]);
+        setDisplayEnemies([...currentEnemies]);
+
+        await new Promise<void>(resolve => setTimeout(resolve, ACTION_DELAY - 250));
+        setAttackAnim(null);
+        setHitIds(new Set());
+        setFloats([]);
       }
-    } catch { /* noop */ }
-    setActing(false);
-  }, [acting, playActionsSequentially, getScene]);
 
-  /* ── 使用道具 ── */
-  const handleUseItem = useCallback(async (item: BagItemData) => {
-    const b = battleRef.current;
-    if (!b || b.status !== 'ONGOING' || acting || playingRef.current) return;
-    try {
-      await useBagItem(item.id, item.itemTypeId, 1);
-      toast.info(`使用了 ${item.name || item.itemTypeId}`);
-      const [battleRes] = await Promise.all([getBattleState(), loadBagItems()]);
-      if (battleRes.battle?.id) setBattle(battleRes.battle);
-    } catch {
-      toast.error('使用失败');
-    }
-  }, [acting, loadBagItems]);
+      setCurrentLog(null);
+      setPlaying(false);
+      playingRef.current = false;
+    },
+    [getScene, gameRef],
+  );
 
-  /* ── 快捷键触发 ── */
-  const triggerHotkey = useCallback((binding: HotkeyBinding) => {
-    if (!binding) return;
-    if (binding.type === 'skill') handleSkillAction(binding.data);
-    else handleUseItem(binding.data);
-  }, [handleSkillAction, handleUseItem]);
+  const handleSkillAction = useCallback(
+    async (skill: BattleSkillData) => {
+      const currentBattle = battleRef.current;
+      if (!currentBattle || currentBattle.status !== 'ONGOING' || acting || playingRef.current) return;
+
+      setActing(true);
+      try {
+        const target = currentBattle.enemyUnits.find(unit => unit.hp > 0);
+        let actionType = 'ATTACK';
+        if (skill.effectType === 'buff_defense') actionType = 'DEFEND';
+        else if (skill.skillId !== 'attack') actionType = 'SKILL';
+
+        const prevPlayers = currentBattle.playerUnits.map(unit => ({ ...unit }));
+        const prevEnemies = currentBattle.enemyUnits.map(unit => ({ ...unit }));
+
+        const response = await battleAction(actionType, target?.unitId, skill.skillId);
+        const nextBattle = response.battle;
+        const nextActions = nextBattle.actionLog || [];
+
+        await playActionsSequentially(nextActions, prevPlayers, prevEnemies);
+
+        setBattle(nextBattle);
+        setDisplayPlayers(nextBattle.playerUnits);
+        setDisplayEnemies(nextBattle.enemyUnits);
+
+        if (nextBattle.status === 'VICTORY') {
+          toast.reward('战斗胜利');
+          setAutoMode(false);
+          getScene()?.flashVictory();
+          fetchPlayerCurrency()
+            .then(currency => {
+              usePlayerStore.getState().setCurrency(currency.gold, currency.diamond);
+            })
+            .catch(() => {});
+
+          if (nextBattle.rewardDetail?.currentLevel != null) {
+            usePlayerStore.getState().setLevelInfo({
+              level: nextBattle.rewardDetail.currentLevel,
+              exp: nextBattle.rewardDetail.currentExp ?? 0,
+              maxExp: nextBattle.rewardDetail.maxExp ?? 0,
+            });
+          }
+        } else if (nextBattle.status === 'DEFEAT') {
+          toast.error('战斗失败');
+          setAutoMode(false);
+        }
+      } catch {
+        toast.error('出招失败');
+      } finally {
+        setActing(false);
+      }
+    },
+    [acting, getScene, playActionsSequentially],
+  );
+
+  const handleUseItem = useCallback(
+    async (item: BagItemData) => {
+      const currentBattle = battleRef.current;
+      if (!currentBattle || currentBattle.status !== 'ONGOING' || acting || playingRef.current) return;
+
+      try {
+        await useBagItem(item.id, item.itemTypeId, 1);
+        toast.info(`使用了 ${item.name || item.itemTypeId}`);
+        const [battleRes] = await Promise.all([getBattleState(), loadBagItems()]);
+        if (battleRes.battle?.id) {
+          setBattle(battleRes.battle);
+          setDisplayPlayers(battleRes.battle.playerUnits);
+          setDisplayEnemies(battleRes.battle.enemyUnits);
+        }
+      } catch {
+        toast.error('使用失败');
+      }
+    },
+    [acting, loadBagItems],
+  );
+
+  const triggerHotkey = useCallback(
+    (binding: HotkeyBinding) => {
+      if (!binding) return;
+      if (binding.type === 'skill') handleSkillAction(binding.data);
+      else handleUseItem(binding.data);
+    },
+    [handleSkillAction, handleUseItem],
+  );
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-      const idx = HOTKEY_KEYS.indexOf(e.key as typeof HOTKEY_KEYS[number]);
+    const handler = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement) return;
+      const idx = HOTKEY_KEYS.indexOf(event.key as (typeof HOTKEY_KEYS)[number]);
       if (idx !== -1 && hotkeys[idx]) {
-        e.preventDefault();
+        event.preventDefault();
         triggerHotkey(hotkeys[idx]);
         return;
       }
-      if (e.key === 'q' || e.key === 'Q') setAutoMode(v => !v);
+
+      if (event.key === 'q' || event.key === 'Q') {
+        setAutoMode(value => !value);
+      }
     };
+
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [hotkeys, triggerHotkey]);
 
-  /* ── 自动战斗 ── */
   useEffect(() => {
     if (!autoMode) return;
+
     const timer = setInterval(() => {
-      const b = battleRef.current;
-      if (!autoRef.current || !b || b.status !== 'ONGOING' || playingRef.current) {
-        if (!autoRef.current || b?.status !== 'ONGOING') clearInterval(timer);
+      const currentBattle = battleRef.current;
+      if (!autoRef.current || !currentBattle || currentBattle.status !== 'ONGOING' || playingRef.current) {
+        if (!autoRef.current || currentBattle?.status !== 'ONGOING') clearInterval(timer);
         return;
       }
-      const player = b.playerUnits[0];
-      const skills = b.availableSkills || [];
-      const usable = skills
-        .filter(s => s.skillId !== 'attack' && s.effectType !== 'buff_defense' && (!s.mpCost || (player && player.mp >= s.mpCost)))
+
+      const currentPlayer = currentBattle.playerUnits[0];
+      const availableSkills = currentBattle.availableSkills || [];
+      const usableSkills = availableSkills
+        .filter(
+          skill =>
+            skill.skillId !== 'attack' &&
+            skill.effectType !== 'buff_defense' &&
+            (!skill.mpCost || (currentPlayer && currentPlayer.mp >= skill.mpCost)),
+        )
         .sort((a, b) => (b.damageMultiplier || 0) - (a.damageMultiplier || 0));
-      const pick = usable[0] || skills.find(s => s.skillId === 'attack') || skills[0];
+
+      const pick =
+        usableSkills[0] ||
+        availableSkills.find(skill => skill.skillId === 'attack') ||
+        availableSkills[0];
+
       if (pick) handleSkillAction(pick);
     }, 1800);
+
     return () => clearInterval(timer);
   }, [autoMode, handleSkillAction]);
 
   const finished = battle?.status === 'VICTORY' || battle?.status === 'DEFEAT';
-  const player = displayPlayers[0];
-  const canAct = !acting && !playing && !autoMode && !finished;
+  const player = displayPlayers[0] || battle?.playerUnits?.[0] || null;
+  const primaryEnemy = displayEnemies.find(unit => unit.hp > 0) || displayEnemies[0] || null;
+  const aliveEnemyCount = displayEnemies.filter(unit => unit.hp > 0).length || displayEnemies.length || 1;
+  const canAct = !acting && !playing && !finished;
   const skills = battle?.availableSkills || [];
+  const visibleSkills = [...skills.slice(0, 4)];
+  while (visibleSkills.length < 4) {
+    visibleSkills.push({
+      skillId: `locked-${visibleSkills.length}`,
+      name: '终式未解锁',
+      icon: '锁',
+      mpCost: 0,
+      damageMultiplier: 0,
+      effectType: 'locked',
+    } as BattleSkillData);
+  }
+
+  const quickItems = bagItems.slice(0, 2);
+  const logLines = [currentLog?.description, ...(battle?.actionLog || []).map(log => log.description)]
+    .filter(Boolean)
+    .slice(0, 5) as string[];
+
+  const enemyFloats = primaryEnemy ? floats.filter(float => float.unitId === primaryEnemy.unitId) : [];
+  const playerFloats = player ? floats.filter(float => float.unitId === player.unitId) : [];
+  const hasBoundHotkey = hotkeys.find(Boolean) || null;
 
   const handleBack = useCallback(() => {
     if (isDungeonBattle && dungeonId) {
@@ -423,171 +532,270 @@ export default function BattlePage() {
     } else {
       navigateTo(previousPage || 'home');
     }
-  }, [navigateTo, previousPage, exploreEventId, isDungeonBattle, dungeonId, finished, battle?.status]);
+  }, [battle?.status, dungeonId, exploreEventId, finished, isDungeonBattle, navigateTo, previousPage]);
 
-  /* ── 绑定快捷键 ── */
-  const openBind = (slot: number) => {
+  const openBind = useCallback((slot: number) => {
     setBindSlot(slot);
     setBindTab('skill');
     setShowBindPanel(true);
-  };
+  }, []);
 
-  const bindTo = (binding: HotkeyBinding) => {
-    setHotkeys(prev => {
-      const next = [...prev];
-      next[bindSlot] = binding;
-      return next;
-    });
-    setShowBindPanel(false);
-    const label = binding?.type === 'skill' ? binding.data.name : binding?.data.name;
-    toast.info(`快捷键 ${HOTKEY_KEYS[bindSlot]} → ${label}`);
-  };
+  const bindTo = useCallback(
+    (binding: HotkeyBinding) => {
+      setHotkeys(prev => {
+        const next = [...prev];
+        next[bindSlot] = binding;
+        return next;
+      });
+      setShowBindPanel(false);
+      const label = binding?.type === 'skill' ? binding.data.name : binding?.data.name;
+      if (label) toast.info(`快捷键 ${HOTKEY_KEYS[bindSlot]} -> ${label}`);
+    },
+    [bindSlot],
+  );
 
-  /* ═══════════ 渲染 ═══════════ */
+  const zoneTitle = primaryEnemy ? `${primaryEnemy.name} x ${aliveEnemyCount}` : '遭遇战';
+  const zoneCoord = String(
+    pageParams?.zoneName || pageParams?.sceneName || pageParams?.zoneId || dungeonId || '猎场宝山',
+  );
+  const rageValue = player?.actionGauge ?? 0;
+  const playerHit = player ? hitIds.has(player.unitId) : false;
+  const enemyHit = primaryEnemy ? hitIds.has(primaryEnemy.unitId) : false;
+
   return (
-    <div className={styles.page}>
-      {bgUrl && <div className={styles.battleBg} style={{ backgroundImage: `url(${bgUrl})` }} />}
-      <div className={styles.bgOverlay} />
-      <div ref={phaserRef} className={styles.phaserLayer} />
+    <div className={styles.btPage}>
+      {bgUrl && <div className={styles.btBg} style={{ backgroundImage: `url(${bgUrl})` }} />}
+      <div className={styles.btBgOverlay} />
+      <div ref={phaserRef} className={styles.btPhaserLayer} />
 
       {loading ? (
         <div className={styles.loadingState}>加载中...</div>
       ) : !battle?.id ? (
         <div className={styles.emptyState}>
-          <span className={styles.emptyIcon}>⚔️</span>
+          <span className={styles.emptyIcon}>⚔</span>
           <span className={styles.emptyTitle}>准备迎战</span>
-          <span className={styles.emptyHint}>以你的角色属性挑战随机敌人</span>
-          <button className={styles.startBtn} onClick={handleStart}>开始战斗</button>
+          <span className={styles.emptyHint}>以当前角色属性开启一场遭遇战</span>
+          <button className={styles.startBtn} onClick={handleStart}>
+            开始战斗
+          </button>
         </div>
       ) : (
         <>
           <div className={styles.battleScene}>
-            {/* 顶部 HUD */}
-            <div className={styles.hud}>
-              <button className={styles.exitBtn} onClick={handleBack}>✕</button>
-              <div className={styles.roundPill}>
-                <span>第 {battle.round} 回合</span>
-                {autoMode && <span className={styles.autoTag}>AUTO</span>}
-              </div>
-              <div className={styles.hudSpacer} />
-            </div>
-
-            {/* 敌方 */}
-            <div className={styles.enemyZone}>
-              {displayEnemies.map(u => (
-                <UnitBlock key={u.unitId} unit={u} isPlayer={false}
-                  floats={floats} hitIds={hitIds} attackAnim={attackAnim} />
-              ))}
-            </div>
-
-            {/* 分隔线区域 + 战斗日志 */}
-            <div className={styles.midSection}>
-              <div className={styles.dividerLine} />
-              {currentLog && (
-                <div className={`${styles.logBubble} ${currentLog.actorName === '玩家' ? styles.logPlayer : styles.logEnemy}`}>
-                  {currentLog.description}
+            <div className={styles.appbar}>
+              <div className={styles.appbarRow}>
+                <div className={styles.appbarLoc}>
+                  <span className={`${styles.appbarBook} ${styles.appbarBookRed}`}>遭遇</span>
+                  <span className={styles.appbarZone}>{zoneTitle}</span>
+                  <span className={styles.appbarCoord}>{zoneCoord}</span>
                 </div>
-              )}
+                <div className={styles.appbarIcons}>
+                  <button className={styles.appbarIcon} onClick={handleBack}>
+                    返
+                  </button>
+                  <button
+                    className={`${styles.appbarIcon} ${autoMode ? styles.appbarIconActive : ''}`}
+                    onClick={() => setAutoMode(value => !value)}
+                  >
+                    自
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* 我方 */}
-            <div className={styles.playerZone}>
-              {displayPlayers.map(u => (
-                <UnitBlock key={u.unitId} unit={u} isPlayer={true}
-                  floats={floats} hitIds={hitIds} attackAnim={attackAnim} />
+            <div className={styles.battleStage}>
+              <div className={styles.fighter}>
+                <div
+                  className={`${styles.fighterWrap} ${playerHit ? styles.fighterHit : ''} ${
+                    attackAnim === player?.unitId ? styles.fighterAttack : ''
+                  }`}
+                >
+                  <PortraitCard unit={player} floats={playerFloats} />
+                </div>
+                <div className={styles.nm}>{player?.name || '主角'}</div>
+                <div className={styles.sl}>
+                  {player?.hp && player.hp > 0 ? (player?.defending ? '防守姿态' : '充能中') : '已倒下'}
+                </div>
+              </div>
+
+              <div className={styles.vs}>
+                <div className={styles.rd}>R {battle.round}</div>
+                <div className={styles.sw}>⚔</div>
+                <div className={styles.ar}>{playing ? '▼' : '◆'}</div>
+                <div className={styles.ac}>{currentLog?.description || '破风杀'}</div>
+              </div>
+
+              <div className={styles.fighter}>
+                <div
+                  className={`${styles.fighterWrap} ${enemyHit ? styles.fighterHit : ''} ${
+                    attackAnim === primaryEnemy?.unitId ? styles.fighterAttack : ''
+                  }`}
+                >
+                  <PortraitCard unit={primaryEnemy} enemy floats={enemyFloats} />
+                </div>
+                <div className={`${styles.nm} ${styles.nmEnemy}`}>
+                  {primaryEnemy ? `${primaryEnemy.name} [${primaryEnemy.hp}/${primaryEnemy.maxHp}]` : '暂无敌人'}
+                </div>
+                <div className={`${styles.sl} ${styles.slDim}`}>
+                  {primaryEnemy ? `${aliveEnemyCount} 段` : '0 段'}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.barBlock}>
+              <SegmentBar
+                label="敌"
+                value={`${primaryEnemy?.hp ?? 0}/${primaryEnemy?.maxHp ?? 0}`}
+                max={toSegments(primaryEnemy?.hp ?? 0, primaryEnemy?.maxHp ?? 0)}
+                tone="hp"
+              />
+              <SegmentBar
+                label="体"
+                value={`${player?.hp ?? 0}/${player?.maxHp ?? 0}`}
+                max={toSegments(player?.hp ?? 0, player?.maxHp ?? 0)}
+                tone="hp"
+              />
+              <SegmentBar
+                label="气"
+                value={`${player?.mp ?? 0}/${player?.maxMp ?? 0}`}
+                max={toSegments(player?.mp ?? 0, player?.maxMp ?? 0)}
+                tone="mp"
+              />
+              <SegmentBar
+                label="怒"
+                value={`${Math.round(rageValue)}%`}
+                max={toSegments(rageValue, 100)}
+                tone="rage"
+              />
+            </div>
+
+            <div className={styles.skillsRow}>
+              {visibleSkills.map((skill, index) => {
+                const isLocked = skill.effectType === 'locked';
+                const mpOk = !skill.mpCost || (player && player.mp >= skill.mpCost);
+                const disabled = isLocked || !canAct || !mpOk;
+                return (
+                  <button
+                    key={skill.skillId}
+                    className={`${styles.sk} ${index === 0 && !disabled ? styles.skMain : ''} ${
+                      disabled ? styles.skLock : ''
+                    }`}
+                    disabled={disabled}
+                    onClick={() => handleSkillAction(skill)}
+                  >
+                    {skill.name}
+                    <span className={styles.skCost}>
+                      {isLocked
+                        ? '怒气 100%'
+                        : `MP ${skill.mpCost || 0}${skill.damageMultiplier > 1 ? ` · ×${skill.damageMultiplier}` : ''}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={styles.resRow}>
+              {quickItems[0] ? (
+                <button className={styles.po} disabled={!canAct} onClick={() => handleUseItem(quickItems[0])}>
+                  {quickItems[0].name || '小红'} ×{quickItems[0].quantity}
+                </button>
+              ) : (
+                <span className={styles.po}>小红 ×0</span>
+              )}
+              {quickItems[1] ? (
+                <button
+                  className={`${styles.po} ${styles.poMp}`}
+                  disabled={!canAct}
+                  onClick={() => handleUseItem(quickItems[1])}
+                >
+                  {quickItems[1].name || '小蓝'} ×{quickItems[1].quantity}
+                </button>
+              ) : (
+                <span className={`${styles.po} ${styles.poMp}`}>小蓝 ×0</span>
+              )}
+              <span className={styles.pet}>宝宝 [领出]</span>
+              <button className={styles.auto} onClick={() => setAutoMode(value => !value)}>
+                自动 · {autoMode ? 'ON' : '30'}
+              </button>
+            </div>
+
+            <div className={styles.battleLog}>
+              {logLines.map((line, index) => (
+                <div key={`${line}-${index}`} className={`${styles.logLine} ${logToneClass(line)}`}>
+                  {line}
+                </div>
               ))}
             </div>
+
+            {!finished && (
+              <div className={styles.battleActions}>
+                <button className={`${styles.battleActionBtn} ${styles.battleActionRun}`} onClick={handleBack}>
+                  放弃战
+                </button>
+                <button className={styles.battleActionBtn} onClick={() => openBind(0)}>
+                  更换键
+                </button>
+                <button
+                  className={styles.battleActionBtn}
+                  onClick={() => {
+                    if (hasBoundHotkey && canAct) {
+                      triggerHotkey(hasBoundHotkey);
+                    } else {
+                      openBind(0);
+                    }
+                  }}
+                >
+                  快键
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* 底部操作区 */}
-          {!finished && (
-            <div className={styles.actionBar}>
-              {/* 快捷栏（6格，可绑定技能或道具） */}
-              <div className={styles.hotkeyBar}>
-                {hotkeys.map((bind, idx) => (
-                  <button
-                    key={idx}
-                    className={`${styles.hotkeySlot} ${bind ? styles.bound : ''} ${bind?.type === 'skill' ? styles.boundSkill : ''}`}
-                    disabled={!canAct && !!bind}
-                    onClick={() => {
-                      if (bind && canAct) triggerHotkey(bind);
-                      else openBind(idx);
-                    }}
-                  >
-                    <span className={styles.hotkeyKey}>{HOTKEY_KEYS[idx]}</span>
-                    {bind ? (
-                      <>
-                        <span className={styles.hotkeyIcon}>
-                          {bind.type === 'skill' ? bind.data.icon : (bind.data.icon || '🧪')}
-                        </span>
-                        <span className={styles.hotkeyLabel}>
-                          {bind.type === 'skill' ? bind.data.name : bind.data.name}
-                        </span>
-                        {bind.type === 'item' && <span className={styles.hotkeyQty}>x{bind.data.quantity}</span>}
-                      </>
-                    ) : (
-                      <span className={styles.hotkeyPlus}>+</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* 技能列表 */}
-              <div className={styles.skillBar}>
-                {skills.map(skill => {
-                  const mpOk = !skill.mpCost || (player && player.mp >= skill.mpCost);
-                  return (
-                    <button key={skill.skillId} className={styles.skillBtn}
-                      disabled={!canAct || !mpOk}
-                      onClick={() => handleSkillAction(skill)}
-                    >
-                      <span className={styles.skillIcon}>{skill.icon}</span>
-                      <span className={styles.skillName}>{skill.name}</span>
-                      {skill.mpCost > 0 && <span className={styles.skillCost}>{skill.mpCost}</span>}
-                      {skill.damageMultiplier > 1 && <span className={styles.skillMult}>{skill.damageMultiplier}x</span>}
-                    </button>
-                  );
-                })}
-                <div className={styles.actionDivider} />
-                <button className={`${styles.ctrlBtn} ${autoMode ? styles.ctrlActive : ''}`}
-                  onClick={() => setAutoMode(v => !v)}>
-                  {autoMode ? '⏸' : '▶'} <span className={styles.ctrlLabel}>自动</span>
-                </button>
-                <button className={styles.ctrlBtn} onClick={handleBack}>
-                  🏃 <span className={styles.ctrlLabel}>逃跑</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 绑定面板 */}
           {showBindPanel && (
             <div className={styles.bindOverlay} onClick={() => setShowBindPanel(false)}>
-              <div className={styles.bindPanel} onClick={e => e.stopPropagation()}>
+              <div className={styles.bindPanel} onClick={event => event.stopPropagation()}>
                 <div className={styles.bindTitle}>设置快捷键 {HOTKEY_KEYS[bindSlot]}</div>
                 <div className={styles.bindTabs}>
-                  <button className={`${styles.bindTab} ${bindTab === 'skill' ? styles.bindTabActive : ''}`}
-                    onClick={() => setBindTab('skill')}>技能</button>
-                  <button className={`${styles.bindTab} ${bindTab === 'item' ? styles.bindTabActive : ''}`}
-                    onClick={() => setBindTab('item')}>道具</button>
+                  <button
+                    className={`${styles.bindTab} ${bindTab === 'skill' ? styles.bindTabActive : ''}`}
+                    onClick={() => setBindTab('skill')}
+                  >
+                    技能
+                  </button>
+                  <button
+                    className={`${styles.bindTab} ${bindTab === 'item' ? styles.bindTabActive : ''}`}
+                    onClick={() => setBindTab('item')}
+                  >
+                    道具
+                  </button>
                 </div>
                 <div className={styles.bindGrid}>
                   {bindTab === 'skill' ? (
-                    skills.length === 0 ? <div className={styles.bindEmpty}>暂无技能</div> :
-                    skills.map(s => (
-                      <button key={s.skillId} className={styles.bindCard}
-                        onClick={() => bindTo({ type: 'skill', data: s })}>
-                        <span className={styles.bindCardIcon}>{s.icon}</span>
-                        <span className={styles.bindCardName}>{s.name}</span>
-                        {s.mpCost > 0 && <span className={styles.bindCardSub}>{s.mpCost} MP</span>}
-                      </button>
-                    ))
+                    skills.length === 0 ? (
+                      <div className={styles.bindEmpty}>暂无技能</div>
+                    ) : (
+                      skills.map(skill => (
+                        <button
+                          key={skill.skillId}
+                          className={styles.bindCard}
+                          onClick={() => bindTo({ type: 'skill', data: skill })}
+                        >
+                          <span className={styles.bindCardIcon}>{skill.icon}</span>
+                          <span className={styles.bindCardName}>{skill.name}</span>
+                          {skill.mpCost > 0 && <span className={styles.bindCardSub}>{skill.mpCost} MP</span>}
+                        </button>
+                      ))
+                    )
+                  ) : bagItems.length === 0 ? (
+                    <div className={styles.bindEmpty}>没有消耗品</div>
                   ) : (
-                    bagItems.length === 0 ? <div className={styles.bindEmpty}>没有消耗品</div> :
                     bagItems.map(item => (
-                      <button key={item.id} className={styles.bindCard}
-                        onClick={() => bindTo({ type: 'item', data: item })}>
-                        <span className={styles.bindCardIcon}>{item.icon || '🧪'}</span>
+                      <button
+                        key={item.id}
+                        className={styles.bindCard}
+                        onClick={() => bindTo({ type: 'item', data: item })}
+                      >
+                        <span className={styles.bindCardIcon}>{item.icon || '药'}</span>
                         <span className={styles.bindCardName}>{item.name || item.itemTypeId}</span>
                         <span className={styles.bindCardSub}>x{item.quantity}</span>
                       </button>
@@ -595,49 +803,49 @@ export default function BattlePage() {
                   )}
                 </div>
                 {hotkeys[bindSlot] && (
-                  <button className={styles.bindClear}
-                    onClick={() => { bindTo(null); }}>
+                  <button className={styles.bindClear} onClick={() => bindTo(null)}>
                     清除绑定
                   </button>
                 )}
-                <button className={styles.bindClose} onClick={() => setShowBindPanel(false)}>取消</button>
+                <button className={styles.bindClose} onClick={() => setShowBindPanel(false)}>
+                  取消
+                </button>
               </div>
             </div>
           )}
 
-          {/* 结算 */}
           {finished && (
             <div className={`${styles.resultOverlay} ${battle.status === 'VICTORY' ? styles.victory : styles.defeat}`}>
-              <div className={styles.resultIcon}>{battle.status === 'VICTORY' ? '🏆' : '💀'}</div>
+              <div className={styles.resultIcon}>{battle.status === 'VICTORY' ? '🏆' : '✖'}</div>
               <div className={`${styles.resultTitle} ${battle.status === 'VICTORY' ? styles.victory : styles.defeat}`}>
-                {battle.status === 'VICTORY' ? '战 斗 胜 利' : '战 斗 失 败'}
+                {battle.status === 'VICTORY' ? '战斗胜利' : '战斗失败'}
               </div>
               {battle.rewardDetail && (
                 <div className={styles.rewardList}>
                   {battle.rewardDetail.gold != null && battle.rewardDetail.gold > 0 && (
                     <div className={styles.rewardItem}>
-                      <span className={styles.rewardIcon}>💰</span>
+                      <span className={styles.rewardIcon}>金</span>
                       <span className={styles.rewardValue}>+{battle.rewardDetail.gold}</span>
                       <span className={styles.rewardLabel}>金币</span>
                     </div>
                   )}
                   {battle.rewardDetail.exp != null && battle.rewardDetail.exp > 0 && (
                     <div className={styles.rewardItem}>
-                      <span className={styles.rewardIcon}>✨</span>
+                      <span className={styles.rewardIcon}>经</span>
                       <span className={styles.rewardValue}>+{battle.rewardDetail.exp}</span>
                       <span className={styles.rewardLabel}>经验</span>
                     </div>
                   )}
                   {battle.rewardDetail.dropItem && (
                     <div className={styles.rewardItem}>
-                      <span className={styles.rewardIcon}>{battle.rewardDetail.dropIcon || '📦'}</span>
+                      <span className={styles.rewardIcon}>{battle.rewardDetail.dropIcon || '掉'}</span>
                       <span className={styles.rewardValue}>{battle.rewardDetail.dropItem}</span>
                       <span className={styles.rewardLabel}>掉落</span>
                     </div>
                   )}
                   {battle.rewardDetail.equipDrop && (
                     <div className={styles.rewardItem}>
-                      <span className={styles.rewardIcon}>{battle.rewardDetail.equipDropIcon || '⚔️'}</span>
+                      <span className={styles.rewardIcon}>{battle.rewardDetail.equipDropIcon || '装'}</span>
                       <span className={styles.rewardValue}>{battle.rewardDetail.equipDrop}</span>
                       <span className={styles.rewardLabel}>装备掉落</span>
                     </div>
@@ -649,9 +857,14 @@ export default function BattlePage() {
                         <div
                           className={styles.expTrackFill}
                           style={{
-                            width: `${battle.rewardDetail.maxExp && battle.rewardDetail.maxExp > 0
-                              ? Math.min(100, (battle.rewardDetail.currentExp! / battle.rewardDetail.maxExp) * 100)
-                              : 0}%`
+                            width: `${
+                              battle.rewardDetail.maxExp && battle.rewardDetail.maxExp > 0
+                                ? Math.min(
+                                    100,
+                                    ((battle.rewardDetail.currentExp ?? 0) / battle.rewardDetail.maxExp) * 100,
+                                  )
+                                : 0
+                            }%`,
                           }}
                         />
                       </div>
@@ -663,8 +876,12 @@ export default function BattlePage() {
                 </div>
               )}
               <div className={styles.resultActions}>
-                <button className={styles.btnGold} onClick={handleStart}>再战一场</button>
-                <button className={styles.btnGhost} onClick={handleBack}>返回</button>
+                <button className={styles.btnGold} onClick={handleStart}>
+                  再战一场
+                </button>
+                <button className={styles.btnGhost} onClick={handleBack}>
+                  返回
+                </button>
               </div>
             </div>
           )}
