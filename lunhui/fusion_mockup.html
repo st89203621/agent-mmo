@@ -8365,6 +8365,130 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
   letter-spacing: 1px; line-height: 1.7;
 }
 
+/* ═══════════════════════════════════════
+   ░ 玩家档案屏 119 · Player Profile · 浮层
+     入口：附近玩家、伤害榜、组队、好友、聊天 等任何玩家名点击
+   ═══════════════════════════════════════ */
+.pf-hero {
+  position: relative;
+  display: flex; gap: 14px; padding: 14px;
+  background:
+    radial-gradient(ellipse at 25% 50%, rgba(200,169,104,.18), transparent 60%),
+    linear-gradient(180deg, #1B1714 0%, #0D0B09 100%);
+  border-bottom: 1px solid var(--border-gold);
+}
+.pf-hero .bg-ink {
+  width: 92px; height: 116px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 56px; font-weight: 900;
+  color: var(--accent-gold); border: 1px solid var(--accent-gold);
+  background: rgba(0,0,0,.4);
+  text-shadow: 0 0 18px rgba(200,169,104,.5);
+  position: relative;
+}
+.pf-hero .bg-ink.off { color: var(--text-faint); border-color: var(--border); text-shadow: none; opacity: .55; }
+.pf-hero .bg-ink::after {
+  content: ''; position: absolute; right: -3px; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent-jade); box-shadow: 0 0 6px var(--accent-jade);
+}
+.pf-hero .bg-ink.off::after { background: var(--text-faint); box-shadow: none; }
+.pf-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pf-nm {
+  font-family: var(--font-serif); font-size: 18px; font-weight: 700;
+  color: var(--text); letter-spacing: 2px;
+  display: flex; align-items: center; gap: 6px;
+}
+.pf-nm .vip {
+  font-size: 9px; padding: 1px 5px;
+  background: var(--accent-gold); color: #1A140E;
+  font-family: var(--font-mono); letter-spacing: 0; font-weight: 700;
+}
+.pf-meta-line {
+  font-size: 11px; color: var(--text-dim); letter-spacing: 1px;
+}
+.pf-meta-line .faction { color: var(--accent-azure); }
+.pf-power {
+  font-size: 12px; color: var(--text);
+  font-family: var(--font-mono); letter-spacing: 1px;
+}
+.pf-power b { color: var(--accent-red); font-size: 16px; margin-left: 4px; }
+.pf-mood {
+  margin-top: 4px;
+  font-size: 11px; color: var(--text-faint); font-style: italic;
+  border-left: 2px solid var(--accent-gold); padding-left: 8px;
+}
+
+.pf-eq {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 1px; background: var(--border);
+}
+.pf-eq .slot {
+  background: var(--bg-panel);
+  padding: 10px 4px; text-align: center;
+}
+.pf-eq .slot .ic {
+  width: 36px; height: 36px; margin: 0 auto 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 14px; font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-ink);
+}
+.pf-eq .slot .ic.gd { border-color: var(--accent-gold); color: var(--accent-gold); }
+.pf-eq .slot .ic.rd { border-color: var(--accent-red); color: var(--accent-red); }
+.pf-eq .slot .ic.pp { border-color: var(--accent-purple); color: var(--accent-purple); }
+.pf-eq .slot .nm { font-size: 10px; color: var(--text); letter-spacing: 1px; }
+.pf-eq .slot .ty { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
+.pf-eq .slot.empty .ic { border-style: dashed; color: var(--text-faint); }
+.pf-eq .slot.empty .nm { color: var(--text-faint); }
+
+.pf-stats { padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+.pf-stats .row {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.pf-stats .k { width: 28px; color: var(--text-dim); letter-spacing: 1px; }
+.pf-stats .bar {
+  flex: 1; height: 8px; background: var(--bg-ink);
+  border: 1px solid var(--border); position: relative;
+}
+.pf-stats .bar .on {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));
+}
+.pf-stats .bar.mp .on { background: linear-gradient(90deg, var(--accent-azure), var(--accent-jade)); }
+.pf-stats .bar.atk .on { background: var(--accent-red); }
+.pf-stats .bar.def .on { background: var(--accent-azure); }
+.pf-stats .bar.agi .on { background: var(--accent-jade); }
+.pf-stats .v { width: 60px; text-align: right; color: var(--text); }
+
+.pf-actions {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 1px; background: var(--border);
+  margin-top: 8px;
+}
+.pf-actions .b {
+  background: var(--bg-panel); color: var(--text);
+  padding: 12px 4px; text-align: center;
+  font-size: 11px; letter-spacing: 2px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.pf-actions .b:active { background: var(--bg-hover); }
+.pf-actions .b.primary { background: var(--accent-red); color: var(--text); font-weight: 700; }
+.pf-actions .b.primary:active { background: var(--accent-blood); }
+
+.pf-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px; letter-spacing: 2px;
+}
+.pf-empty .em { font-size: 36px; color: var(--text-faint); display: block; margin-bottom: 12px; }
+
+/* 119 浮层屏 appbar 让出左上角返回按钮空间 */
+#scene-119 .appbar { padding-left: 44px; }
+
 /* ─ 工具类 · 颜色 / 字体 / 字号（用于消除高频 inline style） ─ */
 .c-red { color: var(--accent-red); }
 .c-gold { color: var(--accent-gold); }
@@ -19314,6 +19438,309 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
 
   injectPlaces();
 
+  /* ─ 0b. 玩家档案数据 · 任何玩家名点击都跳到 119 屏并渲染对应形象
+        缺失档案的玩家也能跳转，显示 fallback 占位 + 名字 */
+  const PROFILES = {
+    '丿征战丶蔷薇': {
+      art: '蔷', cls: '敏', lv: 11, power: 1620, faction: '心念', vip: 2, online: true,
+      mood: '心念盟·新晋猎手 · 七世轮回·一转',
+      eq: [
+        { ic: '剑', nm: '玄铁短剑', ty: '武器', q: 'gd' },
+        { ic: '甲', nm: '青纹软甲', ty: '防具', q: 'gd' },
+        { ic: '云', nm: '踏云驹',   ty: '坐骑', q: 'pp' },
+        { ic: '锦', nm: '锦罗时装', ty: '时装', q: '' },
+        { ic: '初', nm: '初出茅庐', ty: '称号', q: '' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 594, hpMax: 1000, mp: 330, mpMax: 500, atk: 168, atkMax: 400, def: 95, defMax: 300, agi: 142, agiMax: 300,
+    },
+    '独孤·饮月': {
+      art: '独', cls: '刀客', lv: 15, power: 3520, faction: '海盗', vip: 5, online: true,
+      mood: '亡灵山·杀过 9 霄 · 屠龙伤害榜 #1',
+      eq: [
+        { ic: '焰', nm: '赤焰刀', ty: '武器', q: 'rd' },
+        { ic: '玄', nm: '玄武铠', ty: '防具', q: 'pp' },
+        { ic: '夜', nm: '夜照玉狮', ty: '坐骑', q: 'rd' },
+        { ic: '虎', nm: '白虎战袍', ty: '时装', q: 'gd' },
+        { ic: '匠', nm: '神匠传人', ty: '称号', q: 'gd' },
+        { ic: '镜', nm: '寒月镜',   ty: '法宝', q: 'pp' },
+      ],
+      hp: 1820, hpMax: 1820, mp: 920, mpMax: 920, atk: 380, atkMax: 600, def: 220, defMax: 400, agi: 165, agiMax: 350,
+    },
+    '九霄·青衫': {
+      art: '霄', cls: '剑客', lv: 14, power: 2890, faction: '心念', vip: 3, online: true,
+      mood: '心念盟·四方剑客 · 师承赤霄',
+      eq: [
+        { ic: '霄', nm: '青霄剑', ty: '武器', q: 'pp' },
+        { ic: '羽', nm: '羽影衣', ty: '防具', q: 'gd' },
+        { ic: '风', nm: '追风骥', ty: '坐骑', q: 'gd' },
+        { ic: '青', nm: '青衫客', ty: '时装', q: 'gd' },
+        { ic: '剑', nm: '剑道宗师', ty: '称号', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 1420, hpMax: 1420, mp: 880, mpMax: 880, atk: 320, atkMax: 500, def: 190, defMax: 350, agi: 220, agiMax: 380,
+    },
+    '苏幕': {
+      art: '苏', cls: '法师', lv: 12, power: 2150, faction: '海盗', vip: 1, online: true,
+      mood: '海盗盟·后排奶妈 · 屠龙伤害榜 #4',
+      eq: [
+        { ic: '幽', nm: '幽蓝法杖', ty: '武器', q: 'gd' },
+        { ic: '霜', nm: '霜寒法袍', ty: '防具', q: 'gd' },
+        { ic: '鹿', nm: '云中鹿', ty: '坐骑', q: '' },
+        { ic: '?', nm: '未启', ty: '时装', q: '', empty: true },
+        { ic: '医', nm: '苍生医者', ty: '称号', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 980, hpMax: 1100, mp: 1450, mpMax: 1500, atk: 240, atkMax: 400, def: 140, defMax: 300, agi: 180, agiMax: 320,
+    },
+    '晚晚': {
+      art: '晚', cls: '医师', lv: 9, power: 1480, faction: '心念', vip: 1, online: true,
+      mood: '心念盟·新婚 · 已与征战定缘',
+      eq: [
+        { ic: '葫', nm: '葫芦灵药', ty: '武器', q: '' },
+        { ic: '绿', nm: '碧涛裙', ty: '防具', q: 'gd' },
+        { ic: '羊', nm: '雪羊', ty: '坐骑', q: '' },
+        { ic: '婚', nm: '红妆婚服', ty: '时装', q: 'rd' },
+        { ic: '医', nm: '杏林雏鸟', ty: '称号', q: '' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 760, hpMax: 800, mp: 1180, mpMax: 1180, atk: 180, atkMax: 350, def: 95, defMax: 280, agi: 150, agiMax: 300,
+    },
+    '空空如也': {
+      art: '空', cls: '刺客', lv: 10, power: 1620, faction: '散人', vip: 0, online: false,
+      mood: '散人·静默修行 · 离线托管中',
+      eq: [
+        { ic: '匕', nm: '青影匕', ty: '武器', q: 'gd' },
+        { ic: '夜', nm: '玄夜衣', ty: '防具', q: '' },
+        { ic: '?', nm: '未启', ty: '坐骑', q: '', empty: true },
+        { ic: '?', nm: '未启', ty: '时装', q: '', empty: true },
+        { ic: '?', nm: '未启', ty: '称号', q: '', empty: true },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 820, hpMax: 950, mp: 480, mpMax: 480, atk: 280, atkMax: 480, def: 120, defMax: 280, agi: 260, agiMax: 400,
+    },
+    '孤月·凌霜': {
+      art: '凌', cls: '弓手', lv: 22, power: 4800, faction: '散人', vip: 8, online: true,
+      mood: '散人独行 · 屠龙伤害榜 #2 · 高悬赏',
+      eq: [
+        { ic: '弓', nm: '玄铁九节弓', ty: '武器', q: 'rd' },
+        { ic: '锁', nm: '寒霜锁子甲', ty: '防具', q: 'pp' },
+        { ic: '麒', nm: '麒麟啸天', ty: '坐骑', q: 'rd' },
+        { ic: '凌', nm: '凌霜寒袖', ty: '时装', q: 'pp' },
+        { ic: '弓', nm: '百步穿杨', ty: '称号', q: 'gd' },
+        { ic: '弓', nm: '射雕弓魂', ty: '法宝', q: 'rd' },
+      ],
+      hp: 2280, hpMax: 2280, mp: 1280, mpMax: 1280, atk: 520, atkMax: 700, def: 280, defMax: 450, agi: 360, agiMax: 480,
+    },
+    '青鸾': {
+      art: '鸾', cls: '法师', lv: 8, power: 980, faction: '心念', vip: 1, online: true,
+      mood: '心念盟·寻缘小妹 · 已收媒礼 3 份',
+      eq: [
+        { ic: '羽', nm: '青羽笛',   ty: '武器', q: '' },
+        { ic: '霓', nm: '霓裳衫',   ty: '防具', q: 'gd' },
+        { ic: '雀', nm: '青雀',     ty: '坐骑', q: '' },
+        { ic: '?', nm: '未启',     ty: '时装', q: '', empty: true },
+        { ic: '?', nm: '未启',     ty: '称号', q: '', empty: true },
+        { ic: '?', nm: '未启',     ty: '法宝', q: '', empty: true },
+      ],
+      hp: 580, hpMax: 600, mp: 920, mpMax: 920, atk: 165, atkMax: 320, def: 80, defMax: 240, agi: 140, agiMax: 280,
+    },
+    '寒霜·子夜': {
+      art: '霜', cls: '防御', lv: 8, power: 1280, faction: '自由人', vip: 0, online: false,
+      mood: '自由人·小号囤货 · 15 日未登录',
+      eq: [
+        { ic: '盾', nm: '寒铁圆盾', ty: '武器', q: '' },
+        { ic: '重', nm: '重甲', ty: '防具', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '坐骑', q: '', empty: true },
+        { ic: '?', nm: '未启', ty: '时装', q: '', empty: true },
+        { ic: '霜', nm: '寒门坚守', ty: '称号', q: '' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 980, hpMax: 1100, mp: 220, mpMax: 400, atk: 120, atkMax: 260, def: 260, defMax: 400, agi: 80, agiMax: 200,
+    },
+    '墨离·书卿': {
+      art: '墨', cls: '书生', lv: 16, power: 3180, faction: '心念', vip: 4, online: true,
+      mood: '心念盟·文宝山长老 · 排行榜常客',
+      eq: [
+        { ic: '笔', nm: '紫毫判官笔', ty: '武器', q: 'pp' },
+        { ic: '青', nm: '青衿儒衫', ty: '防具', q: 'gd' },
+        { ic: '鹿', nm: '鹿角坐骑', ty: '坐骑', q: 'gd' },
+        { ic: '儒', nm: '儒雅风流', ty: '时装', q: 'gd' },
+        { ic: '文', nm: '文宝山主', ty: '称号', q: 'pp' },
+        { ic: '砚', nm: '墨海砚台', ty: '法宝', q: 'gd' },
+      ],
+      hp: 1380, hpMax: 1380, mp: 1620, mpMax: 1620, atk: 360, atkMax: 520, def: 210, defMax: 380, agi: 200, agiMax: 360,
+    },
+    '子夜·流光': {
+      art: '流', cls: '弓手', lv: 13, power: 2680, faction: '心念', vip: 2, online: true,
+      mood: '心念盟·狙击手 · 周战力榜第 9',
+      eq: [
+        { ic: '弩', nm: '流光连弩', ty: '武器', q: 'gd' },
+        { ic: '轻', nm: '夜影轻甲', ty: '防具', q: 'gd' },
+        { ic: '鹰', nm: '苍鹰', ty: '坐骑', q: '' },
+        { ic: '?', nm: '未启', ty: '时装', q: '', empty: true },
+        { ic: '准', nm: '百发百中', ty: '称号', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 1180, hpMax: 1180, mp: 680, mpMax: 680, atk: 320, atkMax: 480, def: 160, defMax: 320, agi: 300, agiMax: 420,
+    },
+    '夜枭·冷': {
+      art: '枭', cls: '刺客', lv: 13, power: 2480, faction: '通缉', vip: 0, online: true,
+      mood: '★ 通缉中 · 赏金 2000 币 · 杀过 9 人',
+      eq: [
+        { ic: '刺', nm: '毒尾蝎刺', ty: '武器', q: 'rd' },
+        { ic: '墨', nm: '玄夜墨衣', ty: '防具', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '坐骑', q: '', empty: true },
+        { ic: '血', nm: '血衣', ty: '时装', q: 'rd' },
+        { ic: '煞', nm: '嗜血煞星', ty: '称号', q: 'rd' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 1320, hpMax: 1400, mp: 460, mpMax: 460, atk: 420, atkMax: 520, def: 140, defMax: 300, agi: 340, agiMax: 420,
+    },
+    '血刃·枯骨': {
+      art: '刃', cls: '战士', lv: 15, power: 2920, faction: '通缉', vip: 0, online: true,
+      mood: '★ 通缉中 · 赏金 3500 币 · 杀过 14 人',
+      eq: [
+        { ic: '斧', nm: '噬魂双斧', ty: '武器', q: 'rd' },
+        { ic: '骨', nm: '白骨胸甲', ty: '防具', q: 'rd' },
+        { ic: '狼', nm: '血狼', ty: '坐骑', q: 'rd' },
+        { ic: '骷', nm: '骷髅战袍', ty: '时装', q: 'rd' },
+        { ic: '屠', nm: '屠戮者', ty: '称号', q: 'rd' },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 1680, hpMax: 1680, mp: 380, mpMax: 380, atk: 480, atkMax: 580, def: 260, defMax: 380, agi: 220, agiMax: 360,
+    },
+    '流沙·落雁': {
+      art: '雁', cls: '弓手', lv: 10, power: 1820, faction: '通缉', vip: 0, online: false,
+      mood: '★ 通缉中 · 赏金 1200 币 · 托管逃亡',
+      eq: [
+        { ic: '弓', nm: '流沙短弓', ty: '武器', q: 'gd' },
+        { ic: '皮', nm: '皮革护甲', ty: '防具', q: '' },
+        { ic: '?', nm: '未启', ty: '坐骑', q: '', empty: true },
+        { ic: '纱', nm: '轻纱披风', ty: '时装', q: 'gd' },
+        { ic: '?', nm: '未启', ty: '称号', q: '', empty: true },
+        { ic: '?', nm: '未启', ty: '法宝', q: '', empty: true },
+      ],
+      hp: 860, hpMax: 980, mp: 420, mpMax: 420, atk: 280, atkMax: 420, def: 120, defMax: 260, agi: 260, agiMax: 380,
+    },
+    '霜天·狼王': {
+      art: '狼', cls: '蛮兵', lv: 17, power: 3420, faction: '通缉', vip: 0, online: true,
+      mood: '★ 通缉中 · 赏金 5000 币 · 北境之患',
+      eq: [
+        { ic: '爪', nm: '巨狼利爪', ty: '武器', q: 'pp' },
+        { ic: '毛', nm: '狼皮重甲', ty: '防具', q: 'rd' },
+        { ic: '狼', nm: '苍狼王', ty: '坐骑', q: 'pp' },
+        { ic: '毛', nm: '狼毛披风', ty: '时装', q: 'rd' },
+        { ic: '王', nm: '北境狼王', ty: '称号', q: 'pp' },
+        { ic: '牙', nm: '狼牙图腾', ty: '法宝', q: 'rd' },
+      ],
+      hp: 2180, hpMax: 2180, mp: 520, mpMax: 520, atk: 540, atkMax: 680, def: 320, defMax: 460, agi: 280, agiMax: 400,
+    },
+    '孤影·残月': {
+      art: '残', cls: '刀客', lv: 18, power: 3980, faction: '散人', vip: 6, online: true,
+      mood: '散人独行 · 转盘战报常客 · 手气王',
+      eq: [
+        { ic: '月', nm: '残月刀', ty: '武器', q: 'pp' },
+        { ic: '银', nm: '银鳞战甲', ty: '防具', q: 'pp' },
+        { ic: '?', nm: '未启', ty: '坐骑', q: '', empty: true },
+        { ic: '影', nm: '孤影披风', ty: '时装', q: 'gd' },
+        { ic: '运', nm: '万中无一', ty: '称号', q: 'rd' },
+        { ic: '骰', nm: '赤金骰子', ty: '法宝', q: 'rd' },
+      ],
+      hp: 1920, hpMax: 1920, mp: 780, mpMax: 780, atk: 440, atkMax: 620, def: 240, defMax: 400, agi: 320, agiMax: 450,
+    },
+    '长生·白鹤': {
+      art: '鹤', cls: '医师', lv: 19, power: 3760, faction: '心念', vip: 7, online: true,
+      mood: '心念盟·长老医师 · 长生决八重修为',
+      eq: [
+        { ic: '琴', nm: '焦尾古琴', ty: '武器', q: 'pp' },
+        { ic: '羽', nm: '白鹤羽衣', ty: '防具', q: 'pp' },
+        { ic: '鹤', nm: '白鹤', ty: '坐骑', q: 'rd' },
+        { ic: '仙', nm: '仙家鹤氅', ty: '时装', q: 'pp' },
+        { ic: '寿', nm: '长生不老', ty: '称号', q: 'rd' },
+        { ic: '壶', nm: '悬壶济世', ty: '法宝', q: 'pp' },
+      ],
+      hp: 1580, hpMax: 1580, mp: 2380, mpMax: 2380, atk: 320, atkMax: 500, def: 280, defMax: 420, agi: 240, agiMax: 380,
+    },
+  };
+
+  function createProfileScene() {
+    const phone = doc.createElement('div');
+    phone.className = 'phone';
+    phone.innerHTML =
+      `<div class="phone-label"><span class="num">119</span><span class="name">玩 家 档 案</span> · Profile · 浮层</div>` +
+      `<div class="device"><div class="screen">` +
+        `<div class="ios-status"><span>21:00</span><div class="right"><span class="sig"></span><span>5G</span><span class="batt"></span></div></div>` +
+        `<div class="appbar"><div class="row1">` +
+          `<div class="loc"><span class="book pf-name">玩家档案</span><span class="zone pf-meta">点击附近玩家或排行榜成员</span></div>` +
+          `<div class="icons"><div class="icon">举</div><div class="icon" data-go="01">×</div></div>` +
+        `</div></div>` +
+        `<div class="scroll pf-body"></div>` +
+      `</div></div>`;
+    return phone;
+  }
+  function injectProfile() {
+    const grid = doc.querySelector('.grid');
+    if (!grid) return;
+    grid.appendChild(createProfileScene());
+  }
+  injectProfile();
+
+  function pct(v, max) { return Math.min(100, Math.round((v / max) * 100)); }
+  function renderProfile(name) {
+    const body = doc.querySelector('#scene-119 .pf-body');
+    const titleEl = doc.querySelector('#scene-119 .pf-name');
+    const metaEl = doc.querySelector('#scene-119 .pf-meta');
+    if (!body) return;
+    const d = PROFILES[name];
+    if (!d) {
+      if (titleEl) titleEl.textContent = name || '玩家档案';
+      if (metaEl) metaEl.textContent = '档案待补 · 暂未收录';
+      body.innerHTML =
+        `<div class="pf-empty"><span class="em">？</span>暂无【${name || '该玩家'}】档案<br/>该玩家或为系统 NPC / 暂未公开</div>`;
+      return;
+    }
+    if (titleEl) titleEl.textContent = name;
+    if (metaEl) metaEl.textContent = `${d.cls} · Lv ${d.lv} · 战力 ${d.power}`;
+    const eqHTML = d.eq.map(e =>
+      `<div class="slot${e.empty ? ' empty' : ''}">` +
+        `<div class="ic${e.q ? ' ' + e.q : ''}">${e.ic}</div>` +
+        `<div class="nm">${e.nm}</div><div class="ty">${e.ty}</div>` +
+      `</div>`
+    ).join('');
+    const stat = (k, v, max, cls) =>
+      `<div class="row"><span class="k">${k}</span>` +
+      `<span class="bar ${cls}"><span class="on" style="width:${pct(v, max)}%"></span></span>` +
+      `<span class="v">${v}/${max}</span></div>`;
+    body.innerHTML =
+      `<div class="pf-hero">` +
+        `<div class="bg-ink${d.online ? '' : ' off'}">${d.art}</div>` +
+        `<div class="pf-title">` +
+          `<div class="pf-nm">${name}${d.vip ? `<span class="vip">V${d.vip}</span>` : ''}</div>` +
+          `<div class="pf-meta-line">${d.faction ? '<span class="faction">[' + d.faction + ']</span> · ' : ''}${d.cls} · Lv ${d.lv}</div>` +
+          `<div class="pf-power">战 力<b>${d.power}</b></div>` +
+          `<div class="pf-mood">"${d.mood}"</div>` +
+        `</div>` +
+      `</div>` +
+      `<div class="sect">装 备 · 6 槽</div>` +
+      `<div class="pf-eq">${eqHTML}</div>` +
+      `<div class="sect">基 础 属 性</div>` +
+      `<div class="pf-stats">` +
+        stat('HP', d.hp, d.hpMax, 'hp') +
+        stat('MP', d.mp, d.mpMax, 'mp') +
+        stat('攻', d.atk, d.atkMax, 'atk') +
+        stat('防', d.def, d.defMax, 'def') +
+        stat('敏', d.agi, d.agiMax, 'agi') +
+      `</div>` +
+      `<div class="pf-actions">` +
+        `<div class="b primary" data-go="14">私 聊</div>` +
+        `<div class="b" data-go="79">组 队</div>` +
+        `<div class="b">加 友</div>` +
+        `<div class="b" data-go="34">切 磋</div>` +
+        `<div class="b">关 注</div>` +
+      `</div>`;
+  }
+
   const phones = Array.from(doc.querySelectorAll('.phone'));
 
   /* ─ 1. 为每屏编号、建立索引 ─ */
@@ -19357,6 +19784,7 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     '106':'首','107':'主','108':'主','109':'我','110':'我',
     '111':'包','112':'包','113':null,'114':'包',
     '115':'主','116':'主','117':'主','118':'主',
+    '119':null,
   };
 
   /* ─ 2b. 别名映射（语义跳转）─ */
@@ -19420,6 +19848,7 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     '喇叭': '107', '秒杀': '108', '勋章': '109',
     '通知': '110', '附魔': '111',
     '法宝': '112', '五行': '112', '品级': '114',
+    '档案': '119', '玩家': '119', '形象': '119',
   };
 
   function resolve(token) {
@@ -19432,16 +19861,26 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     return null;
   }
 
-  /* ─ 3. 路由 · 切屏无残影 ─ */
+  /* ─ 3. 路由 · 切屏无残影 · 支持 'key:target' 携带参数（用于玩家档案 119） */
   let current = null;
   function go(token) {
-    const key = resolve(token);
+    if (token == null) return false;
+    const raw = String(token).trim();
+    const idx = raw.indexOf(':');
+    let keyToken, payload = null;
+    if (idx > -1) {
+      keyToken = raw.slice(0, idx);
+      payload = decodeURIComponent(raw.slice(idx + 1));
+    } else {
+      keyToken = raw;
+    }
+    const key = resolve(keyToken);
     if (!key) return false;
     const target = doc.getElementById('scene-' + key);
     if (!target) return false;
-    if (current === target) return true;
+    if (current === target && !payload) return true;
 
-    if (current) {
+    if (current && current !== target) {
       current.classList.remove('active');
       current.querySelectorAll('.scroll, .log').forEach(s => { s.scrollTop = 0; });
     }
@@ -19449,8 +19888,11 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     target.querySelectorAll('.scroll, .log').forEach(s => { s.scrollTop = 0; });
     current = target;
 
-    if (location.hash.slice(1) !== key) {
-      history.replaceState(null, '', '#' + key);
+    if (key === '119') renderProfile(payload || '丿征战丶蔷薇');
+
+    const newHash = payload ? key + ':' + encodeURIComponent(payload) : key;
+    if (location.hash.slice(1) !== newHash) {
+      history.replaceState(null, '', '#' + newHash);
     }
     syncNavPanel(key);
     return true;
@@ -19460,6 +19902,7 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
   const groups = [
     { title: '核心循环', keys: [1, 2, 3, 5, 15, 37] },
     { title: '地方 · 极北', keys: [115, 116, 117, 118] },
+    { title: '档案 · 形象', keys: [119] },
     { title: '战斗 · 副本', keys: [19, 20, 50, 51, 52, 53, 55, 56, 76, 78, 113] },
     { title: '成长 · 装备', keys: [4, 8, 9, 30, 36, 41, 45, 46, 47, 48, 59, 71, 72, 77, 96, 111, 114] },
     { title: '社交 · 缘分', keys: [11, 12, 14, 22, 38, 39, 42, 43, 44, 79, 80, 87, 90, 91, 104] },
@@ -19475,7 +19918,7 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
   navPanel.className = 'nav-panel';
   navPanel.innerHTML =
     '<div class="nav-title">气 盖 山 河</div>' +
-    '<div class="nav-sub">· 118 SCENES · TAP TO JUMP ·</div>' +
+    '<div class="nav-sub">· 119 SCENES · TAP TO JUMP ·</div>' +
     groups.map(g => {
       const keys = g.keys.map(k => String(k).padStart(2, '0'));
       const items = keys.map(k => {
@@ -19567,9 +20010,27 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     // hub-namecard 点击 → 传送菜单
     if (e.target.closest('.hub-namecard')) { go('03'); return; }
 
-    // 附近玩家 → 聊天
-    if (e.target.closest('.nearby .p')) { go('14'); return; }
+    // 附近玩家 → 玩家档案 119
+    const np = e.target.closest('.nearby .p');
+    if (np) { go('119:' + encodeURIComponent(extractPlayerName(np))); return; }
+    // BOSS 伤害榜行 → 玩家档案
+    const wbr = e.target.closest('.wb-dmg-row');
+    if (wbr) {
+      const nm = wbr.querySelector('.nm');
+      if (nm) { go('119:' + encodeURIComponent(extractPlayerName(nm))); return; }
+    }
+    // 通用：带 data-player 的元素
+    const dp = e.target.closest('[data-player]');
+    if (dp) { go('119:' + encodeURIComponent(dp.dataset.player)); return; }
   });
+
+  /* ─ 9h. 从含 [tag] / Lv N / * 等装饰的玩家行中提取纯玩家名 */
+  function extractPlayerName(el) {
+    if (!el) return '';
+    const c = el.cloneNode(true);
+    c.querySelectorAll('.lv, .star, .g, .gd, .vip, .icon, .av, .rk, .dm').forEach(n => n.remove());
+    return c.textContent.replace(/\s+/g, '').replace(/^\(.*?\)/, '').replace(/\(你\)$/, '').trim();
+  }
 
   fab.addEventListener('click', () => toggleNav());
 
@@ -19794,7 +20255,218 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     }
   }
 
-  /* ─ 9g. 全局点击扩展：返回按钮 / 战斗技能 / 兜底提示 */
+  /* ─ 9g.0 「更多 ›」按 sect 标题映射跳转表 */
+  const MORE_MAP = [
+    ['功能', '03'], ['任务', '15'], ['排行', '18'], ['邮件', '23'],
+    ['宠物', '24'], ['宝宝', '24'], ['坐骑', '46'], ['时装', '47'],
+    ['装备', '41'], ['强化', '30'], ['好友', '22'], ['玩友', '22'],
+    ['公会', '11'], ['盟会', '11'], ['夫妻', '42'], ['师徒', '38'],
+    ['师门', '43'], ['组队', '79'], ['活动', '29'], ['图鉴', '31'],
+    ['VIP', '86'], ['特权', '86'], ['称号', '60'], ['法宝', '112'],
+    ['五行', '112'], ['充值', '21'],
+  ];
+  function moreTarget(sectText) {
+    const t = (sectText || '').replace(/\s+/g, '');
+    for (const [k, v] of MORE_MAP) if (t.includes(k)) return v;
+    return null;
+  }
+
+  /* ─ 9g.0b 19 世界 BOSS 战斗反馈：全力攻击 / 召集盟友 */
+  function bossDamage() {
+    const p = doc.getElementById('scene-19');
+    if (!p) return;
+    const dmg = 80000 + Math.floor(Math.random() * 170000);
+    const crit = Math.random() > 0.85;
+    const real = crit ? Math.round(dmg * 1.6) : dmg;
+    const stage = p.querySelector('.boss-frame') || p.querySelector('.wb-hero');
+    if (stage) {
+      if (!stage.style.position) stage.style.position = 'relative';
+      const f = doc.createElement('div');
+      f.className = 'dmg-float' + (crit ? ' crit' : '');
+      f.textContent = (crit ? '暴 ' : '') + '-' + real.toLocaleString();
+      stage.appendChild(f);
+      setTimeout(() => f.remove(), 900);
+    }
+    const hpV = p.querySelector('.wb-hp .top .v');
+    if (!hpV) return;
+    const m = hpV.textContent.match(/^([\d,]+)\s*\/\s*([\d,]+)/);
+    if (!m) return;
+    const max = parseInt(m[2].replace(/,/g, ''), 10);
+    const cur = Math.max(0, parseInt(m[1].replace(/,/g, ''), 10) - real);
+    hpV.textContent = cur.toLocaleString() + ' / ' + max.toLocaleString();
+    const segs = p.querySelectorAll('.wb-hp .seg-wrap .seg');
+    const onN = Math.round((cur / max) * segs.length);
+    segs.forEach((s, i) => {
+      s.classList.remove('on', 'cur');
+      if (i < onN) s.classList.add('on');
+      else if (i === onN) s.classList.add('cur');
+    });
+    const fLeft = p.querySelector('.wb-hp .footer span:first-child');
+    if (fLeft) {
+      const pctV = ((cur / max) * 100).toFixed(1);
+      fLeft.textContent = `阶段 ${Math.max(1, Math.ceil(pctV / 10))} / 10 · ${pctV}%`;
+    }
+    if (cur === 0) {
+      setTimeout(() => { toast('BOSS 已击杀！结算中…'); setTimeout(() => go('37'), 1200); }, 700);
+    }
+  }
+  function bossRally() {
+    toast('已召集 12 位盟友驰援');
+    const v = doc.querySelector('#scene-19 .wb-info .row .v.g');
+    if (!v) return;
+    const m = v.textContent.match(/(\d+)\s*\/\s*(\d+)/);
+    if (m) {
+      const cur = Math.min(parseInt(m[2], 10), parseInt(m[1], 10) + 12);
+      v.textContent = `${cur} / ${m[2]}`;
+    }
+  }
+
+  /* ─ 9g.0c 32 钓鱼 · 状态机 idle → casting → bite → settle */
+  const FISH_POOL = [
+    { p: 0.40, nm: '红尾鲤鱼',      sm: '1.2 斤 · 售 12 币', ic: '鲤', cls: '',            pr: '+12 币',    kind: 'common' },
+    { p: 0.30, nm: '银鳞鲫鱼',      sm: '0.5 斤 · 售 5 币',  ic: '鲫', cls: '',            pr: '+5 币',     kind: 'common' },
+    { p: 0.14, nm: '青尾刀鱼',      sm: '1.8 斤 · 售 20 币', ic: '刀', cls: '',            pr: '+20 币',    kind: 'common' },
+    { p: 0.10, nm: '玄武龟 · 稀有', sm: '3.8 斤 · 炼丹材料', ic: '玄', cls: 'co-purple',   pr: '保留',      kind: 'rare',    nmCls: 'c-purple' },
+    { p: 0.05, nm: '寒潭墨鱼',      sm: '2.4 斤 · 墨汁可售', ic: '墨', cls: 'co-azure',    pr: '+36 币',    kind: 'rare',    nmCls: 'c-azure' },
+    { p: 0.01, nm: '鲲鹏之子 · 传说', sm: '25.6 斤 · 全区罕见', ic: '鲲', cls: 'ur',       pr: '炫耀',      kind: 'legend',  nmCls: 'c-red' },
+  ];
+  const fishState = { stage: 'idle', timer: null, baits: 8 };
+  function fishBiteEl() { return doc.querySelector('#scene-32 .fi-bite'); }
+  function fishSetBite(on) {
+    const el = fishBiteEl();
+    if (el) el.style.display = on ? '' : 'none';
+  }
+  function fishUpdateBaits() {
+    const s = doc.querySelector('#scene-32 .fi-status');
+    if (s) s.textContent = `饵 · 墨鱼骨 · 剩 ${fishState.baits}`;
+  }
+  function fishPick() {
+    let r = Math.random();
+    for (const f of FISH_POOL) { if ((r -= f.p) <= 0) return f; }
+    return FISH_POOL[0];
+  }
+  function fishBumpStat(kind) {
+    const stats = doc.querySelectorAll('#scene-32 .fi-stats .c .vl');
+    if (!stats[0]) return;
+    stats[0].textContent = String(parseInt(stats[0].textContent || '0', 10) + 1);
+    if (kind === 'rare' || kind === 'legend') {
+      stats[1].textContent = String(parseInt(stats[1].textContent || '0', 10) + 1);
+    }
+    if (kind === 'legend') stats[2].textContent = '鲲';
+  }
+  function fishPrepend(f) {
+    const scroll = doc.querySelector('#scene-32 .scroll');
+    const anchor = scroll ? scroll.querySelector('.sect') : null;
+    if (!scroll || !anchor) return;
+    const row = doc.createElement('div');
+    row.className = 'fi-pool';
+    row.innerHTML =
+      `<div class="ic${f.cls ? ' ' + f.cls : ''}">${f.ic}</div>` +
+      `<div class="info"><div class="nm${f.nmCls ? ' ' + f.nmCls : ''}">${f.nm} · 新</div><div class="sm">${f.sm}</div></div>` +
+      `<div class="pr${f.nmCls ? ' ' + f.nmCls : ''}">${f.pr}</div>`;
+    anchor.parentNode.insertBefore(row, anchor.nextSibling);
+  }
+  function fishCast() {
+    if (fishState.baits <= 0) { toast('没有饵料 · 请先换饵'); return; }
+    fishState.stage = 'casting';
+    fishSetBite(false);
+    toast('鱼 竿 已 抛 出 · 静 待 咬 钩');
+    clearTimeout(fishState.timer);
+    const wait = 2500 + Math.random() * 4000;
+    fishState.timer = setTimeout(() => {
+      fishState.stage = 'bite';
+      fishSetBite(true);
+    }, wait);
+  }
+  function fishReel() {
+    if (fishState.stage === 'idle') { fishCast(); return; }
+    if (fishState.stage === 'casting') {
+      toast('起 早 了 · 空 竿');
+      fishState.stage = 'idle';
+      clearTimeout(fishState.timer);
+      return;
+    }
+    // bite → settle
+    fishState.baits = Math.max(0, fishState.baits - 1);
+    fishUpdateBaits();
+    const f = fishPick();
+    fishBumpStat(f.kind);
+    fishPrepend(f);
+    fishSetBite(false);
+    fishState.stage = 'idle';
+    const tag = f.kind === 'legend' ? '★ 传说 · ' : f.kind === 'rare' ? '◈ 稀有 · ' : '';
+    toast(`${tag}钓到【${f.nm}】`);
+  }
+  function fishStop() {
+    clearTimeout(fishState.timer);
+    fishState.stage = 'idle';
+    fishSetBite(false);
+    toast('已 收 竿');
+  }
+  function fishChangeBait() {
+    fishState.baits += 5;
+    fishUpdateBaits();
+    toast('已 换 饵 · +5 墨鱼骨');
+  }
+
+  /* ─ 9g.0d 40 幸运转盘 · 旋转 3 圈+停在随机扇区 */
+  const WHEEL_PRIZES = [
+    { p: 0.20, nm: '1 玩币',         kind: 'common' },
+    { p: 0.08, nm: '宝石 ④',         kind: 'rare'   },
+    { p: 0.20, nm: '小红 × 10',      kind: 'common' },
+    { p: 0.20, nm: '魂魄 × 5',       kind: 'common' },
+    { p: 0.045, nm: '附魂丹',        kind: 'epic'   },
+    { p: 0.07, nm: '代练卡',         kind: 'rare'   },
+    { p: 0.20, nm: '5000 游戏币',    kind: 'common' },
+    { p: 0.005, nm: '橙装 · 尘封之铠', kind: 'legend' },
+  ];
+  const wheelState = { spinning: false, rotation: 0 };
+  function wheelPick() {
+    let r = Math.random(), i = 0;
+    for (; i < WHEEL_PRIZES.length - 1; i++) { if ((r -= WHEEL_PRIZES[i].p) <= 0) return i; }
+    return WHEEL_PRIZES.length - 1;
+  }
+  function wheelLogPush(prize) {
+    const log = doc.querySelector('#scene-40 .wh-log');
+    if (!log) return;
+    const row = doc.createElement('div');
+    row.className = 'r';
+    const cls = prize.kind === 'legend' ? 'ur' : '';
+    const hhmm = new Date().toTimeString().slice(0, 5);
+    row.innerHTML = `${hhmm} · <b class="${cls}">丿征战丶蔷薇</b> 抽中 <b class="${cls}">${prize.nm}</b>`;
+    log.insertBefore(row, log.firstChild);
+    while (log.children.length > 8) log.removeChild(log.lastChild);
+  }
+  function wheelSpin(times) {
+    if (wheelState.spinning) return;
+    const wheel = doc.querySelector('#scene-40 .wh-wheel');
+    if (!wheel) return;
+    wheelState.spinning = true;
+    const idx = wheelPick();
+    const prize = WHEEL_PRIZES[idx];
+    const sliceMid = idx * 45 + 22.5;
+    const cur = wheelState.rotation;
+    const base = Math.ceil(cur / 360) * 360;
+    const target = base + 360 * 4 + (360 - sliceMid);
+    wheel.style.transition = 'transform 3.2s cubic-bezier(.17,.67,.28,1)';
+    wheel.style.transform = `rotate(${target}deg)`;
+    wheelState.rotation = target;
+    setTimeout(() => {
+      wheelState.spinning = false;
+      wheelLogPush(prize);
+      const tag = prize.kind === 'legend' ? '★★ 橙色奖励 · ' : prize.kind === 'epic' ? '★ 史诗 · ' : prize.kind === 'rare' ? '◈ 稀有 · ' : '';
+      toast(`${tag}抽中【${prize.nm}】${times > 1 ? ' (连抽首格)' : ''}`);
+    }, 3300);
+  }
+
+  /* ─ 9g. 全局点击扩展：返回按钮 / 战斗技能 / 更多通跳 / 好友 / 头像 / 兜底 */
+  // 32/40 已由专用处理器接管；13/74 登录创角流程同理；故从叶子 toast 列表移除
+  const LEAF_TOAST_SCENES = new Set([
+    '08','10','16','17','21','24','29','30','33','41',
+    '45','58','68','71','72','73','83','84','97','98','99','103',
+    '104','108','111',
+  ]);
+
   doc.addEventListener('click', (e) => {
     // 返回按钮
     if (e.target.closest('.back-btn')) {
@@ -19802,15 +20474,176 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
       else go('01');
       return;
     }
-    // 战斗技能
+    // 战斗技能（02）
     const sk = e.target.closest('#scene-02 .sk:not(.lock)');
     if (sk) {
       const name = (sk.childNodes[0]?.textContent || sk.textContent).trim();
       doAttack(name);
       return;
     }
-    // 战斗放弃
+    // 战斗放弃（02）
     if (e.target.closest('#scene-02 .b.run')) { go('37'); return; }
+
+    // 19 世界 BOSS 战斗按钮
+    const wb = e.target.closest('#scene-19 .wb-ops .b');
+    if (wb) {
+      if (wb.classList.contains('atk')) bossDamage();
+      else if (wb.classList.contains('call')) bossRally();
+      else toast(wb.textContent.trim());
+      return;
+    }
+
+    // 32 钓鱼三键
+    const fb32 = e.target.closest('#scene-32 .fi-cta .b');
+    if (fb32) {
+      const t = fb32.textContent.replace(/\s+/g, '');
+      if (t === '换饵') fishChangeBait();
+      else if (t === '提竿') fishReel();
+      else if (t === '收竿') fishStop();
+      return;
+    }
+    if (e.target.closest('#scene-32 .fi-bite')) { fishReel(); return; }
+
+    // 40 转盘：抽 × 1 / 连抽 × 10 / 中心抽钮
+    const wc = e.target.closest('#scene-40 .wh-cta .b');
+    if (wc) {
+      wheelSpin(wc.classList.contains('main') ? 10 : 1);
+      return;
+    }
+    if (e.target.closest('#scene-40 .wh-hub')) { wheelSpin(1); return; }
+
+    // 13 登录 / 选区
+    const lgb = e.target.closest('#scene-13 .lg-btns .b');
+    if (lgb) {
+      if (lgb.classList.contains('prim')) go('74');
+      else { toast('游客试玩 · 3 日后需登录'); go('01'); }
+      return;
+    }
+    const lgr = e.target.closest('#scene-13 .lg-role');
+    if (lgr) {
+      if (lgr.classList.contains('new')) go('74');
+      else go('01');
+      return;
+    }
+    if (e.target.closest('#scene-13 .lg-server .switch')) { toast('切换分区 · 共 99 区'); return; }
+
+    // 74 创建角色
+    const crSex = e.target.closest('#scene-74 .cr-stage .sx .s');
+    if (crSex) {
+      crSex.parentNode.querySelectorAll('.s').forEach(s => s.classList.remove('on'));
+      crSex.classList.add('on');
+      const t = crSex.textContent.trim();
+      const nm = doc.querySelector('#scene-74 .silo .nm');
+      if (nm) nm.textContent = nm.textContent.replace(/·\s*[男女]$/, '· ' + t);
+      return;
+    }
+    const crJob = e.target.closest('#scene-74 .cr-jobs .j');
+    if (crJob) {
+      crJob.parentNode.querySelectorAll('.j').forEach(j => j.classList.remove('on'));
+      crJob.classList.add('on');
+      const mp = { '敏': '敏 · 闪 避', '攻': '攻 · 爆 发', '防': '防 · 肉 盾', '全': '全 · 均 衡' };
+      const k = crJob.querySelector('.ic')?.textContent.trim();
+      const nm = doc.querySelector('#scene-74 .silo .nm');
+      if (nm && mp[k]) nm.textContent = mp[k] + ' · ' + (doc.querySelector('#scene-74 .sx .s.on')?.textContent.trim() || '女');
+      return;
+    }
+    if (e.target.closest('#scene-74 .cr-name .dice')) {
+      const pool = ['红 颜 · 蔷 薇', '清 影 · 白 鹭', '墨 羽 · 寒 山', '惊 鸿 · 月 白', '孤 枕 · 长 河', '青 莲 · 素 心'];
+      const inp = doc.querySelector('#scene-74 .cr-name .inp');
+      if (inp) inp.value = pool[Math.floor(Math.random() * pool.length)];
+      return;
+    }
+    const crEnter = e.target.closest('#scene-74 .scroll > .c-text');
+    if (crEnter && crEnter.textContent.includes('进 入 江 湖')) {
+      toast('角 色 创 建 成 功 · 进 入 极 北 大 陆');
+      setTimeout(() => go('75'), 600);
+      return;
+    }
+
+    // 75 新手引导下一步
+    const tutNx = e.target.closest('#scene-75 .tut-mask .card .nx');
+    if (tutNx) {
+      const card = tutNx.closest('.card');
+      const stpEl = card.querySelector('.stp');
+      const dots = doc.querySelectorAll('#scene-75 .prog .d');
+      const m = stpEl?.textContent.match(/(\d+)\s*\/\s*(\d+)/);
+      if (!m) return;
+      const cur = parseInt(m[1], 10), total = parseInt(m[2], 10);
+      if (cur >= total) {
+        toast('新手引导完成 · 踏入江湖');
+        setTimeout(() => go('01'), 600);
+        return;
+      }
+      const steps = [
+        { tl: '认 识 功 能 条', ds: '顶 部 资 源 条 · 随 时 查 看 血 蓝 怒 气 · 点 开 可 快 速 补 药。' },
+        { tl: '查 看 任 务', ds: '屏 下 任 务 列 表 · 完 成 主 线 快 速 升 级 · 奖 励 极 丰。' },
+        { tl: '进 入 战 斗', ds: '点 野 外 怪 物 开 启 战 斗 · 五 技 能 自 动 轮 转。' },
+        { tl: '聊 天 与 结 识', ds: '左 下 聊 天 入 口 · 可 加 好 友、组 队、私 聊。' },
+        { tl: '查 看 装 备', ds: '背 包 中 查 看 全 身 装 备 · 神 匠 处 强 化 升 阶。' },
+        { tl: '加 入 盟 会', ds: '21:00 盟 战 开 启 · 加 盟 共 守 主 城。' },
+        { tl: '启 航 江 湖', ds: '极 北 大 陆 已 展 开 · 你 的 传 说 从 此 刻 开 始。' },
+      ];
+      const next = steps[cur] || steps[steps.length - 1];
+      stpEl.textContent = `STEP ${cur + 1} / ${total}`;
+      card.querySelector('.tl').textContent = next.tl;
+      card.querySelector('.ds').textContent = next.ds;
+      dots.forEach((d, i) => {
+        d.classList.remove('on', 'cur');
+        if (i < cur) d.classList.add('on');
+        else if (i === cur) d.classList.add('cur');
+      });
+      return;
+    }
+
+    // .sect .more 通跳
+    const more = e.target.closest('.sect .more');
+    if (more) {
+      const sect = more.closest('.sect');
+      const sectText = sect ? (sect.firstChild?.textContent || sect.textContent) : '';
+      const target = moreTarget(sectText);
+      if (target) go(target);
+      else toast('详情页待开发');
+      return;
+    }
+
+    // 22 好友列表按钮
+    const fb = e.target.closest('#scene-22 .b');
+    if (fb) {
+      const t = fb.textContent.replace(/\s+/g, '').trim();
+      const row = fb.closest('.row, .friend-row, li, .friend-item');
+      let nm = '';
+      if (row) {
+        const nmEl = row.querySelector('.nm, .name');
+        if (nmEl) nm = extractPlayerName(nmEl);
+      }
+      if (t === '聊') go('14');
+      else if (t === '邀') go('79');
+      else if (t === '档案' || t === '详细') go('119:' + encodeURIComponent(nm || ''));
+      else if (t === '添加') toast('好友请求已发送');
+      else if (t === '拒') toast('请求已拒绝');
+      else toast(t + ' · 已执行');
+      return;
+    }
+
+    // 05 状态面板 改名/头像
+    const cb = e.target.closest('#scene-05 .b');
+    if (cb) {
+      const t = cb.textContent.replace(/\s+/g, '').trim();
+      if (t === '头像') { go('67'); return; }
+      if (t === '改名') { toast('改名 · 每月 1 次免费 · 否则 100 元宝'); return; }
+    }
+
+    // 通用叶子按钮 toast 反馈（购买/抽取/服用/强化/装备/分解 等动作）
+    const leaf = e.target.closest('.b, .btn');
+    if (leaf && !leaf.dataset.go) {
+      const sceneEl = leaf.closest('.phone');
+      const k = sceneEl?.dataset.scene;
+      if (k && LEAF_TOAST_SCENES.has(k)) {
+        const t = leaf.textContent.replace(/\s+/g, '').trim().slice(0, 14);
+        if (t) toast(t + ' · 已执行');
+        return;
+      }
+    }
   });
 
   /* ─ 10. 初始化 ─ */
@@ -19827,6 +20660,9 @@ html[data-mode="app"] .phone:not(.active) .scroll { scroll-behavior: auto; }
     bindSettlement();
     syncClock();
     setInterval(syncClock, 30000);
+    fishSetBite(false);
+    const wheel = doc.querySelector('#scene-40 .wh-wheel');
+    if (wheel) wheel.style.transformOrigin = '50% 50%';
     const initial = (location.hash.slice(1)) || '01';
     go(initial);
   }
