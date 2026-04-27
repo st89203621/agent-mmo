@@ -1,5 +1,31 @@
 /* 通用布局由 page.module.css 提供 */
 
+/* 角色背景图 */
+.charBg {
+  height: 180px;
+  flex-shrink: 0;
+}
+.charBgLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 48px 16px 14px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.92) 0%, transparent 100%);
+}
+.charBgName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f0e6cc;
+  letter-spacing: 3px;
+}
+.charBgSub {
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgba(200, 169, 104, 0.9);
+  letter-spacing: 1px;
+}
+
 /* 七世时间轴 */
 .timeline {
   display: flex;

@@ -1,6 +1,7 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { fetchVisualAsset, generateVisualAsset } from '../../services/api';
 import type { VisualAssetSpec } from '../../data/visualAssets';
+import { subscribeRedraw, getRedrawVersion } from '../../data/redrawStore';
 import styles from './VisualAssetImage.module.css';
 
 interface Props extends VisualAssetSpec {
@@ -37,6 +38,34 @@ export default function VisualAssetImage({
   const [fetchDone, setFetchDone] = useState(false);
   const autoTriggered = useRef(false);
 
+  // 始终持有最新的 props，供重绘回调使用
+  const propsRef = useRef({ assetKey, type, name, description, context, width, height });
+  propsRef.current = { assetKey, type, name, description, context, width, height };
+
+  // 订阅全局重绘信号（useSyncExternalStore 保证 React 同步感知版本变化）
+  const redrawVersion = useSyncExternalStore(subscribeRedraw, getRedrawVersion);
+  const lastRedrawVersion = useRef(0);
+
+  useEffect(() => {
+    if (redrawVersion === 0 || redrawVersion === lastRedrawVersion.current) return;
+    if (!autoGenerate) return;
+    lastRedrawVersion.current = redrawVersion;
+    const p = propsRef.current;
+    setImageUrl('');
+    setFetchDone(false);
+    setError('');
+    setLoading(true);
+    generateVisualAsset({ ...p, force: true })
+      .then((data) => {
+        setImageUrl(data.imageUrl);
+        localStorage.setItem(storageKey(p.assetKey, p.width, p.height), data.imageUrl);
+      })
+      .catch(() => setError('重绘失败'))
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redrawVersion]);
+
+  // 正常加载：先读缓存，再 fetch 服务器
   useEffect(() => {
     let cancelled = false;
     autoTriggered.current = false;
@@ -68,13 +97,7 @@ export default function VisualAssetImage({
     setError('');
     try {
       const data = await generateVisualAsset({
-        assetKey,
-        type,
-        name,
-        description,
-        context,
-        width,
-        height,
+        assetKey, type, name, description, context, width, height,
         force: !!imageUrl,
       });
       setImageUrl(data.imageUrl);
@@ -86,6 +109,7 @@ export default function VisualAssetImage({
     }
   }, [assetKey, context, description, height, imageUrl, name, type, width]);
 
+  // 首次没有图时自动生成
   useEffect(() => {
     if (autoGenerate && fetchDone && !imageUrl && !loading && !autoTriggered.current) {
       autoTriggered.current = true;

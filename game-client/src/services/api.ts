@@ -260,13 +260,14 @@ export function generateVisualAsset(params: VisualAssetRequest): Promise<VisualA
 }
 
 function buildVisualAssetFallbackPrompt(params: VisualAssetRequest) {
-  const base = '轮回原版H5 MMO统一美术，东方玄幻，黑檀暗底，暖金光影，朱红点缀，精致国风游戏插画，和 fusion_mockup.html 的暗金卷轴界面协调。禁止文字，禁止水印，禁止logo，禁止UI按钮，禁止内置相框边框，牌匾和旗帜只能画空白纹样不能有可读文字，';
-  const subject = `资产类型：${params.type}，名称：${params.name}，设定：${params.description || ''}，上下文：${params.context || ''}。`;
-  if (params.type === 'icon') return `${base}${subject}单个游戏图标，主体居中，金属徽章感，适合小尺寸识别。`;
-  if (params.type === 'monster') return `${base}${subject}单体怪物全身立绘，主体占画面75%，姿态有压迫感，深色虚化背景。`;
-  if (params.type === 'portrait') return `${base}${subject}半身NPC立绘，人物占画面70%，暗金古风服饰，深色虚化背景。`;
-  if (params.type === 'banner') return `${base}${subject}横幅活动插画，宽屏构图，左右留安全空间，不包含文字。`;
-  return `${base}${subject}纯场景背景图，无人物，远近层次清楚，适合移动端H5页面顶部场景卡。`;
+  const styleCtx = params.context ? `${params.context}，` : '';
+  const base = `东方玄幻游戏插画，${styleCtx}明亮鲜艳，色彩温柔饱和，精致唯美，禁止文字，禁止水印，禁止logo，禁止UI按钮，`;
+  const subject = `名称：${params.name}，设定：${params.description || ''}。`;
+  if (params.type === 'icon') return `${base}${subject}单个游戏图标，主体居中，适合小尺寸识别，色彩明亮。`;
+  if (params.type === 'monster') return `${base}${subject}单体生物全身立绘，主体占画面75%，神态灵动，明亮虚化背景。`;
+  if (params.type === 'portrait') return `${base}${subject}半身人物立绘，人物占画面70%，古风服饰，色彩温柔，明亮虚化背景。`;
+  if (params.type === 'banner') return `${base}${subject}横幅插画，宽屏构图，左右留空，色彩丰富，不含文字。`;
+  return `${base}${subject}纯场景背景图，无人物，远近层次清楚，明亮色调，适合移动端H5页面顶部。`;
 }
 
 // ── NPC ──────────────────────────────────────

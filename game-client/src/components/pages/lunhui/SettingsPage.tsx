@@ -3,6 +3,13 @@ import { logout } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import { usePlayerStore } from '../../../store/playerStore';
 import { toast } from '../../../store/toastStore';
+import {
+  VISUAL_STYLES,
+  type VisualStyleId,
+  getVisualStyle,
+  setVisualStyle,
+  clearAllAssetCache,
+} from '../../../data/visualAssets';
 import styles from './LunhuiPages.module.css';
 
 const STORAGE_KEY = 'mmo.settings';
@@ -55,6 +62,17 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<LocalSettings>(() => loadSettings());
   const [loggingOut, setLoggingOut] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<VisualStyleId>(() => getVisualStyle().id);
+
+  const handleStyleChange = useCallback((id: VisualStyleId) => {
+    setVisualStyle(id);
+    setCurrentStyle(id);
+  }, []);
+
+  const handleRedrawAll = useCallback(() => {
+    clearAllAssetCache();
+    toast.info('图片缓存已清除，重新进入各页面将自动重绘');
+  }, []);
 
   useEffect(() => { saveSettings(settings); }, [settings]);
 
@@ -167,6 +185,39 @@ export default function SettingsPage() {
             <span className={styles.setRowDesc}>成交 / 被竞价通知</span>
           </div>
           {renderSwitch(settings.notifyAuction, () => toggle('notifyAuction'), '拍卖提醒')}
+        </div>
+
+        <div className={styles.sectRow}>画 风 · 重 绘</div>
+        <div className={styles.setRow} style={{ flexWrap: 'wrap', gap: 8 }}>
+          <div className={styles.setRowK} style={{ width: '100%' }}>
+            插画风格
+            <span className={styles.setRowDesc}>影响全局 AI 生成画面的美术风格</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {VISUAL_STYLES.map((s) => (
+              <button
+                key={s.id}
+                className={`${styles.tpItem} ${currentStyle === s.id ? styles.tpItemRed : ''}`.trim()}
+                onClick={() => handleStyleChange(s.id as VisualStyleId)}
+                type="button"
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className={styles.setRow}>
+          <div className={styles.setRowK}>
+            全局重绘
+            <span className={styles.setRowDesc}>清除所有图片缓存，重新进入页面自动生成</span>
+          </div>
+          <button
+            className={styles.tpItem}
+            onClick={handleRedrawAll}
+            type="button"
+          >
+            重 绘 全 部
+          </button>
         </div>
 
         <button

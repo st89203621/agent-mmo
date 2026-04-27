@@ -1,0 +1,79 @@
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.trigger {
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--accent-gold);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  background: rgba(7, 4, 2, 0.7);
+  cursor: pointer;
+  font-family: var(--font-serif);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.trigger:active {
+  background: rgba(201, 168, 76, 0.12);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: rgba(18, 14, 10, 0.97);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  padding: 10px;
+  z-index: 100;
+  min-width: 160px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.styleBtn {
+  padding: 7px 4px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: var(--bg-ink);
+  cursor: pointer;
+  font-family: var(--font-serif);
+  transition: all 0.15s;
+}
+
+.styleBtn:active {
+  transform: scale(0.97);
+}
+
+.styleBtnOn {
+  color: var(--accent-gold);
+  border-color: var(--accent-gold);
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.redrawBtn {
+  width: 100%;
+  padding: 7px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--accent-red);
+  border: 1px solid rgba(162, 43, 29, 0.4);
+  background: rgba(162, 43, 29, 0.08);
+  cursor: pointer;
+  font-family: var(--font-serif);
+  transition: background 0.15s;
+}
+
+.redrawBtn:active {
+  background: rgba(162, 43, 29, 0.18);
+}

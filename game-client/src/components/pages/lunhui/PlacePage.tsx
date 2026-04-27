@@ -5,6 +5,7 @@ import { monsterPortraitAsset, npcPortraitAsset, placeSceneAsset } from '../../.
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import VisualAssetImage from '../../common/VisualAssetImage';
+import VisualStyleBar from '../../common/VisualStyleBar';
 import type { PlaceInfo, ZoneInfo } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
@@ -141,7 +142,7 @@ export default function PlacePage() {
             <span className={styles.appbarZone}>坐标 ({place.coord[0]},{place.coord[1]})</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button className={styles.appbarIcon} onClick={() => navigateTo('chat')} type="button">叫</button>
+            <VisualStyleBar />
             <button className={styles.appbarIcon} onClick={() => navigateTo('hub')} type="button">退</button>
           </div>
         </div>

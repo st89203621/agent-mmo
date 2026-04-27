@@ -12,6 +12,7 @@ import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
 import { placeSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
 import VisualAssetImage from '../common/VisualAssetImage';
+import VisualStyleBar from '../common/VisualStyleBar';
 import { StatBar, BarBlock, BarRow } from '../common/fusion';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
@@ -168,9 +169,9 @@ export default function ScenePage() {
             <span className={styles.coord}>({place.coord[0]},{place.coord[1]})</span>
           </div>
           <div className={styles.icons}>
+            <VisualStyleBar onRedraw={load} />
             <button className={styles.icon} onClick={load} type="button" aria-label="刷新">⟳</button>
             <button className={`${styles.icon} ${styles.dot}`} onClick={() => navigateTo('messages')} type="button">信</button>
-            <button className={styles.icon} onClick={() => navigateTo('friend')} type="button">友</button>
             <button className={styles.icon} onClick={() => navigateTo('teleport')} type="button">传</button>
           </div>
         </div>

@@ -11608,3 +11608,73 @@
   color: var(--accent-gold);
   margin-bottom: 2px;
 }
+
+/* ═══ 宠物头像图 ═══ */
+.ptPicImg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ═══ 副本卡图 ═══ */
+.dgCardNew {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.dgCardNew.dgCardOn {
+  border-color: var(--accent-gold);
+}
+.dgImg {
+  height: 110px;
+  display: block;
+}
+.dgImgLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 12px 8px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.92) 0%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dgCardBody {
+  padding: 7px 12px 10px;
+  border-top: 1px solid var(--border);
+}
+.dgCardBodyMeta {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+/* ═══ 角色背景图 ═══ */
+.charBg {
+  height: 180px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.charBgLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 16px 14px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.92) 0%, transparent 100%);
+}
+.charBgName {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 3px;
+}
+.charBgSub {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--accent-gold);
+  letter-spacing: 1px;
+}

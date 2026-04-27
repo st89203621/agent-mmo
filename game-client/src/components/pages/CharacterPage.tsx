@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
+import VisualAssetImage from '../common/VisualAssetImage';
+import { characterSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
 import {
   fetchEquipList, fetchRebirthStatus, fetchPersonInfo, allotPersonPoints, resetPersonPoints, logout,
@@ -249,6 +251,19 @@ export default function CharacterPage() {
       {/* ── 角色信息 Tab ── */}
       {tab === 'info' && (
         <>
+          {person?.exists && (
+            <VisualAssetImage
+              {...characterSceneAsset({ profession: person.profession, playerName: person.name })}
+              className={styles.charBg}
+              showGenerate={false}
+              autoGenerate
+            >
+              <div className={styles.charBgLabel}>
+                <div className={styles.charBgName}>{person.name}</div>
+                <div className={styles.charBgSub}>{person.profession} · {rebirthInfo?.currentBook || '太古纪元'}</div>
+              </div>
+            </VisualAssetImage>
+          )}
           {/* 七世时间轴 */}
           <div className={styles.timeline}>
             {Array.from({ length: 7 }).map((_, i) => {

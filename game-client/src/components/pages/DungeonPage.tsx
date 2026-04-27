@@ -14,6 +14,8 @@ import {
   type DungeonData,
   type DungeonRewardResult,
 } from '../../services/api';
+import VisualAssetImage from '../common/VisualAssetImage';
+import { dungeonSceneAsset } from '../../data/visualAssets';
 import styles from './lunhui/LunhuiPages.module.css';
 
 const TYPE_META: Record<string, { icon: string; label: string }> = {
@@ -207,19 +209,30 @@ export default function DungeonPage() {
             return (
               <div
                 key={d.dungeonId}
-                className={`${styles.dgCard} ${isSelected ? styles.dgCardOn : ''}`.trim()}
+                className={`${styles.dgCardNew} ${isSelected ? styles.dgCardOn : ''}`.trim()}
                 onClick={() => setSelectedId(isSelected ? null : d.dungeonId)}
               >
-                <div className={styles.dgHead}>
-                  <div className={styles.dgIcon}>{meta.icon}</div>
-                  <div className={styles.dgInfo}>
-                    <div className={styles.dgName}>{d.dungeonName}</div>
-                    <div className={styles.dgMeta}>
-                      {meta.label} · Lv.{d.recommendedLevel} · {d.maxStage} 关
-                      {d.clearCount > 0 && ` · 通关 ${d.clearCount} 次`}
-                    </div>
+                <VisualAssetImage
+                  {...dungeonSceneAsset({
+                    dungeonId: d.dungeonId,
+                    dungeonName: d.dungeonName,
+                    type: d.type,
+                    description: d.description,
+                  })}
+                  className={styles.dgImg}
+                  showGenerate={false}
+                  autoGenerate
+                >
+                  <div className={styles.dgImgLabel}>
+                    <span className={styles.dgName}>{d.dungeonName}</span>
+                    <span className={`${styles.dgBadge} ${badgeCls}`}>{badgeLabel}</span>
                   </div>
-                  <span className={`${styles.dgBadge} ${badgeCls}`}>{badgeLabel}</span>
+                </VisualAssetImage>
+                <div className={styles.dgCardBody}>
+                  <div className={styles.dgCardBodyMeta}>
+                    {meta.label} · Lv.{d.recommendedLevel} · {d.maxStage} 关
+                    {d.clearCount > 0 && ` · 通关 ${d.clearCount}`}
+                  </div>
                 </div>
 
                 {isSelected && (

@@ -3,6 +3,8 @@ import { useGameStore } from '../../store/gameStore';
 import { fetchPets, deletePet, type PetData } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import { BarBlock, BarRow } from '../common/fusion';
+import VisualAssetImage from '../common/VisualAssetImage';
+import { petPortraitAsset } from '../../data/visualAssets';
 import styles from './lunhui/LunhuiPages.module.css';
 
 const ELEMENT_LABEL: Record<string, string> = {
@@ -113,11 +115,17 @@ export default function PetPage() {
           <>
             <div className={styles.ptHero}>
               <div className={styles.ptPic}>
-                {activePet.portraitUrl || activePet.aiImageUrl ? (
-                  <img src={activePet.portraitUrl || activePet.aiImageUrl} alt={activePet.nickname} />
-                ) : (
-                  <>丹 青<br />{activePet.nickname || activePet.petTemplateId}<br />古 风 工 笔</>
-                )}
+                <VisualAssetImage
+                  {...petPortraitAsset({
+                    petTemplateId: activePet.petTemplateId,
+                    petType: activePet.petType,
+                    element: activePet.element,
+                    nickname: activePet.nickname,
+                  })}
+                  className={styles.ptPicImg}
+                  showGenerate={false}
+                  autoGenerate
+                />
               </div>
               <div className={styles.ptStats}>
                 <div className={styles.ptName}>
