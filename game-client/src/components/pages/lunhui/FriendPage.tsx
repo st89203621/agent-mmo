@@ -3,8 +3,11 @@ import { addFriend, fetchFriends, removeFriend } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import type { FriendProfile } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 export default function FriendPage() {
+  usePageBackground(PAGE_BG.FRIEND);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [keyword, setKeyword] = useState('');

@@ -9,6 +9,8 @@ import {
 import { toast } from '../../store/toastStore';
 import type { MarketListing } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const CATEGORIES = [
   { key: '', label: '全部' },
@@ -24,6 +26,7 @@ type Tab = 'market' | 'mine';
 const STALL_CAPACITY = 8;
 
 export default function TradePage() {
+  usePageBackground(PAGE_BG.TRADE);
   const currentPage = useGameStore((s) => s.currentPage);
   const { gold } = usePlayerStore();
 

@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface ApStat {
   v: number;
@@ -34,6 +36,7 @@ const apStatsValueClass: Record<string, string> = {
 };
 
 export default function SoulAttachPage() {
+  usePageBackground(PAGE_BG.SOUL_ATTACH);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const pct = Math.min(100, Math.round((POOL.current / POOL.max) * 100));
 

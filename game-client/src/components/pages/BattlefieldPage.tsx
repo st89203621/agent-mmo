@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface RankRow {
   rk: number;
@@ -27,6 +29,7 @@ const RANKING: RankRow[] = [
 ];
 
 export default function BattlefieldPage() {
+  usePageBackground(PAGE_BG.BATTLEFIELD);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   const handleJoin = () => {

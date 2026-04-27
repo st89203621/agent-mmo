@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
@@ -6,7 +6,7 @@ import { battleSceneAsset } from '../../data/visualAssets';
 import { usePhaserGame } from '../../phaser/usePhaserGame';
 import BattleScene from '../../phaser/BattleScene';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
-import VisualAssetImage from '../common/VisualAssetImage';
+import { usePageBackground } from '../common/PageShell';
 import {
   battleAction,
   fetchBagItems,
@@ -207,6 +207,13 @@ export default function BattlePage() {
   const sourceMonsterId = pageParams?.monsterId as string | undefined;
   const sourceMonsterName = pageParams?.monsterName as string | undefined;
   const sourceMonsterLevel = pageParams?.monsterLevel as number | undefined;
+
+  usePageBackground(useMemo(() => battleSceneAsset({
+    zoneId: sourceZoneId,
+    zoneName: sourceZoneName,
+    monsterId: sourceMonsterId,
+    monsterName: sourceMonsterName,
+  }), [sourceZoneId, sourceZoneName, sourceMonsterId, sourceMonsterName]));
 
   const loadBagItems = useCallback(async () => {
     try {
@@ -579,17 +586,6 @@ export default function BattlePage() {
 
   return (
     <div className={styles.btPage}>
-      <VisualAssetImage
-        {...battleSceneAsset({
-          zoneId: sourceZoneId,
-          zoneName: sourceZoneName,
-          monsterId: sourceMonsterId,
-          monsterName: sourceMonsterName,
-        })}
-        className={styles.btGeneratedBg}
-        generateLabel="生成战场"
-        autoGenerate
-      />
       {bgUrl && !sourceZoneId && <div className={styles.btBg} style={{ backgroundImage: `url(${bgUrl})` }} />}
       <div className={styles.btBgOverlay} />
       <div ref={phaserRef} className={styles.btPhaserLayer} />

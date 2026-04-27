@@ -8,7 +8,7 @@
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(175deg, #1a1e28 0%, #161a24 40%, #121620 100%);
+  background: transparent;
 }
 
 /* ── 大气层 ── */
@@ -950,9 +950,7 @@
 
 /* 2026-04 lunhui overhaul: explore scene aligned to fusion mockup shell */
 .page {
-  background:
-    radial-gradient(circle at 50% 14%, rgba(200, 169, 104, 0.08), transparent 24%),
-    linear-gradient(180deg, #17120d 0%, #0f0b08 100%);
+  background: transparent;
 }
 
 .bgImage {
@@ -1111,7 +1109,7 @@
 
 .detailCard {
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border: 1px solid var(--border);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
@@ -1199,7 +1197,7 @@
 .eventCard,
 .rewardCard {
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border: 1px solid var(--accent-gold-dim);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
 }

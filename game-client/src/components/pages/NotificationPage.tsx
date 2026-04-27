@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type ChipKey = 'all' | 'sys' | 'social' | 'act' | 'battle' | 'friend';
 
@@ -82,6 +84,7 @@ const tagClsMap: Record<ChipKey, string> = {
 };
 
 export default function NotificationPage() {
+  usePageBackground(PAGE_BG.NOTIFICATION);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [chip, setChip] = useState<ChipKey>('all');
 

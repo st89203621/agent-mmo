@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Trial {
   icon: string;
@@ -18,6 +20,7 @@ const TRIALS: Trial[] = [
 ];
 
 export default function MiragePage() {
+  usePageBackground(PAGE_BG.MIRAGE);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   return (

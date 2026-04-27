@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Mount {
   id: string;
@@ -37,6 +39,7 @@ const BUFFS: { icon: string; tone: Mount['tone']; name: string; desc: string; st
 ];
 
 export default function MountPage() {
+  usePageBackground(PAGE_BG.MOUNT);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [activeId, setActiveId] = useState(MOCK_MOUNTS.find((m) => m.active)?.id || MOCK_MOUNTS[0].id);
 

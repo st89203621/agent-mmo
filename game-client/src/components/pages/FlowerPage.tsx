@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchFlower, waterFlower, fetchGlobalFate, type FlowerData, type GlobalFateData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const STAGE_ICONS: Record<string, string> = {
   '种子': '🌰', '萌芽': '🌱', '含苞': '🌿', '初绽': '🌸', '盛放': '🌺', '永恒': '💮',
@@ -11,6 +13,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export default function FlowerPage() {
+  usePageBackground(PAGE_BG.FLOWER);
   const [flower, setFlower] = useState<FlowerData | null>(null);
   const [globalFate, setGlobalFate] = useState<GlobalFateData | null>(null);
   const [watering, setWatering] = useState(false);

@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface CoupleStat {
   v: string;
@@ -25,6 +27,7 @@ const ACTS: { key: string; label: string }[] = [
 ];
 
 export default function CouplePage() {
+  usePageBackground(PAGE_BG.COUPLE);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   return (

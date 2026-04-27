@@ -30,6 +30,8 @@ interface PlayerState {
   diamond: number;
   globalFate: GlobalFate | null;
   levelInfo: LevelInfo | null;
+  currentServerId: string;
+  currentServerName: string;
 
   setPlayer: (id: string, name: string, token: string) => void;
   setCurrentWorld: (index: number) => void;
@@ -40,8 +42,24 @@ interface PlayerState {
   setCurrency: (gold: number, diamond: number) => void;
   setGlobalFate: (fate: GlobalFate) => void;
   setLevelInfo: (info: LevelInfo | null) => void;
+  setCurrentServer: (id: string, name: string) => void;
   clearPlayer: () => void;
 }
+
+const SERVER_KEY = 'lunhui.currentServer';
+
+function loadServer(): { id: string; name: string } {
+  try {
+    const raw = localStorage.getItem(SERVER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.id && parsed?.name) return parsed;
+    }
+  } catch { /* noop */ }
+  return { id: '', name: '' };
+}
+
+const initialServer = loadServer();
 
 export const usePlayerStore = create<PlayerState>((set) => ({
   playerId: '',
@@ -57,6 +75,8 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   diamond: 0,
   globalFate: null,
   levelInfo: null,
+  currentServerId: initialServer.id,
+  currentServerName: initialServer.name,
 
   setPlayer: (id, name, token) => set({ playerId: id, playerName: name, token }),
   setCurrentWorld: (index) => set({ currentWorldIndex: index }),
@@ -66,6 +86,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setCurrency: (gold, diamond) => set({ gold, diamond }),
   setGlobalFate: (fate) => set({ globalFate: fate }),
   setLevelInfo: (info) => set({ levelInfo: info }),
+  setCurrentServer: (id, name) => {
+    try { localStorage.setItem(SERVER_KEY, JSON.stringify({ id, name })); } catch { /* noop */ }
+    set({ currentServerId: id, currentServerName: name });
+  },
   clearPlayer: () => set({
     playerId: '', playerName: '', token: '', currentWorldIndex: 0,
     playerWorld: null, relations: [], equipment: [], pets: [],

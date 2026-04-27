@@ -4,6 +4,7 @@ import type { PageId } from './types';
 import { useGameStore } from './store/gameStore';
 import { usePlayerStore } from './store/playerStore';
 import Toast from './components/common/Toast';
+import PageShell from './components/common/PageShell';
 import GameLayout from './components/layout/GameLayout';
 import LoginPage from './components/pages/LoginPage';
 import CharCreatePage from './components/pages/CharCreatePage';
@@ -257,9 +258,11 @@ export default function App() {
     <>
       <Toast />
       <GameLayout>
-        <PageErrorBoundary key={currentPage}>
-          <Page />
-        </PageErrorBoundary>
+        <PageShell>
+          <PageErrorBoundary key={currentPage}>
+            <Page />
+          </PageErrorBoundary>
+        </PageShell>
       </GameLayout>
     </>
   );

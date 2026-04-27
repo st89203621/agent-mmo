@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Target {
   id: number;
@@ -15,6 +17,7 @@ const TTL = 1500;
 
 // TODO: 接入 /shooting/start 与 /shooting/score 接口
 export default function ShootingPage() {
+  usePageBackground(PAGE_BG.SHOOTING);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [targets, setTargets] = useState<Target[]>([]);
   const [hits, setHits] = useState(0);

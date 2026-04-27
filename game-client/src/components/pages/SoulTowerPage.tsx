@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface ShopUnit {
   key: string;
@@ -33,6 +35,7 @@ const ROW_TILES = [
 ];
 
 export default function SoulTowerPage() {
+  usePageBackground(PAGE_BG.SOUL_TOWER);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [waveStarted, setWaveStarted] = useState(false);
 

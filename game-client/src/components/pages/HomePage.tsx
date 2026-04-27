@@ -17,6 +17,8 @@ import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
 import { useParallax3D } from '../../hooks/useParallax3D';
 import ChatPanel from '../chat/ChatPanel';
 import styles from './HomePage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const ART_STYLES = [
   // ── 东方 ──
@@ -116,6 +118,7 @@ interface HomeData {
 }
 
 export default function HomePage() {
+  usePageBackground(PAGE_BG.HOME);
   const { navigateTo, currentBookWorld } = useGameStore();
   const { playerName, gold, diamond, clearPlayer, levelInfo } = usePlayerStore();
   const phaserRef = useRef<HTMLDivElement>(null);

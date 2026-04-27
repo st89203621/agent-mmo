@@ -3,6 +3,8 @@ import { fetchChatHistory, fetchPrivateChat, sendChatMessage } from '../../../se
 import { useGameStore } from '../../../store/gameStore';
 import type { ChatChannelMessage } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 const CHANNELS = [
   { key: 'world', label: '世界', chatType: 1 },
@@ -13,6 +15,7 @@ const CHANNELS = [
 type Channel = typeof CHANNELS[number]['key'] | 'private';
 
 export default function ChatPage() {
+  usePageBackground(PAGE_BG.CHAT);
   const params = useGameStore((s) => s.pageParams);
   const [channel, setChannel] = useState<Channel>(params.targetId ? 'private' : 'world');
   const [messages, setMessages] = useState<ChatChannelMessage[]>([]);

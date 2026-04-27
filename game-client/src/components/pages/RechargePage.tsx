@@ -2,6 +2,8 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface TopupItem {
   id: string;
@@ -39,6 +41,7 @@ const PACKS: Pack[] = [
 ];
 
 export default function RechargePage() {
+  usePageBackground(PAGE_BG.RECHARGE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const diamond = usePlayerStore((s) => s.diamond);
 

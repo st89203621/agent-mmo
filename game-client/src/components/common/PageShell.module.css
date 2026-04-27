@@ -1,0 +1,163 @@
+.shell {
+  /* 半透"深玻璃罩" · 让白字在任何主题底图（深 / 浅）上都稳读
+     所有沿用 var(--bg-panel/--bg-raised) 的子页面容器自动获得磨砂深罩 */
+  --bg-panel: rgba(0, 0, 0, 0.32);
+  --bg-raised: rgba(0, 0, 0, 0.42);
+  --bg-ink: rgba(0, 0, 0, 0.22);
+  --bg-hover: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 255, 255, 0.10);
+  --text: #FFF8EE;
+  --text-dim: rgba(255, 240, 220, 0.88);
+  --text-faint: rgba(255, 240, 220, 0.65);
+  --accent-gold: #FFD78A;
+  --accent-gold-dim: #F0B670;
+  --accent-red: #E27590;
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #2A231D;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.theme01 { --accent-gold: #FFD78A; --accent-red: #E07590; background: url('/style-trial/01_樱花暮春.png') center/cover no-repeat; }
+.theme02 { --accent-gold: #FFC58A; --accent-red: #D04060; background: url('/style-trial/02_海棠胭脂.png') center/cover no-repeat; }
+.theme03 { --accent-gold: #FFC56C; --accent-red: #D03A35; background: url('/style-trial/03_暮霞橘金.png') center/cover no-repeat; }
+.theme04 { --accent-gold: #FFD675; --accent-red: #C97840; background: url('/style-trial/04_杏黄姜金.png') center/cover no-repeat; }
+.theme05 { --accent-gold: #FFD17A; --accent-red: #E08090; background: url('/style-trial/05_桃花春日.png') center/cover no-repeat; }
+.theme06 { --accent-gold: #FFCC9A; --accent-red: #C570A0; background: url('/style-trial/06_紫藤暮色.png') center/cover no-repeat; }
+.theme07 { --accent-gold: #FFD680; --accent-red: #C57080; background: url('/style-trial/07_月白青瓷.png') center/cover no-repeat; }
+.theme08 { --accent-gold: #FFE19A; --accent-red: #D85540; background: url('/style-trial/08_鎏金檀木.png') center/cover no-repeat; }
+.theme09 { --accent-gold: #FFD85E; --accent-red: #E04575; background: url('/style-trial/09_烟花霓虹.png') center/cover no-repeat; }
+.theme10 { --accent-gold: #E8C580; --accent-red: #C75545; background: url('/style-trial/10_青苔江南.png') center/cover no-repeat; }
+.theme11 { --accent-gold: #FFD680; --accent-red: #E88098; background: url('/style-trial/11_蜜糖马卡龙.png') center/cover no-repeat; }
+.theme12 { --accent-gold: #FFD89A; --accent-red: #D08AB5; background: url('/style-trial/12_流光琉璃.png') center/cover no-repeat; }
+
+.bgImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* 全局浅色文字 + 双层阴影 · 在任何主题底图（深 / 浅）上稳读 */
+  color: #FFF8EE;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.65),
+    0 0 6px rgba(0, 0, 0, 0.35);
+}
+
+/* ═══ 顶部右上角浮动操作位（风格切换 + 重绘）
+   各页 appbar 需自行 padding-right 让位（ScenePage 预留 80px）。 */
+.toolbar {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 50;
+  display: flex;
+  gap: 6px;
+}
+
+.toolBtn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFF0CC;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, transform 0.08s ease, color 0.15s ease;
+}
+.toolBtn:hover { background: rgba(0, 0, 0, 0.7); color: var(--accent-gold); }
+.toolBtn:active { transform: scale(0.92); }
+.toolBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ═══ 风格弹窗（Portal 到 body 顶层） ═══ */
+.popBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+}
+
+.pop {
+  position: fixed;
+  z-index: 9999;
+  width: 240px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.popTitle {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #FFF8EE;
+  margin-bottom: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+}
+
+.popGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.18s ease;
+}
+.chip:hover { background: rgba(255, 255, 255, 0.18); }
+.chip:active { transform: scale(0.96); }
+
+.chipActive {
+  background: rgba(232, 184, 108, 0.42);
+  box-shadow: 0 0 0 1px rgba(232, 184, 108, 0.78), 0 0 10px rgba(232, 184, 108, 0.4);
+}
+
+.chipNum {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #FFD78A;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.chipName {
+  font-size: 11px;
+  color: #FFF8EE;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}

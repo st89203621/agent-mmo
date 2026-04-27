@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type Rarity = 'normal' | 'rare' | 'ur' | 'azure';
 
@@ -36,6 +38,7 @@ const rarityCls: Record<Rarity, string> = {
 };
 
 export default function RuneFurnacePage() {
+  usePageBackground(PAGE_BG.RUNE_FURNACE);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   const handleRefine = (r: Recipe) => {

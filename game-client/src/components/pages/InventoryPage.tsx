@@ -5,6 +5,8 @@ import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import { Bar } from '../common/fusion';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const TABS: { key: string; label: string; match: (item: BagItemData) => boolean }[] = [
   { key: 'all', label: '全部', match: () => true },
@@ -31,6 +33,7 @@ const EQUIP_POSITION_LABEL: Record<number, string> = {
 };
 
 export default function InventoryPage() {
+  usePageBackground(PAGE_BG.INVENTORY);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [items, setItems] = useState<BagItemData[]>([]);
   const [capacity, setCapacity] = useState<BagCapacity | null>(null);

@@ -8,6 +8,8 @@ import {
 } from '../../services/api';
 import type { ExploreStatus, ExploreEvent, ExploreReward } from '../../types';
 import styles from './ExplorePage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const EVENT_LABELS: Record<string, string> = {
   encounter: '奇遇',
@@ -144,6 +146,7 @@ const EventNode = memo(function EventNode({
 });
 
 export default function ExplorePage() {
+  usePageBackground(PAGE_BG.EXPLORE);
   const { currentBookWorld, navigateTo } = useGameStore();
   const { currentWorldIndex } = usePlayerStore();
 

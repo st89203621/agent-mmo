@@ -7,7 +7,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -976,7 +976,7 @@
 
 .bookCard {
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border-color: var(--border);
 }
 

@@ -3,8 +3,11 @@ import { fetchCurrentZone, fetchNearbyPlayers } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import type { NearbyPlayer } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 export default function NearbyPage() {
+  usePageBackground(PAGE_BG.NEARBY);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [zoneName, setZoneName] = useState('主城');
   const [players, setPlayers] = useState<NearbyPlayer[]>([]);

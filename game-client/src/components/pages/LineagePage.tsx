@@ -1,5 +1,7 @@
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface LineageLine {
   text: string;
@@ -21,6 +23,7 @@ const LINES: LineageLine[] = [
 ];
 
 export default function LineagePage() {
+  usePageBackground(PAGE_BG.LINEAGE);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   return (

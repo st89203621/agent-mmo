@@ -13,6 +13,8 @@ import {
 import { toast } from '../../store/toastStore';
 import { QUALITY_NAMES } from '../../constants/quality';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'enchant', label: '附魂台' },
@@ -60,6 +62,7 @@ function furnaceSuccessRate(furnace: number) {
 }
 
 export default function EnchantPage() {
+  usePageBackground(PAGE_BG.ENCHANT);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const pageParams = useGameStore((s) => s.pageParams);
 

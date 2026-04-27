@@ -10,6 +10,8 @@ import type { RelationDetail } from '../../types';
 import FateBar from '../common/FateBar';
 import page from '../../styles/page.module.css';
 import own from './AchievementPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -48,6 +50,7 @@ function getFateLevel(score: number) {
 }
 
 export default function AchievementPage() {
+  usePageBackground(PAGE_BG.ACHIEVEMENT);
   const [tab, setTab] = useState<Tab>('achievement');
   const { relations, setRelations } = usePlayerStore();
   const navigateTo = useGameStore(s => s.navigateTo);

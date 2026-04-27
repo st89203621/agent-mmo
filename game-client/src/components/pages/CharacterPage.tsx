@@ -16,6 +16,8 @@ import FateBar from '../common/FateBar';
 import page from '../../styles/page.module.css';
 import own from './CharacterPage.module.css';
 import achOwn from './AchievementPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own, ...achOwn };
 
@@ -64,6 +66,7 @@ function getFateLevel(score: number) {
 }
 
 export default function CharacterPage() {
+  usePageBackground(PAGE_BG.CHARACTER);
   const { playerWorld, gold, diamond, levelInfo } = usePlayerStore();
   const { navigateTo } = useGameStore();
   const pageTab = useGameStore(s => s.pageParams.tab);

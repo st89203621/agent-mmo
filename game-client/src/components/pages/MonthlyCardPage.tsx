@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface DayCell {
   n: number;
@@ -25,6 +27,7 @@ const DAYS: DayCell[] = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 export default function MonthlyCardPage() {
+  usePageBackground(PAGE_BG.MONTHLY_CARD);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   return (

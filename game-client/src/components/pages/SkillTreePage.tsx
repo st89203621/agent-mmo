@@ -12,6 +12,8 @@ import {
   type PlayerSkillData,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type Branch = 'COMBAT' | 'EMOTION' | 'REBIRTH';
 
@@ -68,6 +70,7 @@ function buildTiers(skills: SkillTemplateData[]): SkillTemplateData[][] {
 }
 
 export default function SkillTreePage() {
+  usePageBackground(PAGE_BG.SKILL_TREE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const gold = usePlayerStore((s) => s.gold);
   const [templates, setTemplates] = useState<SkillTemplateData[]>([]);

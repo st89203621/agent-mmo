@@ -4,6 +4,8 @@ import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import { fetchPlayerCurrency } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface FlowRow {
   type: 'in' | 'out' | 'swap';
@@ -33,6 +35,7 @@ const OPS: { key: string; label: string; icon: string; danger?: boolean }[] = [
 ];
 
 export default function BankPage() {
+  usePageBackground(PAGE_BG.BANK);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const gold = usePlayerStore((s) => s.gold);
   const diamond = usePlayerStore((s) => s.diamond);

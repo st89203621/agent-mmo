@@ -5,6 +5,8 @@ import { fetchMessageBoard, postBoardMessage } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import type { BoardMessage, BoardMessageType } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type Scope = 'world' | 'zone';
 type FilterKey = 'all' | 'system' | 'ad' | 'trade' | 'user';
@@ -46,6 +48,7 @@ function itemClass(type: BoardMessageType | undefined) {
 }
 
 export default function MessageBoardPage() {
+  usePageBackground(PAGE_BG.MESSAGE_BOARD);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const playerName = usePlayerStore((s) => s.playerName);
 

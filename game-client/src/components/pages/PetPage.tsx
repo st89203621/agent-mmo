@@ -6,6 +6,8 @@ import { BarBlock, BarRow } from '../common/fusion';
 import VisualAssetImage from '../common/VisualAssetImage';
 import { petPortraitAsset } from '../../data/visualAssets';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const ELEMENT_LABEL: Record<string, string> = {
   fire: '烈焰', ice: '寒冰', thunder: '雷霆', wind: '疾风',
@@ -31,6 +33,7 @@ const ACTIONS: { key: string; label: string; icon: string; red?: boolean }[] = [
 ];
 
 export default function PetPage() {
+  usePageBackground(PAGE_BG.PET);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [pets, setPets] = useState<PetData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);

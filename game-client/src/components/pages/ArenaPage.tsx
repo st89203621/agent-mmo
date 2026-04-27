@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Opponent {
   id: string;
@@ -29,6 +31,7 @@ const TOPS: Top[] = [
 ];
 
 export default function ArenaPage() {
+  usePageBackground(PAGE_BG.ARENA);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const myScore = 1460;
   const myWin = 3;

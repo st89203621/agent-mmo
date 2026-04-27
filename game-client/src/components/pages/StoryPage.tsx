@@ -13,6 +13,8 @@ import FateBar from '../common/FateBar';
 import type { BookWorld, DialogueChoice, DialogueMessage, Emotion } from '../../types';
 import { EMOTION_LABELS } from '../../constants/emotion';
 import styles from './StoryPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const ART_STYLE_PRESETS = [
   '水墨仙侠风', '赛博朋克风', '日系动漫风', '油画写实风',
@@ -20,6 +22,7 @@ const ART_STYLE_PRESETS = [
 ];
 
 export default function StoryPage() {
+  usePageBackground(PAGE_BG.STORY);
   const dialogue = useDialogueStore();
   const player = usePlayerStore();
   const game = useGameStore();

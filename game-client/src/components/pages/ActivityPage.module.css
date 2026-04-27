@@ -185,16 +185,15 @@
 }
 
 .page {
-  background:
-    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 26%),
-    linear-gradient(180deg, #16110d, #0f0b08);
+  background: transparent;
   color: var(--text);
 }
 
 .header {
   padding: 12px 14px 10px;
-  background:
-    linear-gradient(180deg, rgba(33, 27, 22, 0.96), rgba(21, 17, 14, 0.96));
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
 
@@ -275,8 +274,7 @@
 .actCard {
   border-radius: 0;
   padding: 13px 11px 11px;
-  background:
-    linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border: 1px solid var(--border);
   color: var(--text);
   min-height: 158px;

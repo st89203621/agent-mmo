@@ -16,6 +16,8 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const POSITION_LABEL: Record<string, string> = {
   LEADER: '盟主',
@@ -44,6 +46,7 @@ function memberFirstChar(name?: string) {
 }
 
 export default function GuildPage() {
+  usePageBackground(PAGE_BG.GUILD);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const playerId = usePlayerStore((s) => s.playerId);
   const playerName = usePlayerStore((s) => s.playerName);

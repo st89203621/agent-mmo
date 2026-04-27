@@ -10,6 +10,8 @@ import {
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type Tab = 'owned' | 'available';
 
@@ -39,6 +41,7 @@ function renderBonus(t: TitleData) {
 }
 
 export default function TitlePage() {
+  usePageBackground(PAGE_BG.TITLE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [tab, setTab] = useState<Tab>('owned');
   const [owned, setOwned] = useState<TitleData[]>([]);

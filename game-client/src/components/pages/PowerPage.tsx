@@ -9,6 +9,8 @@ import {
   type CompanionData,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface PowerSource {
   key: string;
@@ -83,6 +85,7 @@ function companionPower(_c: CompanionData): number {
 }
 
 export default function PowerPage() {
+  usePageBackground(PAGE_BG.POWER);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [person, setPerson] = useState<PersonData | null>(null);
   const [pets, setPets] = useState<PetData[]>([]);

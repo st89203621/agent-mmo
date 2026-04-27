@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { fetchRankings } from '../../../services/api';
 import type { RankingEntry } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 const TABS = [
   ['level', '等级'],
@@ -13,6 +15,7 @@ const TABS = [
 type Tab = typeof TABS[number][0];
 
 export default function RankingPage() {
+  usePageBackground(PAGE_BG.RANKING);
   const [tab, setTab] = useState<Tab>('level');
   const [entries, setEntries] = useState<RankingEntry[]>([]);
   const [myRank, setMyRank] = useState(0);

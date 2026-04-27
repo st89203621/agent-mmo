@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { fetchMessageBoard, fetchCurrentZone } from '../../../services/api';
 import type { BoardMessage } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 const systemNotices = [
   '系统维护补偿已通过邮件发放',
@@ -10,6 +12,7 @@ const systemNotices = [
 ];
 
 export default function MessagesPage() {
+  usePageBackground(PAGE_BG.MESSAGES);
   const [zoneId, setZoneId] = useState('world');
   const [messages, setMessages] = useState<BoardMessage[]>([]);
 

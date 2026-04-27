@@ -4,10 +4,13 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import type { BookWorld } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type AddMsg = { kind: 'ok' | 'err'; text: string } | null;
 
 export default function BookWorldPage() {
+  usePageBackground(PAGE_BG.BOOK_WORLD);
   const setBookWorld = useGameStore((s) => s.setBookWorld);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const currentWorldIndex = usePlayerStore((s) => s.currentWorldIndex);

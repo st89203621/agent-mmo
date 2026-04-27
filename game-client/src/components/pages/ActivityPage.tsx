@@ -7,6 +7,8 @@ import {
 } from '../../services/api';
 import page from '../../styles/page.module.css';
 import own from './ActivityPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -144,6 +146,7 @@ const RANK_TYPES = [
 ] as const;
 
 export default function ActivityPage() {
+  usePageBackground(PAGE_BG.ACTIVITY);
   const navigateTo = useGameStore(s => s.navigateTo);
   const bossCountdown = useCountdown(127);
   const realmCountdown = useCountdown(2880);

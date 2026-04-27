@@ -4,6 +4,8 @@ import { usePlayerStore } from '../../store/playerStore';
 import { fetchRelations } from '../../services/api';
 import type { Relation } from '../../types';
 import styles from './FateMapPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const MAP = 320;
 const CX = MAP / 2;
@@ -115,6 +117,7 @@ function DetailPanel({ rel, onClose, onChat }: {
 }
 
 export default function FateMapPage() {
+  usePageBackground(PAGE_BG.FATE_MAP);
   const { navigateTo } = useGameStore();
   const { relations, setRelations } = usePlayerStore();
   const [loading, setLoading] = useState(relations.length === 0);

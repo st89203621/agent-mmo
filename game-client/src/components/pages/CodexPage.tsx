@@ -7,6 +7,8 @@ import {
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import page from '../../styles/page.module.css';
 import own from './CodexPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -18,6 +20,7 @@ type DetailItem =
   | { type: 'pet'; data: CodexPetData };
 
 export default function CodexPage() {
+  usePageBackground(PAGE_BG.CODEX);
   const { navigateTo } = useGameStore();
   const [tab, setTab] = useState<Tab>('npc');
   const [npcs, setNpcs] = useState<CodexNpcData[]>([]);

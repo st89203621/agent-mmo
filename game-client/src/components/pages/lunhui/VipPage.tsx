@@ -3,8 +3,11 @@ import { fetchVipInfo, type VipInfo } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 export default function VipPage() {
+  usePageBackground(PAGE_BG.VIP);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [info, setInfo] = useState<VipInfo | null>(null);
   const [loading, setLoading] = useState(true);

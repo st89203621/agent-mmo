@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Tier {
   amt: number;
@@ -25,6 +27,7 @@ const TIERS: Tier[] = [
 ];
 
 export default function FirstRechargePage() {
+  usePageBackground(PAGE_BG.FIRST_RECHARGE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const pct = Math.min(100, Math.round((STATE.paid / STATE.goal) * 100));
 

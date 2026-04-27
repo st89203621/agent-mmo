@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface GhostMark {
   id: number;
@@ -16,6 +18,7 @@ const MAX_GHOSTS = 6;
 
 // TODO: 接入 /ghosthouse/start 与 /ghosthouse/score 接口
 export default function GhostHousePage() {
+  usePageBackground(PAGE_BG.GHOST_HOUSE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [ghosts, setGhosts] = useState<GhostMark[]>([]);
   const [score, setScore] = useState(0);

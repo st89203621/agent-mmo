@@ -10,6 +10,8 @@ import {
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Theme {
   color: string;
@@ -29,6 +31,7 @@ const MT_THEME: Record<string, Theme> = {
 const DEFAULT_THEME: Theme = { color: 'var(--accent-gold)', icon: '山', label: '宝 山' };
 
 export default function TreasureMountainPage() {
+  usePageBackground(PAGE_BG.TREASURE_MOUNTAIN);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [mountains, setMountains] = useState<MountainData[]>([]);
   const [statusMap, setStatusMap] = useState<Record<string, MountainStatusData>>({});

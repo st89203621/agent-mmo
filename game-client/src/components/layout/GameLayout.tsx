@@ -82,7 +82,7 @@ export default function GameLayout({ children }: Props) {
   return (
     <div className={styles.stage}>
       <div className={styles.app}>
-        <main className={styles.content} key={currentPage}>{children}</main>
+        <main className={styles.content}>{children}</main>
 
         <nav className={styles.tabbar}>
           {NAV_ITEMS.map((item) => {

@@ -4,6 +4,8 @@ import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 interface QuickEntry {
   label: string;
@@ -20,6 +22,7 @@ const QUICK_ENTRIES: QuickEntry[] = [
 ];
 
 export default function EventsPage() {
+  usePageBackground(PAGE_BG.EVENTS);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [rewards, setRewards] = useState<OnlineRewardData[]>([]);
   const [onlineMinutes, setOnlineMinutes] = useState(0);

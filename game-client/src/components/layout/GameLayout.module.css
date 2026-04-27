@@ -56,6 +56,9 @@
   transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease;
 }
 
+.tab:hover { color: var(--text); }
+.tab:hover .ti { border-color: var(--text); color: var(--text); }
+
 .tab:active {
   background: var(--bg-hover);
   transform: scale(0.97);
@@ -71,7 +74,7 @@
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 11px;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease;
 }
 
 .label {
@@ -81,21 +84,24 @@
 
 .active {
   color: var(--accent-gold);
+  background: linear-gradient(180deg, rgba(200, 169, 104, 0.12), transparent 70%);
 }
 
 .active .ti {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
+  box-shadow: 0 0 8px rgba(200, 169, 104, 0.35);
 }
 
 .active::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 20%;
-  right: 20%;
+  left: 22%;
+  right: 22%;
   height: 2px;
-  background: var(--accent-gold);
+  background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+  box-shadow: 0 0 6px rgba(200, 169, 104, 0.5);
 }
 
 @media (max-width: 560px) {

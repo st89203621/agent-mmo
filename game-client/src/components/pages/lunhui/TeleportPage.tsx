@@ -6,8 +6,11 @@ import { toast } from '../../../store/toastStore';
 import { ImageBackground } from '../../ImageBackground';
 import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 export default function TeleportPage() {
+  usePageBackground(PAGE_BG.TELEPORT);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [movingZoneId, setMovingZoneId] = useState<string | null>(null);
 

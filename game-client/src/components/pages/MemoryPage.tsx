@@ -6,6 +6,8 @@ import type { MemoryFragment, MemoryHall } from '../../types';
 import { EMOTION_LABELS, EMOTION_COLORS } from '../../constants/emotion';
 import page from '../../styles/page.module.css';
 import own from './MemoryPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -17,6 +19,7 @@ function formatTime(ts: number): string {
 
 /** P04 · 记忆碎片页 */
 export default function MemoryPage() {
+  usePageBackground(PAGE_BG.MEMORY);
   const [memories, setMemories] = useState<MemoryFragment[]>([]);
   const [hall, setHall] = useState<MemoryHall | null>(null);
   const [selected, setSelected] = useState<MemoryFragment | null>(null);

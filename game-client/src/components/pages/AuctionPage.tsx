@@ -6,6 +6,8 @@ import {
 import { toast } from '../../store/toastStore';
 import type { AuctionItem } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type Tab = 'active' | 'mybids' | 'mysales' | 'ended';
 
@@ -44,6 +46,7 @@ function qualityText(q: string) {
 interface BidTarget { item: AuctionItem; minBid: number }
 
 export default function AuctionPage() {
+  usePageBackground(PAGE_BG.AUCTION);
   const { gold } = usePlayerStore();
   const [tab, setTab] = useState<Tab>('active');
   const [items, setItems] = useState<AuctionItem[]>([]);

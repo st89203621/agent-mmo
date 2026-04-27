@@ -8,6 +8,8 @@ import {
   type WheelSpinResult,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const SLICES = 8;
 const SLICE_DEG = 360 / SLICES;
@@ -24,6 +26,7 @@ function hhmm(): string {
 }
 
 export default function WheelPage() {
+  usePageBackground(PAGE_BG.WHEEL);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [prizes, setPrizes] = useState<WheelPrize[]>([]);
   const [freeSpins, setFreeSpins] = useState(0);

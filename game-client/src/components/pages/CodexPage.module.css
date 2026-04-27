@@ -187,9 +187,7 @@
 
 /* 2026-04 lunhui overhaul: codex aligned to fusion mockup */
 .page {
-  background:
-    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
-    linear-gradient(180deg, #16110d, #0f0b08);
+  background: transparent;
   color: var(--text);
 }
 
@@ -248,7 +246,7 @@
 .codexCard {
   border-radius: 0;
   padding: 14px 6px 12px;
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border-color: var(--border);
 }
 
@@ -275,7 +273,7 @@
 
 .modal {
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border: 1px solid var(--accent-gold-dim);
   color: var(--text);
 }

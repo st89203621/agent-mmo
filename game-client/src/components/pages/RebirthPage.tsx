@@ -3,6 +3,8 @@ import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import { fetchRebirthStatus } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface RebirthData {
   currentWorldIndex: number;
@@ -14,6 +16,7 @@ interface RebirthData {
 const TOTAL_WORLDS = 7;
 
 export default function RebirthPage() {
+  usePageBackground(PAGE_BG.REBIRTH);
   const playerWorld = usePlayerStore((s) => s.playerWorld);
   const setCurrentWorld = usePlayerStore((s) => s.setCurrentWorld);
   const navigateTo = useGameStore((s) => s.navigateTo);

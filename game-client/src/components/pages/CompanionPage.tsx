@@ -7,6 +7,8 @@ import {
 import { QUALITY_COLOR_MAP, QUALITY_LABELS } from '../../constants/quality';
 import page from '../../styles/page.module.css';
 import own from './CompanionPage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -18,6 +20,7 @@ interface SkillInfo {
 }
 
 export default function CompanionPage() {
+  usePageBackground(PAGE_BG.COMPANION);
   const [companions, setCompanions] = useState<CompanionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<CompanionData | null>(null);

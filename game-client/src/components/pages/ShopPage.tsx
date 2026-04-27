@@ -9,6 +9,8 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const TABS: { key: string; label: string }[] = [
   { key: '', label: '全部' },
@@ -46,6 +48,7 @@ function itemIconChar(item: ShopItemData): string {
 }
 
 export default function ShopPage() {
+  usePageBackground(PAGE_BG.SHOP);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const setCurrencyStore = usePlayerStore((s) => s.setCurrency);
   const [items, setItems] = useState<ShopItemData[]>([]);

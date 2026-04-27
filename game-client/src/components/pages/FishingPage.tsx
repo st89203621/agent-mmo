@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface FishCatch {
   id: string;
@@ -35,6 +37,7 @@ const TOOLS: Tool[] = [
 ];
 
 export default function FishingPage() {
+  usePageBackground(PAGE_BG.FISHING);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [bait, setBait] = useState(8);
   const [biting, setBiting] = useState(false);
@@ -116,15 +119,15 @@ export default function FishingPage() {
           </div>
           <div>
             <div className={styles.fiStatsL}>稀 有</div>
-            <div className={`${styles.fiStatsV}`} style={{ color: 'var(--accent-purple)' }}>{rare}</div>
+            <div className={`${styles.fiStatsV} ${styles.fiStatsVPurple}`}>{rare}</div>
           </div>
           <div>
             <div className={styles.fiStatsL}>最 大</div>
-            <div className={`${styles.fiStatsV}`} style={{ color: 'var(--accent-red)' }}>鲲</div>
+            <div className={`${styles.fiStatsV} ${styles.fiStatsVRed}`}>鲲</div>
           </div>
           <div>
             <div className={styles.fiStatsL}>上 限</div>
-            <div className={`${styles.fiStatsV}`} style={{ color: 'var(--text-dim)' }}>{today} / {limit}</div>
+            <div className={`${styles.fiStatsV} ${styles.fiStatsVDim}`}>{today} / {limit}</div>
           </div>
         </div>
 

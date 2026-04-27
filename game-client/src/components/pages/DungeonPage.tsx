@@ -15,8 +15,19 @@ import {
   type DungeonRewardResult,
 } from '../../services/api';
 import VisualAssetImage from '../common/VisualAssetImage';
-import { dungeonSceneAsset } from '../../data/visualAssets';
+import { usePageBackground } from '../common/PageShell';
+import { dungeonSceneAsset, getVisualContext, type VisualAssetSpec } from '../../data/visualAssets';
 import styles from './lunhui/LunhuiPages.module.css';
+
+const DUNGEON_HUB_BG: VisualAssetSpec = {
+  assetKey: 'dungeon_hub_overview',
+  type: 'scene',
+  name: '副本大厅',
+  description: '幽暗大殿入口，列阵的神秘副本之门，云雾翻涌，符文流转，史诗氛围。',
+  context: getVisualContext(),
+  width: 832,
+  height: 512,
+};
 
 const TYPE_META: Record<string, { icon: string; label: string }> = {
   STORY: { icon: '卷', label: '剧 情' },
@@ -158,6 +169,8 @@ export default function DungeonPage() {
     },
     [loadData],
   );
+
+  usePageBackground(DUNGEON_HUB_BG);
 
   return (
     <div className={styles.mockPage}>

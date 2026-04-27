@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
-import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchCurrentZone,
   fetchNearbyPlayers,
@@ -11,9 +10,8 @@ import {
 import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
 import { placeSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
-import VisualAssetImage from '../common/VisualAssetImage';
-import VisualStyleBar from '../common/VisualStyleBar';
-import { StatBar, BarBlock, BarRow } from '../common/fusion';
+import { BarBlock, BarRow } from '../common/fusion';
+import { usePageBackground } from '../common/PageShell';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
 
@@ -58,7 +56,6 @@ function getCompassSlot(dx: number, dy: number): CompassSlot | null {
 
 export default function ScenePage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
-  const playerName = usePlayerStore((s) => s.playerName);
   const [zone, setZone] = useState<ZoneInfo>(FALLBACK_ZONE);
   const [nearby, setNearby] = useState<NearbyPlayer[]>([]);
   const [person, setPerson] = useState<PersonData | null>(null);
@@ -83,6 +80,8 @@ export default function ScenePage() {
   }, [load]);
 
   const place = useMemo(() => getPlaceInfo(zone.zoneId), [zone.zoneId]);
+  const bgAsset = useMemo(() => placeSceneAsset(place), [place]);
+  usePageBackground(bgAsset);
   const quickActions: QuickAction[] = place.quickActions.length
     ? place.quickActions
     : BOTTOM_ACTIONS.map((item) => ({ id: item.id, label: item.label, pageId: item.pageId }));
@@ -151,25 +150,21 @@ export default function ScenePage() {
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.appbar}>
-          <div className={styles.loading}>正在载入主城情报...</div>
-        </div>
+      <div className={styles.appbar}>
+        <div className={styles.loading}>正在载入主城情报...</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <>
       <div className={styles.appbar}>
         <div className={styles.row1}>
           <div className={styles.loc}>
             <span className={styles.book}>气盖山河</span>
-            <span className={styles.zone}>{place.region} · {place.title}</span>
             <span className={styles.coord}>({place.coord[0]},{place.coord[1]})</span>
           </div>
           <div className={styles.icons}>
-            <VisualStyleBar onRedraw={load} />
             <button className={styles.icon} onClick={load} type="button" aria-label="刷新">⟳</button>
             <button className={`${styles.icon} ${styles.dot}`} onClick={() => navigateTo('messages')} type="button">信</button>
             <button className={styles.icon} onClick={() => navigateTo('teleport')} type="button">传</button>
@@ -177,38 +172,21 @@ export default function ScenePage() {
         </div>
       </div>
 
-      <StatBar
-        profession={person?.profession}
-        name={person?.name || playerName || '无名'}
-        level={person?.level?.level ?? 1}
-        exp={person?.level?.exp ?? 0}
-        maxExp={person?.level?.maxExp ?? 100}
-      />
-
       <div className={styles.scrollArea}>
-        <VisualAssetImage
-          {...placeSceneAsset(place)}
-          className={styles.hero}
-          generateLabel="生成场景"
-          autoGenerate
-        >
-          <div className={styles.heroCaption}>
-            <div className={styles.heroCapTitle}>{place.region} · {place.title}</div>
-            <div className={styles.heroCapSub}>{place.landscape}</div>
-            <button
-              className={styles.heroCapNpc}
-              onClick={() => navigateTo(primaryNpc.pageId, {
-                ...pageContext,
-                source: 'npc',
-                npcId: primaryNpc.id,
-                npcName: primaryNpc.name,
-              })}
-              type="button"
-            >
-              {primaryNpc.name} · {primaryNpc.line} ›
-            </button>
-          </div>
-        </VisualAssetImage>
+        <div className={styles.hero}>
+          <button
+            className={styles.heroNpc}
+            onClick={() => navigateTo(primaryNpc.pageId, {
+              ...pageContext,
+              source: 'npc',
+              npcId: primaryNpc.id,
+              npcName: primaryNpc.name,
+            })}
+            type="button"
+          >
+            {primaryNpc.name} · {primaryNpc.line} ›
+          </button>
+        </div>
 
         <div className={styles.sect}>
           地 图
@@ -271,8 +249,7 @@ export default function ScenePage() {
               })}
               type="button"
             >
-              <span className={styles.menuIcon}>{item.label.slice(0, 1)}</span>
-              <span>{item.label}</span>
+              <span className={styles.menuIcon}>{item.label}</span>
             </button>
           ))}
         </div>
@@ -300,31 +277,30 @@ export default function ScenePage() {
           ))}
         </div>
 
-        <BarBlock>
-          <BarRow
-            label="HP"
-            kind="hp"
-            current={person?.basicProperty?.hp ?? 0}
-            max={person?.basicProperty?.hp ?? 1}
-          />
-          <BarRow
-            label="MP"
-            kind="mp"
-            current={person?.basicProperty?.mp ?? 0}
-            max={person?.basicProperty?.mp ?? 1}
-          />
-        </BarBlock>
+        <div className={styles.footerBlock}>
+          <BarBlock>
+            <BarRow
+              label="HP"
+              kind="hp"
+              current={person?.basicProperty?.hp ?? 0}
+              max={person?.basicProperty?.hp ?? 1}
+            />
+            <BarRow
+              label="MP"
+              kind="mp"
+              current={person?.basicProperty?.mp ?? 0}
+              max={person?.basicProperty?.mp ?? 1}
+            />
+          </BarBlock>
 
-        <div className={styles.sect}>
-          场 景 情 报
-        </div>
-
-        <div className={styles.infoBlock}>
-          <div className={styles.infoLine}>场景提示：{zone.sceneHint || place.title}</div>
-          <div className={styles.infoLine}>当前活动：{notices[0] || '暂无限时活动'}</div>
-          <div className={styles.infoLine}>可前往玩法：先移动到地方屏，再触发婚介、战斗、交易等功能。</div>
+          <div className={styles.sect}>场 景 情 报</div>
+          <div className={styles.infoBlock}>
+            <div className={styles.infoLine}>场景提示：{zone.sceneHint || place.title}</div>
+            <div className={styles.infoLine}>当前活动：{notices[0] || '暂无限时活动'}</div>
+            <div className={styles.infoLine}>可前往玩法：先移动到地方屏，再触发婚介、战斗、交易等功能。</div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

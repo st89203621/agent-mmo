@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface TutorialStep {
   step: string;
@@ -43,6 +45,7 @@ const STEPS: TutorialStep[] = [
 ];
 
 export default function TutorialPage() {
+  usePageBackground(PAGE_BG.TUTORIAL);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [idx, setIdx] = useState(0);
   const cur = STEPS[idx];

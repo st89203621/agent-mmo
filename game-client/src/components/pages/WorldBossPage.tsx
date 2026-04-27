@@ -10,6 +10,8 @@ import {
   type BossRankEntry,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const HP_SEGMENTS = 20;
 
@@ -43,6 +45,7 @@ function avatarChar(name: string): string {
 }
 
 export default function WorldBossPage() {
+  usePageBackground(PAGE_BG.WORLD_BOSS);
   const playerId = usePlayerStore((s) => s.playerId);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [boss, setBoss] = useState<WorldBossData | null>(null);

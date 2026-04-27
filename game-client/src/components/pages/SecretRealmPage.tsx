@@ -10,6 +10,8 @@ import {
   type RealmEvent,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const EVENT_TYPE: Record<string, { label: string; cls: string }> = {
   battle: { label: '战 斗', cls: 'srEvtTagBattle' },
@@ -59,6 +61,7 @@ interface EventResult {
 }
 
 export default function SecretRealmPage() {
+  usePageBackground(PAGE_BG.SECRET_REALM);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [realm, setRealm] = useState<RealmData | null>(null);
   const [event, setEvent] = useState<RealmEvent | null>(null);

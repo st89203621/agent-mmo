@@ -44,6 +44,21 @@ export function logout() {
   return request('/auth/logout', { method: 'POST' });
 }
 
+// ── 分区 ──────────────────────────────────────
+
+export interface ServerInfo {
+  id: string;
+  name: string;
+  status: string;
+  newServer: boolean;
+  recommended: boolean;
+  online: number;
+}
+
+export function fetchServerList(): Promise<{ servers: ServerInfo[]; current: string }> {
+  return request('/server/list');
+}
+
 // ── 对话 ──────────────────────────────────────
 
 export interface DialogueHistoryItem {

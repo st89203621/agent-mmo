@@ -6,7 +6,7 @@
   position: relative;
   height: 100%;
   overflow: hidden;
-  background-color: var(--ink);
+  background-color: transparent;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -692,10 +692,6 @@
 }
 
 /* 2026-04 lunhui overhaul: home aligned to fusion mockup */
-.page {
-  background-color: #120d09;
-}
-
 .bgVignette {
   background:
     linear-gradient(to bottom,
@@ -789,7 +785,7 @@
 }
 
 .pickerPanel {
-  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  background: rgba(0, 0, 0, 0.42);
   border-top-color: var(--border-gold);
   border-radius: 0;
 }

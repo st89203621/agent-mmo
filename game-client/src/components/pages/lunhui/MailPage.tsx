@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { claimMailReward, fetchMailList, readMail } from '../../../services/api';
 import type { MailItem } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 type MailFilter = 'all' | 'unread' | 'reward';
 
 export default function MailPage() {
+  usePageBackground(PAGE_BG.MAIL);
   const [mails, setMails] = useState<MailItem[]>([]);
   const [selected, setSelected] = useState<MailItem | null>(null);
   const [filter, setFilter] = useState<MailFilter>('all');

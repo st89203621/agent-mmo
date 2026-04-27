@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { divorce, fetchMarriageStatus, fetchMatchmakingList, proposeMarriage } from '../../../services/api';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 interface Candidate {
   playerId: number;
@@ -11,6 +13,7 @@ interface Candidate {
 }
 
 export default function MatchmakingPage() {
+  usePageBackground(PAGE_BG.MATCHMAKING);
   const [status, setStatus] = useState<{ isMarried: boolean; spouseName?: string; marriageDate?: number; buffDescription?: string } | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
 

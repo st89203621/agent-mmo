@@ -3,6 +3,8 @@ import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 interface Room {
   key: string;
@@ -46,6 +48,7 @@ const ACTS: { key: string; label: string; icon: string }[] = [
 ];
 
 export default function HousingPage() {
+  usePageBackground(PAGE_BG.HOUSING);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [pendingGold, setPendingGold] = useState(8460);
   const [collecting, setCollecting] = useState(false);

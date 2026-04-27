@@ -267,6 +267,40 @@ public class GameApiController {
         return ok(Map.of("userId", userId, "username", session.getAttribute("username")));
     }
 
+    // ── 分区列表 ──────────────────────────────────────
+
+    private static final String[] SERVER_SUFFIX = {
+        "气盖山河", "云海仙踪", "万剑归宗", "九霄寒月", "江湖夜雨",
+        "红尘客栈", "烟雨渡口", "龙吟九重", "玉笛梅花", "碧落黄泉",
+        "千山暮雪", "一剑霜寒", "白衣胜雪"
+    };
+    private static final int SERVER_TOTAL = 99;
+    private static final String SERVER_CURRENT = "83";
+
+    @GetMapping("/server/list")
+    public ResponseEntity<Map<String, Object>> serverList() {
+        List<Map<String, Object>> servers = new ArrayList<>(SERVER_TOTAL);
+        for (int i = 1; i <= SERVER_TOTAL; i++) {
+            String name = String.format("%02d · %s", i, SERVER_SUFFIX[(i - 1) % SERVER_SUFFIX.length]);
+            String status;
+            if (String.valueOf(i).equals(SERVER_CURRENT)) status = "火爆";
+            else if (i >= 95) status = "新区";
+            else if (i % 17 == 0) status = "推荐";
+            else if (i % 5 == 2) status = "畅通";
+            else status = "流畅";
+            long online = 1200L + ((i * 1237L) % 8000L);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", String.valueOf(i));
+            entry.put("name", name);
+            entry.put("status", status);
+            entry.put("newServer", i >= 95);
+            entry.put("recommended", String.valueOf(i).equals(SERVER_CURRENT) || i % 17 == 0);
+            entry.put("online", online);
+            servers.add(entry);
+        }
+        return ok(Map.of("servers", servers, "current", SERVER_CURRENT));
+    }
+
     // ── 剧情对话 ──────────────────────────────────────
 
     @PostMapping("/story/start")

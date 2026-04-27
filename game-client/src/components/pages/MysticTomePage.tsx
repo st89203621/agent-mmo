@@ -3,6 +3,8 @@ import { toast } from '../../store/toastStore';
 import { fetchTomePool, drawTome, type TomeSkillBook } from '../../services/api';
 import page from '../../styles/page.module.css';
 import own from './MysticTomePage.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const styles = { ...page, ...own };
 
@@ -18,6 +20,7 @@ function getRankStyle(rank: string) {
 }
 
 export default function MysticTomePage() {
+  usePageBackground(PAGE_BG.MYSTIC_TOME);
   const [pool, setPool] = useState<TomeSkillBook[]>([]);
   const [drawResults, setDrawResults] = useState<TomeSkillBook[] | null>(null);
   const [drawing, setDrawing] = useState(false);

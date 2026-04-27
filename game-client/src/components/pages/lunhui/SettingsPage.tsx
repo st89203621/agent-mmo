@@ -11,6 +11,8 @@ import {
   clearAllAssetCache,
 } from '../../../data/visualAssets';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 const STORAGE_KEY = 'mmo.settings';
 
@@ -55,6 +57,7 @@ const GRAPHICS_LABEL: Record<LocalSettings['graphics'], string> = {
 };
 
 export default function SettingsPage() {
+  usePageBackground(PAGE_BG.SETTINGS);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const playerId = usePlayerStore((s) => s.playerId);
   const playerName = usePlayerStore((s) => s.playerName);

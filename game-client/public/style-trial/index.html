@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>主城风格试色 · 12 选 1</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #1a1614;
+    color: #ede5d3;
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 18px;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .hint {
+    font-size: 12px;
+    color: #a89880;
+    margin-bottom: 24px;
+    letter-spacing: 1px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: #221c18;
+    border: 1px solid #3d342a;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: #c8a968;
+  }
+  .card img {
+    width: 100%;
+    aspect-ratio: 768/1280;
+    object-fit: cover;
+    display: block;
+  }
+  .label {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .num {
+    color: #c8a968;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  /* lightbox */
+  .lightbox {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .lightbox.show { display: flex; }
+  .lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+  }
+  .close {
+    position: absolute;
+    top: 20px;
+    right: 28px;
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+  }
+  .lb-label {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    background: rgba(0,0,0,0.6);
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+  <h1>主城风格试色 · 12 选 1</h1>
+  <p class="hint">点击图片放大查看 · 选好后告诉我编号（例如「我要 #03」），我会按对应色调把主城配色重写</p>
+  <div class="grid" id="grid"></div>
+
+  <div class="lightbox" id="lb">
+    <button class="close" id="close">×</button>
+    <img id="lb-img" src="" alt="">
+    <div class="lb-label" id="lb-label"></div>
+  </div>
+
+<script>
+const items = [
+  ['01', '樱花暮春', '柔粉浅雅·治愈少女'],
+  ['02', '海棠胭脂', '鲜红温暖·黄昏霞光'],
+  ['03', '暮霞橘金', '橘红活泼·日落金辉'],
+  ['04', '杏黄姜金', '晨曦清新·杏黄米白'],
+  ['05', '桃花春日', '甜美灵动·桃绿黄'],
+  ['06', '紫藤暮色', '梦幻温柔·紫粉藕荷'],
+  ['07', '月白青瓷', '雅致清辉·月白淡青'],
+  ['08', '鎏金檀木', '深红奢华·朱砂暖金'],
+  ['09', '烟花霓虹', '喜庆活泼·粉红暖金'],
+  ['10', '青苔江南', '水墨清新·白墙黑瓦'],
+  ['11', '蜜糖马卡龙', '卡通圆润·奶油薄荷'],
+  ['12', '流光琉璃', '梦幻通透·多色柔光'],
+];
+
+const grid = document.getElementById('grid');
+const filenames = {
+  '01': '01_樱花暮春.png',
+  '02': '02_海棠胭脂.png',
+  '03': '03_暮霞橘金.png',
+  '04': '04_杏黄姜金.png',
+  '05': '05_桃花春日.png',
+  '06': '06_紫藤暮色.png',
+  '07': '07_月白青瓷.png',
+  '08': '08_鎏金檀木.png',
+  '09': '09_烟花霓虹.png',
+  '10': '10_青苔江南.png',
+  '11': '11_蜜糖马卡龙.png',
+  '12': '12_流光琉璃.png',
+};
+
+items.forEach(([num, name, desc]) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const file = filenames[num];
+  card.innerHTML = `
+    <img src="${encodeURIComponent(file)}" alt="${name}" loading="lazy">
+    <div class="label"><span class="num">#${num}</span>${name} · ${desc}</div>
+  `;
+  card.addEventListener('click', () => openLightbox(file, `#${num} ${name} · ${desc}`));
+  grid.appendChild(card);
+});
+
+const lb = document.getElementById('lb');
+const lbImg = document.getElementById('lb-img');
+const lbLabel = document.getElementById('lb-label');
+function openLightbox(file, label) {
+  lbImg.src = encodeURIComponent(file);
+  lbLabel.textContent = label;
+  lb.classList.add('show');
+}
+document.getElementById('close').addEventListener('click', () => lb.classList.remove('show'));
+lb.addEventListener('click', e => { if (e.target === lb) lb.classList.remove('show'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('show'); });
+</script>
+</body>
+</html>

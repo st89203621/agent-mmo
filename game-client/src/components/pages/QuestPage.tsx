@@ -10,6 +10,8 @@ import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import { Bar } from '../common/fusion';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type QuestTab = 'main' | 'active' | 'scroll' | 'achievement';
 
@@ -47,6 +49,7 @@ function questNavTarget(type: number): 'battle' | 'dungeon' | 'hunt' | 'scene' {
 }
 
 export default function QuestPage() {
+  usePageBackground(PAGE_BG.QUEST);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [tab, setTab] = useState<QuestTab>('main');
   const [myQuests, setMyQuests] = useState<QuestData[]>([]);

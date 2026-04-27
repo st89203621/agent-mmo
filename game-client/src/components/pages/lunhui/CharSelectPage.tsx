@@ -1,79 +1,112 @@
 import { useEffect, useState } from 'react';
-import { fetchPersonInfo } from '../../../services/api';
+import { fetchPersonInfo, type PersonData } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import { usePlayerStore } from '../../../store/playerStore';
-import styles from './LunhuiPages.module.css';
+import lunhui from './LunhuiPages.module.css';
+import styles from './CharSelectPage.module.css';
 
 export default function CharSelectPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
   const playerName = usePlayerStore((s) => s.playerName);
   const personCreated = usePlayerStore((s) => s.personCreated);
   const setPersonCreated = usePlayerStore((s) => s.setPersonCreated);
-  const [personName, setPersonName] = useState('');
-  const [profession, setProfession] = useState('');
+  const [data, setData] = useState<PersonData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPersonInfo()
-      .then((data) => {
-        setPersonCreated(!!data.exists);
-        setPersonName(data.name || '');
-        setProfession(data.profession || 'ATTACK');
+      .then((d) => {
+        setPersonCreated(!!d.exists);
+        setData(d);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [setPersonCreated]);
 
+  const personName = data?.name || '';
+  const profession = data?.profession || '';
+  const portraitUrl = data?.portraitUrl;
+  const level = data?.level;
+  const expPercent = level && level.maxExp > 0
+    ? Math.min(100, (level.exp / level.maxExp) * 100)
+    : 0;
+  const displayName = personCreated ? (personName || '丿征战丶蔷薇') : '空置角色位';
+  const initial = (personName || playerName || '侠').charAt(0);
+
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.eyebrow}>Server 83 · 气盖山河</div>
-        <div className={styles.titleRow}>
-          <div className={styles.title}>角色选择</div>
-          <div className={styles.subtitle}>{playerName || '侠客'}</div>
+    <div className={lunhui.page}>
+      <header className={styles.header}>
+        <div className={styles.serverTag}>Server 83 · 气盖山河</div>
+        <div className={styles.playerTag}>{playerName || '侠客'}</div>
+      </header>
+
+      <div className={styles.titleBlock}>
+        <span className={styles.titleSeal}>选</span>
+        <div>
+          <div className={styles.titleZh}>角色选择</div>
+          <div className={styles.titleEn}>CHOOSE YOUR PATH</div>
         </div>
       </div>
 
-      <div className={styles.scroll}>
-        <div className={styles.hero}>
-          <div className={styles.heroTitle}>{personCreated ? personName || '丿征战丶蔷薇' : '空置角色位'}</div>
-          <div className={styles.heroSub}>
-            {loading
-              ? '正在读取角色档案…'
-              : personCreated
-                ? `职业 · ${profession} · 已就绪，点击进入主城继续征战。`
-                : '当前账号尚未创建角色，先捏出今世之身，再踏入气盖山河。'}
+      <main className={lunhui.scroll}>
+        <section className={`${styles.hero} ${personCreated ? '' : styles.heroEmpty}`}>
+          <div className={styles.heroPortrait}>
+            {portraitUrl ? (
+              <img src={portraitUrl} alt={displayName} draggable={false} />
+            ) : (
+              <span className={styles.heroPlaceholder}>{initial}</span>
+            )}
+            {personCreated && level && (
+              <span className={styles.heroLevel}>
+                <span className={styles.heroLevelLabel}>Lv</span>
+                <span className={styles.heroLevelValue}>{level.level}</span>
+              </span>
+            )}
           </div>
-        </div>
 
-        <div className={styles.panel}>
-          <div className={styles.panelTitle}>
-            <span>角色槽位</span>
-            <span className={styles.chip}>01 / 01</span>
-          </div>
-          <div className={styles.card}>
-            <div className={styles.row}>
-              <div className={styles.stack}>
-                <div className={styles.name}>{personCreated ? (personName || '丿征战丶蔷薇') : '未创建角色'}</div>
-                <div className={styles.meta}>{personCreated ? `职业 ${profession}` : '点击下方按钮创建'}</div>
+          <div className={styles.heroBody}>
+            <div className={styles.heroName}>{loading ? '——' : displayName}</div>
+
+            {personCreated && (
+              <div className={styles.heroBadgeRow}>
+                {profession && <span className={styles.heroBadge}>{profession}</span>}
+                <span className={styles.heroSlot}>SLOT 01 / 01</span>
               </div>
-              <span className={styles.chip}>{personCreated ? '已激活' : '空位'}</span>
-            </div>
-          </div>
-        </div>
+            )}
 
-        <div className={styles.grid2}>
-          <button className={`${styles.button} ${styles.buttonAlt}`} onClick={() => navigateTo('login')}>
-            返回登录
+            <div className={styles.heroDivider} />
+
+            <p className={styles.heroDesc}>
+              {loading
+                ? '正在读取角色档案…'
+                : personCreated
+                  ? '魂魄已稳，气运正盛。点击「进入气盖山河」，重启七世轮回之程。'
+                  : '今世未有此身。先捏一具皮囊，再踏入气盖山河。'}
+            </p>
+
+            {personCreated && level && (
+              <div className={styles.expBar}>
+                <div className={styles.expFill} style={{ width: `${expPercent}%` }} />
+                <span className={styles.expText}>{level.exp} / {level.maxExp}</span>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className={styles.actionRow}>
+          <button className={styles.btnGhost} onClick={() => navigateTo('login')}>
+            ← 返回登录
           </button>
           <button
-            className={styles.button}
+            className={styles.btnPrimary}
+            disabled={loading}
             onClick={() => navigateTo(personCreated ? 'home' : 'char-create')}
           >
-            {personCreated ? '进入游戏' : '创建角色'}
+            <span>{personCreated ? '进入气盖山河' : '创建今世之身'}</span>
+            <i className={styles.btnArrow}>›</i>
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

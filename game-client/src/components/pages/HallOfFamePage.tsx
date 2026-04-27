@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type TabKey = 'power' | 'wealth' | 'arena' | 'guild';
 
@@ -50,6 +52,7 @@ const DATA: Record<TabKey, HallRow[]> = {
 };
 
 export default function HallOfFamePage() {
+  usePageBackground(PAGE_BG.HALL_OF_FAME);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [tab, setTab] = useState<TabKey>('power');
   const list = DATA[tab];

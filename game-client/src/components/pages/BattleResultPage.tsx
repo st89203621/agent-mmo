@@ -85,23 +85,12 @@ export default function BattleResultPage() {
             {loot.map((l, i) => {
               const icCls = l.rarity === 'rare' ? styles.endLootIcRare : l.rarity === 'ur' ? styles.endLootIcUr : '';
               const nmCls = l.rarity === 'rare' ? styles.endLootNmRare : l.rarity === 'ur' ? styles.endLootNmUr : '';
+              const nCls = l.rarity === 'rare' ? styles.endLootNRare : l.rarity === 'ur' ? styles.endLootNUr : '';
               return (
                 <div key={i} className={styles.endLootRow}>
                   <span className={`${styles.endLootIc} ${icCls}`.trim()}>{l.icon}</span>
                   <span className={`${styles.endLootNm} ${nmCls}`.trim()}>{l.name}</span>
-                  <span
-                    className={styles.endLootN}
-                    style={{
-                      color:
-                        l.rarity === 'ur'
-                          ? 'var(--accent-red)'
-                          : l.rarity === 'rare'
-                            ? 'var(--accent-purple)'
-                            : undefined,
-                    }}
-                  >
-                    {l.qty}
-                  </span>
+                  <span className={`${styles.endLootN} ${nCls}`.trim()}>{l.qty}</span>
                 </div>
               );
             })}

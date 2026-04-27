@@ -3,6 +3,8 @@ import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import { fetchCheckinStatus, doCheckin } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface CheckinReward {
   day: number;
@@ -38,6 +40,7 @@ interface CheckinStatus {
 }
 
 export default function CheckinPage() {
+  usePageBackground(PAGE_BG.CHECKIN);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [status, setStatus] = useState<CheckinStatus | null>(null);
   const [loading, setLoading] = useState(true);

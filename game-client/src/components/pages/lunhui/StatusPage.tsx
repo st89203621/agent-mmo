@@ -4,6 +4,8 @@ import { useGameStore } from '../../../store/gameStore';
 import { usePlayerStore } from '../../../store/playerStore';
 import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
+import { usePageBackground } from '../../common/PageShell';
+import { PAGE_BG } from '../../../data/pageBackgrounds';
 
 interface MenuEntry {
   label: string;
@@ -132,6 +134,7 @@ const SLOT_LABELS = [
 ];
 
 export default function StatusPage() {
+  usePageBackground(PAGE_BG.STATUS);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const { gold, diamond, levelInfo } = usePlayerStore();
   const [person, setPerson] = useState<PersonData | null>(null);

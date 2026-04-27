@@ -8,6 +8,8 @@ import {
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import type { CoexploreSessionData, CoexploreRoundData } from '../../types';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const C = {
   bg: '#0a0a12', card: 'rgba(255,255,255,0.05)',
@@ -29,6 +31,7 @@ const RESULT_LABEL: Record<string, { text: string; color: string; mult: number }
 };
 
 export default function CoexplorePage() {
+  usePageBackground(PAGE_BG.COEXPLORE);
   const playerId = Number(usePlayerStore(s => s.playerId));
   const bookWorld = useGameStore(s => s.currentBookWorld);
 

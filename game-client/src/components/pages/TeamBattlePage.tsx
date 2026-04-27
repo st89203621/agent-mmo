@@ -3,8 +3,11 @@ import { createTeam, joinTeam, leaveTeam, type TeamData } from '../../services/a
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 export default function TeamBattlePage() {
+  usePageBackground(PAGE_BG.TEAM_BATTLE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [team, setTeam] = useState<TeamData | null>(null);
   const [joinId, setJoinId] = useState('');

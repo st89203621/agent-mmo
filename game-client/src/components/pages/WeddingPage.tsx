@@ -1,6 +1,8 @@
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface WeddingState {
   groom: string;
@@ -47,6 +49,7 @@ const ACTIONS: { key: string; label: string; icon: string }[] = [
 ];
 
 export default function WeddingPage() {
+  usePageBackground(PAGE_BG.WEDDING);
   const navigateTo = useGameStore((s) => s.navigateTo);
 
   const handleAction = (key: string) => {

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 interface Suit {
   id: string;
@@ -47,6 +49,7 @@ const BUFFS: { icon: string; tone: Suit['tone']; name: string; desc: string; sta
 ];
 
 export default function FashionPage() {
+  usePageBackground(PAGE_BG.FASHION);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [activeId, setActiveId] = useState('s1');
 

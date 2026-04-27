@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 type TabKey = 'pair' | 'apply' | 'archive';
 
@@ -35,6 +37,7 @@ const MOCK_PAIRS: PairRow[] = [
 ];
 
 export default function MasterDisciplePage() {
+  usePageBackground(PAGE_BG.MASTER_DISCIPLE);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [tab, setTab] = useState<TabKey>('pair');
 

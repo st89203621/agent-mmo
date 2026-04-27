@@ -39,7 +39,7 @@
 }
 
 .barBlock {
-  padding: 8px 14px;
+  padding: 6px 12px;
   background: var(--bg-ink);
   border-bottom: 1px solid var(--border);
 }
@@ -48,26 +48,30 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 0;
+  padding: 2px 0;
   font-family: var(--font-mono);
   font-size: 11px;
 }
 
 .barRow .label {
-  color: var(--text-dim);
-  width: 32px;
+  color: #FFE9B6;
+  width: 28px;
   letter-spacing: 1px;
   flex-shrink: 0;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .barRow .val {
-  color: var(--text);
+  color: #FFF8EE;
   min-width: 70px;
   font-size: 10px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .barRow .note {
-  color: var(--text-faint);
+  color: rgba(255, 240, 220, 0.78);
   font-size: 10px;
   margin-left: auto;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }

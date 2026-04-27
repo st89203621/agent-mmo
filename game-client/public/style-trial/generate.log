@@ -1,0 +1,37 @@
+输出目录: C:\deye-6.4\agent-mmo\game-client\public\style-trial
+ComfyUI: http://192.168.22.31:8199
+[01_樱花暮春] prompt_id=cfbb7d78-a28f-40a9-b2fe-7fb271b4479f
+[01_樱花暮春] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\01_樱花暮春.png
+[02_海棠胭脂] prompt_id=ae5d0d5e-682e-42c6-a046-73928d36ffa4
+[02_海棠胭脂] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\02_海棠胭脂.png
+[03_暮霞橘金] prompt_id=e8bcc361-0262-479a-829a-f8cf407c5e9b
+[03_暮霞橘金] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\03_暮霞橘金.png
+[04_杏黄姜金] prompt_id=35f44dd6-73e5-4ffe-b561-72ad6755e170
+[04_杏黄姜金] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\04_杏黄姜金.png
+[05_桃花春日] prompt_id=3e7d4ebe-3566-4b04-8506-310cc67fb0be
+[05_桃花春日] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\05_桃花春日.png
+[06_紫藤暮色] prompt_id=a0467011-8338-4f5f-afd2-348b36808b85
+[06_紫藤暮色] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\06_紫藤暮色.png
+[07_月白青瓷] prompt_id=870c01ad-42cd-4674-9f77-4d50a27b7577
+[07_月白青瓷] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\07_月白青瓷.png
+[08_鎏金檀木] prompt_id=ffb42bbe-120d-4628-b22e-1b01a03d6a6b
+[08_鎏金檀木] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\08_鎏金檀木.png
+[09_烟花霓虹] prompt_id=b7d72ba2-de89-4e84-b928-65fd9455fba1
+[09_烟花霓虹] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\09_烟花霓虹.png
+[10_青苔江南] prompt_id=1c29a43a-dbfc-440c-8480-d89e80c0b400
+[10_青苔江南] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\10_青苔江南.png
+[11_蜜糖马卡龙] prompt_id=478fcc1a-6a1f-42b2-8523-302490ffbdaf
+[11_蜜糖马卡龙] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\11_蜜糖马卡龙.png
+[12_流光琉璃] prompt_id=4f925456-0a12-451a-9a4c-376741ad243e
+[12_流光琉璃] saved -> C:\deye-6.4\agent-mmo\game-client\public\style-trial\12_流光琉璃.png
+
+=== 完成 ===
+成功: 12/12
+Traceback (most recent call last):
+  File "C:\deye-6.4\agent-mmo\game-client\public\style-trial\generate.py", line 145, in <module>
+    main()
+    ~~~~^^
+  File "C:\deye-6.4\agent-mmo\game-client\public\style-trial\generate.py", line 137, in main
+    print(f"  \u2713 {label} -> {path}", flush=True)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2713' in position 2: illegal multibyte sequence

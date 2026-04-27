@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { randomPet, type PetData } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const TIER_COLORS: Record<number, string> = {
   1: '#aaa', 2: '#5cb85c', 3: '#3498db', 4: '#a855f7', 5: '#f59e0b', 6: '#ef4444',
@@ -56,6 +58,7 @@ const GHOST_BTN: React.CSSProperties = {
 };
 
 export default function PetSummonPage() {
+  usePageBackground(PAGE_BG.PET_SUMMON);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [phase, setPhase] = useState<Phase>('idle');
   const [result, setResult] = useState<PetData | null>(null);

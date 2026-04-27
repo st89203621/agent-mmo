@@ -10,6 +10,8 @@ import {
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import { POSITION_LABELS } from '../../constants/equipment';
 import styles from './lunhui/LunhuiPages.module.css';
+import { usePageBackground } from '../common/PageShell';
+import { PAGE_BG } from '../../data/pageBackgrounds';
 
 const ELSE_PROP_LABELS: { key: string; label: string }[] = [
   { key: 'constitution', label: '体 质' },
@@ -43,6 +45,7 @@ function AppBarHead({ onBack }: { onBack: () => void }) {
 }
 
 export default function EquipDetailPage() {
+  usePageBackground(PAGE_BG.EQUIP_DETAIL);
   const pageParams = useGameStore((s) => s.pageParams);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const equipId = pageParams.equipId as string | undefined;

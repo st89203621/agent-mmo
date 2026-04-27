@@ -5,7 +5,7 @@ import { monsterPortraitAsset, npcPortraitAsset, placeSceneAsset } from '../../.
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import VisualAssetImage from '../../common/VisualAssetImage';
-import VisualStyleBar from '../../common/VisualStyleBar';
+import { usePageBackground } from '../../common/PageShell';
 import type { PlaceInfo, ZoneInfo } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
@@ -53,6 +53,7 @@ export default function PlacePage() {
   }, [loadZone]);
 
   const place: PlaceInfo = useMemo(() => getPlaceInfo(pageZoneId || zone?.zoneId || 'main_city'), [pageZoneId, zone]);
+  usePageBackground(useMemo(() => placeSceneAsset(place), [place]));
 
   const handleMove = useCallback(async (targetZoneId: string) => {
     if (moving) return;
@@ -134,7 +135,7 @@ export default function PlacePage() {
   }, [navigateTo, place]);
 
   return (
-    <div className={styles.mockPage}>
+    <div className={`${styles.mockPage} ${styles.placePage}`}>
       <div className={styles.appbar}>
         <div className={styles.appbarRow}>
           <div className={styles.appbarLoc}>
@@ -142,25 +143,12 @@ export default function PlacePage() {
             <span className={styles.appbarZone}>坐标 ({place.coord[0]},{place.coord[1]})</span>
           </div>
           <div className={styles.appbarIcons}>
-            <VisualStyleBar />
             <button className={styles.appbarIcon} onClick={() => navigateTo('hub')} type="button">退</button>
           </div>
         </div>
       </div>
 
       <div className={styles.scrollPlain}>
-        <VisualAssetImage
-          {...placeSceneAsset(place)}
-          className={styles.placeBg}
-          generateLabel="生成场景"
-          autoGenerate
-        >
-          <div className={styles.placeCaption}>
-            <div className={styles.placeName}>{place.title}</div>
-            <div className={styles.placeRegion}>{place.region}</div>
-          </div>
-        </VisualAssetImage>
-
         <div className={styles.sectLine}>
           出 口 · 方 位
           <button className={styles.moreBtn} onClick={() => navigateTo('teleport')} type="button">点击传送 ›</button>
