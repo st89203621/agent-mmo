@@ -191,34 +191,21 @@ export default function ScenePage() {
           generateLabel="生成场景"
           autoGenerate
         >
-          <div className={styles.badges}>
-            {notices.slice(0, 3).map((notice) => (
-              <span
-                key={notice}
-                className={`${styles.badge} ${notice.includes('Boss') ? styles.badgeHot : ''}`.trim()}
-              >
-                {notice}
-              </span>
-            ))}
-          </div>
-
-          <button
-            className={styles.namecard}
-            onClick={() => navigateTo(primaryNpc.pageId, {
-              ...pageContext,
-              source: 'npc',
-              npcId: primaryNpc.id,
-              npcName: primaryNpc.name,
-            })}
-            type="button"
-          >
-            <div className={styles.namecardName}>{primaryNpc.name} · {primaryNpc.role}</div>
-            <div className={styles.namecardSub}>{primaryNpc.line} {'>'}</div>
-          </button>
-
-          <div className={styles.heroText}>
-            <div className={styles.heroTitle}>{place.landscape}</div>
-            <div className={styles.heroSub}>{place.description}</div>
+          <div className={styles.heroCaption}>
+            <div className={styles.heroCapTitle}>{place.region} · {place.title}</div>
+            <div className={styles.heroCapSub}>{place.landscape}</div>
+            <button
+              className={styles.heroCapNpc}
+              onClick={() => navigateTo(primaryNpc.pageId, {
+                ...pageContext,
+                source: 'npc',
+                npcId: primaryNpc.id,
+                npcName: primaryNpc.name,
+              })}
+              type="button"
+            >
+              {primaryNpc.name} · {primaryNpc.line} ›
+            </button>
           </div>
         </VisualAssetImage>
 

@@ -91,11 +91,7 @@
 }
 
 .hero {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: linear-gradient(180deg, #1c1815 0%, #120e0b 100%);
+  height: 220px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -148,22 +144,46 @@
   margin-top: 2px;
 }
 
-.heroText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.heroCaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 52px 16px 14px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.9) 0%, transparent 100%);
 }
 
-.heroTitle {
+.heroCapTitle {
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text);
-  font-size: 12px;
-  line-height: 1.5;
+  letter-spacing: 2px;
 }
 
-.heroSub {
-  color: var(--text-dim);
+.heroCapSub {
+  margin-top: 4px;
   font-size: 11px;
-  line-height: 1.5;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.heroCapNpc {
+  margin-top: 8px;
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  background: rgba(7, 4, 2, 0.55);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  color: var(--accent-gold);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.heroCapNpc:active {
+  background: rgba(201, 168, 76, 0.12);
 }
 
 .sect {

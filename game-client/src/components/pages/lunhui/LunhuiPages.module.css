@@ -477,54 +477,31 @@
 }
 
 .placeBg {
-  padding: 14px;
-  background: linear-gradient(180deg, rgba(26, 21, 16, 0.7) 0%, rgba(12, 10, 8, 0.7) 100%);
+  height: 200px;
   border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  min-height: 140px;
 }
 
-.placeInk {
-  width: 72px;
-  height: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--accent-gold);
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--accent-gold);
-  font-family: var(--font-serif);
-  font-size: 38px;
-  font-weight: 700;
-  flex: none;
-}
-
-.placeText {
-  min-width: 0;
-  flex: 1;
+.placeCaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 48px 16px 14px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.92) 0%, transparent 100%);
 }
 
 .placeName {
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.placeRegion {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-dim);
   letter-spacing: 1px;
-}
-
-.placeCoord {
-  margin-top: 5px;
-  color: var(--text-dim);
-  font-size: 10px;
-  font-family: var(--font-mono);
-}
-
-.placeMood {
-  margin-top: 8px;
-  color: var(--text-dim);
-  font-size: 12px;
-  line-height: 1.6;
 }
 
 .placeCompass {
@@ -580,72 +557,65 @@
   opacity: 0.75;
 }
 
-.placeList {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--border);
+.placeCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-ink);
 }
 
-.placeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--bg-panel);
+.placeCard {
+  position: relative;
+  background: transparent;
+  border: 0;
   cursor: pointer;
-  transition: background 0.15s;
+  padding: 0;
+  transition: opacity 0.15s;
 }
 
-.placeRow:active {
-  background: var(--bg-hover);
+.placeCard:active {
+  opacity: 0.75;
 }
 
-.placeRowMob .placeIcon {
-  border-color: var(--accent-red);
+.placeCardMob .placeCardSub {
   color: var(--accent-red);
 }
 
-.placeIcon {
-  width: 36px;
-  height: 36px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-ink);
-  border: 1px solid var(--accent-gold);
-  color: var(--accent-gold);
-  font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 700;
+.placeCardImg {
+  width: 100%;
+  aspect-ratio: 3/4;
+  display: block;
 }
 
-.placeBody {
-  flex: 1;
-  min-width: 0;
+.placeCardLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 8px 8px;
+  background: linear-gradient(0deg, rgba(7, 4, 2, 0.93) 0%, transparent 100%);
+  text-align: center;
 }
 
-.placeRowName {
-  font-size: 13px;
+.placeCardName {
+  font-size: 11px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.placeRowTip {
-  margin-top: 3px;
-  font-size: 10px;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  line-height: 1.5;
-}
-
-.placeRowGo {
-  font-size: 10px;
+.placeCardSub {
+  margin-top: 2px;
+  font-size: 9px;
   color: var(--accent-gold);
-  letter-spacing: 2px;
-  flex-shrink: 0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .placeAct {

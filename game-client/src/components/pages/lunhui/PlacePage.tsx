@@ -154,11 +154,9 @@ export default function PlacePage() {
           generateLabel="生成场景"
           autoGenerate
         >
-          <div className={styles.placeInk}>{place.title.slice(0, 1)}</div>
-          <div className={styles.placeText}>
-            <div className={styles.placeName}>{place.region} · {place.title}</div>
-            <div className={styles.placeCoord}>坐 标 ({place.coord[0]},{place.coord[1]})</div>
-            <div className={styles.placeMood}>{place.landscape}</div>
+          <div className={styles.placeCaption}>
+            <div className={styles.placeName}>{place.title}</div>
+            <div className={styles.placeRegion}>{place.region}</div>
           </div>
         </VisualAssetImage>
 
@@ -215,27 +213,26 @@ export default function PlacePage() {
 
         {place.npcs.length > 0 && (
           <>
-            <div className={styles.sectLine}>N P C · 在 此 可 对 话</div>
-            <div className={styles.placeList}>
+            <div className={styles.sectLine}>N P C</div>
+            <div className={styles.placeCards}>
               {place.npcs.map((npc) => (
                 <button
                   key={npc.id}
-                  className={styles.placeRow}
+                  className={styles.placeCard}
                   onClick={() => enterNpc(npc)}
                   type="button"
                 >
                   <VisualAssetImage
                     {...npcPortraitAsset(place, npc)}
-                    className={styles.placeIcon}
-                    generateLabel="生图"
+                    className={styles.placeCardImg}
                     showGenerate={false}
                     autoGenerate
-                  />
-                  <div className={styles.placeBody}>
-                    <div className={styles.placeRowName}>{npc.name}</div>
-                    <div className={styles.placeRowTip}>{npc.role} · {npc.line}</div>
-                  </div>
-                  <div className={styles.placeRowGo}>前 往</div>
+                  >
+                    <div className={styles.placeCardLabel}>
+                      <div className={styles.placeCardName}>{npc.name}</div>
+                      <div className={styles.placeCardSub}>{npc.role}</div>
+                    </div>
+                  </VisualAssetImage>
                 </button>
               ))}
             </div>
@@ -244,27 +241,26 @@ export default function PlacePage() {
 
         {place.monsters.length > 0 && (
           <>
-            <div className={styles.sectLine}>出 没 怪 物 · 可 战</div>
-            <div className={styles.placeList}>
+            <div className={styles.sectLine}>怪 物</div>
+            <div className={styles.placeCards}>
               {place.monsters.map((monster) => (
                 <button
                   key={monster.id}
-                  className={`${styles.placeRow} ${styles.placeRowMob}`}
+                  className={`${styles.placeCard} ${styles.placeCardMob}`}
                   onClick={() => enterMonster(monster)}
                   type="button"
                 >
                   <VisualAssetImage
                     {...monsterPortraitAsset(place, monster)}
-                    className={styles.placeIcon}
-                    generateLabel="生图"
+                    className={styles.placeCardImg}
                     showGenerate={false}
                     autoGenerate
-                  />
-                  <div className={styles.placeBody}>
-                    <div className={styles.placeRowName}>{monster.name}</div>
-                    <div className={styles.placeRowTip}>Lv.{monster.level} · {monster.reward}</div>
-                  </div>
-                  <div className={styles.placeRowGo}>迎 战</div>
+                  >
+                    <div className={styles.placeCardLabel}>
+                      <div className={styles.placeCardName}>{monster.name}</div>
+                      <div className={styles.placeCardSub}>Lv.{monster.level}</div>
+                    </div>
+                  </VisualAssetImage>
                 </button>
               ))}
             </div>
