@@ -672,8 +672,8 @@ public class GameApiController {
             @RequestParam(defaultValue = "768") int width,
             @RequestParam(defaultValue = "512") int height) {
         String normalizedKey = normalizeVisualAssetKey(assetKey);
-        String cachePrefix = width + "x" + height + "_lunhui_asset_" + normalizedKey;
-        Optional<SceneImage> cached = sceneImageService.findCachedByPrefix(cachePrefix);
+        String cacheLookupKey = width + "x" + height + "_lunhui_asset_" + normalizedKey;
+        Optional<SceneImage> cached = sceneImageService.findByExactKey(cacheLookupKey);
         return ok(Map.of(
                 "assetKey", normalizedKey,
                 "imageUrl", cached.map(img -> "/api/story/scene-image/" + img.getId()).orElse("")
@@ -697,8 +697,8 @@ public class GameApiController {
         boolean force = Boolean.TRUE.equals(body.get("force"));
 
         String prompt = buildLunhuiVisualPrompt(type, name, description, context);
-        String cacheKey = "lunhui_asset_" + assetKey + (force ? "_" + System.currentTimeMillis() : "");
-        Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt, width, height);
+        String cacheKey = "lunhui_asset_" + assetKey;
+        Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt, width, height, force);
         if (result.isEmpty()) return err("图片生成失败");
         return ok(Map.of(
                 "assetKey", assetKey,
@@ -750,12 +750,11 @@ public class GameApiController {
     }
 
     private String buildLunhuiVisualPrompt(String type, String name, String description, String context) {
-        // 清新淡雅 + 色彩丰富的统一基调（替代旧版暗金黑檀厚重风）
+        // 清新淡雅 + 色彩丰富的统一基调；通用形态类负向词（文字、水印、UI 等）由 ComfyUI negative 通道接管。
         String base = "东方仙侠游戏插画，清新淡雅，色彩丰富明亮，柔光通透，高饱和柔色调，"
                 + "粉青蓝绿白等多彩配色，水彩晕染质感，云雾轻盈，仙气飘逸，"
                 + "唯美工笔国风，精致细腻，画面干净，主体清晰，构图舒展，"
-                + "禁止暗黑沉闷、禁止厚重金属感、禁止血腥、"
-                + "禁止文字、禁止水印、禁止logo、禁止UI按钮、禁止相框边框。";
+                + "禁止暗黑沉闷、禁止厚重金属感、禁止血腥。";
         String subject = "名称：" + name + "。设定：" + description + "。场景上下文：" + context + "。";
         return switch (type) {
             case "portrait" -> base + subject

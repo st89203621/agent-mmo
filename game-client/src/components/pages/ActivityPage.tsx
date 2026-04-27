@@ -177,25 +177,35 @@ export default function ActivityPage() {
   // 加载签到 + 在线奖励
   useEffect(() => {
     if (mainTab !== 'rewards') return;
+    let cancelled = false;
     setLoadingRewards(true);
     Promise.all([
       fetchCheckinStatus().catch(() => null),
       fetchOnlineRewards().catch(() => ({ rewards: [], onlineMinutes: 0 })),
     ]).then(([ci, or]) => {
+      if (cancelled) return;
       setCheckin(ci);
       setOnlineRewards(or.rewards || []);
       setOnlineMinutes(or.onlineMinutes || 0);
-    }).finally(() => setLoadingRewards(false));
+    }).finally(() => { if (!cancelled) setLoadingRewards(false); });
+    return () => { cancelled = true; };
   }, [mainTab]);
 
   // 加载排行榜
   useEffect(() => {
     if (mainTab !== 'ranking') return;
+    let cancelled = false;
     setLoadingRank(true);
     fetchRankList(rankType, 50).then(res => {
+      if (cancelled) return;
       setRankEntries(res.entries || []);
       setMyRank(res.myRank || 0);
-    }).catch(() => setRankEntries([])).finally(() => setLoadingRank(false));
+    }).catch(() => {
+      if (cancelled) return;
+      setRankEntries([]);
+      toast.error('排行榜加载失败');
+    }).finally(() => { if (!cancelled) setLoadingRank(false); });
+    return () => { cancelled = true; };
   }, [mainTab, rankType]);
 
   const handleCheckin = useCallback(async () => {
@@ -281,32 +291,21 @@ export default function ActivityPage() {
           loadingRewards ? <div className={styles.empty}><p>加载中...</p></div> : (
             <>
               {/* 签到区域 */}
-              <div style={{
-                background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
-                borderRadius: 10, padding: 14, marginBottom: 12,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div className={styles.rewardCard}>
+                <div className={styles.rewardRow}>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-main)', fontSize: 15, color: 'var(--gold)' }}>每日签到</div>
+                    <div className={styles.rewardTitle}>每日签到</div>
                     {checkin && (
-                      <div style={{ fontSize: 11, color: 'var(--ink)', opacity: 0.5, fontFamily: 'var(--font-ui)', marginTop: 2 }}>
+                      <div className={styles.rewardSub}>
                         已连续签到 {checkin.consecutiveDays} 天 · 累计 {checkin.totalDays} 天
                       </div>
                     )}
                   </div>
                   <button
+                    type="button"
+                    className={styles.checkBtn}
                     disabled={checkin?.todayChecked}
                     onClick={handleCheckin}
-                    style={{
-                      padding: '8px 16px',
-                      background: checkin?.todayChecked ? 'none' : 'rgba(201,168,76,0.2)',
-                      border: `1px solid ${checkin?.todayChecked ? 'var(--paper-darker)' : 'var(--gold)'}`,
-                      borderRadius: 6, fontSize: 13,
-                      color: checkin?.todayChecked ? 'var(--ink)' : 'var(--gold)',
-                      opacity: checkin?.todayChecked ? 0.45 : 1,
-                      cursor: checkin?.todayChecked ? 'default' : 'pointer',
-                      fontFamily: 'var(--font-ui)',
-                    }}
                   >
                     {checkin?.todayChecked ? '已签到' : '签到'}
                   </button>
@@ -314,7 +313,7 @@ export default function ActivityPage() {
               </div>
 
               {/* 在线时长奖励 */}
-              <div style={{ fontSize: 12, color: 'var(--ink)', opacity: 0.45, fontFamily: 'var(--font-ui)', marginBottom: 8 }}>
+              <div className={styles.onlineMeta}>
                 今日在线 {onlineMinutes} 分钟 · 在线领奖
               </div>
               {onlineRewards.length === 0 ? (
@@ -324,33 +323,18 @@ export default function ActivityPage() {
                 </div>
               ) : (
                 onlineRewards.map(r => (
-                  <div
-                    key={r.rewardId}
-                    style={{
-                      background: 'var(--paper-dark)', border: '1px solid var(--paper-darker)',
-                      borderRadius: 10, padding: '12px', marginBottom: 8,
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    }}
-                  >
+                  <div key={r.rewardId} className={styles.onlineItem}>
                     <div>
-                      <div style={{ fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-ui)' }}>{r.label}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink)', opacity: 0.4, fontFamily: 'var(--font-ui)', marginTop: 2 }}>
+                      <div className={styles.onlineLabel}>{r.label}</div>
+                      <div className={styles.onlineDesc}>
                         {r.rewardDesc} · 需在线{r.requiredMinutes}分钟
                       </div>
                     </div>
                     <button
+                      type="button"
+                      className={styles.onlineBtn}
                       disabled={r.claimed || !r.available || claimingId === r.rewardId}
                       onClick={() => handleClaimOnline(r.rewardId)}
-                      style={{
-                        padding: '7px 14px',
-                        background: r.claimed ? 'none' : r.available ? 'rgba(201,168,76,0.15)' : 'none',
-                        border: `1px solid ${r.claimed ? 'var(--paper-darker)' : r.available ? 'rgba(201,168,76,0.35)' : 'var(--paper-darker)'}`,
-                        borderRadius: 6, fontSize: 12,
-                        color: r.claimed ? 'var(--ink)' : r.available ? 'var(--gold-dim)' : 'var(--ink)',
-                        opacity: r.claimed || !r.available ? 0.4 : 1,
-                        cursor: r.claimed || !r.available ? 'default' : 'pointer',
-                        fontFamily: 'var(--font-ui)', flexShrink: 0, marginLeft: 8,
-                      }}
                     >
                       {r.claimed ? '已领取' : r.available ? (claimingId === r.rewardId ? '...' : '领取') : '未达成'}
                     </button>
@@ -364,10 +348,11 @@ export default function ActivityPage() {
         {/* ── 排行榜 ── */}
         {mainTab === 'ranking' && (
           <>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div className={styles.rankFilter}>
               {RANK_TYPES.map(rt => (
                 <button
                   key={rt.key}
+                  type="button"
                   className={`${styles.categoryBtn} ${rankType === rt.key ? styles.categoryActive : ''}`}
                   onClick={() => setRankType(rt.key)}
                 >
@@ -376,13 +361,7 @@ export default function ActivityPage() {
               ))}
             </div>
             {myRank > 0 && (
-              <div style={{
-                padding: '8px 12px', background: 'rgba(201,168,76,0.08)',
-                border: '1px solid rgba(201,168,76,0.2)', borderRadius: 8, marginBottom: 10,
-                fontSize: 12, color: 'var(--gold-dim)', fontFamily: 'var(--font-ui)',
-              }}>
-                我的排名：第 {myRank} 名
-              </div>
+              <div className={styles.myRankBadge}>我的排名：第 {myRank} 名</div>
             )}
             {loadingRank ? (
               <div className={styles.empty}><p>加载中...</p></div>
@@ -392,37 +371,22 @@ export default function ActivityPage() {
                 <p>暂无排行数据</p>
               </div>
             ) : (
-              rankEntries.map((e, idx) => (
-                <div
-                  key={e.playerId}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 12px', marginBottom: 6,
-                    background: idx < 3 ? 'rgba(201,168,76,0.06)' : 'var(--paper-dark)',
-                    border: `1px solid ${idx < 3 ? 'rgba(201,168,76,0.2)' : 'var(--paper-darker)'}`,
-                    borderRadius: 8,
-                  }}
-                >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: idx === 0 ? '#c9a84c' : idx === 1 ? '#9e9e9e' : idx === 2 ? '#a0522d' : 'var(--paper-darker)',
-                    fontSize: idx < 3 ? 12 : 11, fontWeight: 600,
-                    color: idx < 3 ? '#1a1208' : 'var(--ink)',
-                  }}>
-                    {idx < 3 ? ['🥇','🥈','🥉'][idx] : e.rank}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-ui)' }}>{e.playerName}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink)', opacity: 0.4, fontFamily: 'var(--font-ui)' }}>
-                      Lv.{e.level}
+              rankEntries.map((e, idx) => {
+                const top = idx < 3;
+                const medalCls = idx === 0 ? styles.rankMedal1 : idx === 1 ? styles.rankMedal2 : idx === 2 ? styles.rankMedal3 : '';
+                return (
+                  <div key={e.playerId} className={`${styles.rankRow} ${top ? styles.rankRowTop : ''}`.trim()}>
+                    <div className={`${styles.rankMedal} ${medalCls} ${top ? styles.rankMedalTop : ''}`.trim()}>
+                      {top ? ['🥇','🥈','🥉'][idx] : e.rank}
                     </div>
+                    <div className={styles.rankInfo}>
+                      <div className={styles.rankName}>{e.playerName}</div>
+                      <div className={styles.rankLevel}>Lv.{e.level}</div>
+                    </div>
+                    <div className={styles.rankValue}>{e.value.toLocaleString()}</div>
                   </div>
-                  <div style={{ fontSize: 15, color: 'var(--gold)', fontFamily: 'var(--font-ui)', fontWeight: 600 }}>
-                    {e.value.toLocaleString()}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </>
         )}

@@ -4259,142 +4259,171 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 14px;
+  border-bottom: 1px solid var(--glass-divider);
   font-size: 12px;
+  transition: background 0.15s ease;
 }
+.setRow:hover { background: var(--glass-hover); }
 
 .setRowK {
-  color: var(--text);
+  color: var(--text-bright);
   letter-spacing: 1px;
+  font-weight: 600;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  text-shadow: var(--ts-soft);
 }
 
 .setRowDesc {
-  color: var(--text-dim);
+  color: rgba(var(--text-rgb), 0.65);
   font-size: 10px;
   font-family: var(--font-mono);
   letter-spacing: 0.5px;
+  font-weight: 400;
 }
 
 .setRowV {
-  color: var(--accent-gold);
+  color: var(--accent-gold-bright);
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 600;
   letter-spacing: 1px;
+  text-shadow: var(--ts-soft);
 }
 
 .setSwitch {
   position: relative;
-  width: 46px;
-  height: 22px;
-  background: var(--bg-ink);
-  border: 1px solid var(--border);
+  width: 48px;
+  height: 26px;
+  background: var(--glass-3);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .setSwitchOn {
-  background: rgba(200, 169, 104, 0.2);
-  border-color: var(--accent-gold);
+  background: rgba(var(--gold-rgb), 0.32);
+  border-color: var(--accent-gold-bright);
+  box-shadow: 0 0 10px rgba(var(--gold-rgb), 0.32);
 }
 
 .setSwitchDot {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
-  background: var(--text-dim);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(var(--text-rgb), 0.62);
   transition: left 0.2s, background 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .setSwitchOn .setSwitchDot {
-  left: 26px;
-  background: var(--accent-gold);
+  left: 24px;
+  background: var(--accent-gold-brighter);
 }
 
 .setSelect {
-  padding: 4px 10px;
-  background: var(--bg-ink);
-  border: 1px solid var(--border);
-  color: var(--text);
+  padding: 6px 14px;
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--text-bright);
   font-family: var(--font-serif);
   font-size: 11px;
   cursor: pointer;
   letter-spacing: 1px;
+  text-shadow: var(--ts-soft);
 }
 
 .setDanger {
   display: block;
   width: calc(100% - 28px);
-  margin: 20px 14px;
-  padding: 12px 0;
-  background: transparent;
-  border: 1px solid var(--accent-red);
-  color: var(--accent-red);
+  margin: 24px 14px;
+  padding: 13px 0;
+  background: rgba(var(--red-rgb), 0.18);
+  border: 1px solid var(--accent-red-mid);
+  border-radius: 8px;
+  color: var(--accent-red-bright);
   font-size: 13px;
+  font-weight: 700;
   letter-spacing: 6px;
   cursor: pointer;
   font-family: var(--font-serif);
+  text-shadow: var(--ts-soft);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.setDanger:active {
-  background: rgba(199, 62, 58, 0.1);
+.setDanger:hover {
+  background: rgba(var(--red-rgb), 0.32);
+  border-color: var(--accent-red-mid);
+  box-shadow: 0 0 14px rgba(var(--red-rgb), 0.42);
 }
+.setDanger:active { transform: scale(0.97); }
 
 .setAbout {
-  padding: 10px 14px 20px;
+  padding: 14px 14px 24px;
   text-align: center;
   font-size: 10px;
-  color: var(--text-faint);
+  color: rgba(var(--text-rgb), 0.5);
   font-family: var(--font-mono);
   letter-spacing: 2px;
+  text-shadow: var(--ts-soft);
 }
 
 /* ═══ 称号 · Title ═══ */
 .ttlTabs {
   display: flex;
-  background: var(--bg-raised);
-  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ttlTab {
   flex: 1;
-  padding: 10px 4px;
+  padding: 11px 4px;
   text-align: center;
   font-size: 12px;
-  color: var(--text-dim);
+  font-weight: 600;
+  color: rgba(var(--text-rgb), 0.78);
   letter-spacing: 2px;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--glass-divider);
   border-top: 2px solid transparent;
   background: transparent;
   cursor: pointer;
   font-family: var(--font-serif);
+  text-shadow: var(--ts-soft);
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
+.ttlTab:hover { color: var(--text-bright); }
 
-.ttlTab:last-child {
-  border-right: 0;
-}
+.ttlTab:last-child { border-right: 0; }
 
 .ttlTabOn {
-  color: var(--accent-gold);
-  background: var(--bg-panel);
-  border-top-color: var(--accent-gold);
+  color: var(--accent-gold-bright);
+  background: rgba(var(--gold-rgb), 0.12);
+  border-top-color: var(--accent-gold-bright);
 }
 
 .ttlCard {
   position: relative;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  border-left: 3px solid var(--border);
+  padding: 14px;
+  border-bottom: 1px solid var(--glass-divider);
+  border-left: 3px solid var(--glass-border);
+  transition: background 0.15s ease, border-left-color 0.15s ease, box-shadow 0.15s ease;
 }
+.ttlCard:hover { background: var(--glass-hover); }
 
 .ttlCardEquipped {
-  background: rgba(200, 169, 104, 0.06);
+  background: rgba(var(--gold-rgb), 0.12);
+  border-left-color: var(--accent-gold-bright);
+  box-shadow: inset 0 0 12px rgba(var(--gold-rgb), 0.18);
 }
 
 .ttlCardRow {
@@ -4405,73 +4434,93 @@
 }
 
 .ttlName {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   font-family: var(--font-serif);
+  color: var(--text-bright);
+  text-shadow: var(--ts-strong);
 }
 
 .ttlType {
   display: inline-block;
   margin-left: 6px;
-  padding: 1px 6px;
+  padding: 2px 8px;
   font-size: 10px;
+  font-weight: 700;
   letter-spacing: 1px;
   border: 1px solid currentColor;
+  border-radius: 999px;
   vertical-align: middle;
+  text-shadow: var(--ts-soft);
 }
 
 .ttlMark {
   margin-left: 6px;
   font-size: 10px;
-  color: var(--accent-orange);
+  color: var(--accent-orange-bright);
   letter-spacing: 1px;
+  text-shadow: var(--ts-soft), 0 0 6px rgba(var(--orange-rgb), 0.42);
 }
 
 .ttlDesc {
-  margin-top: 5px;
+  margin-top: 6px;
   font-size: 11px;
-  color: var(--text-dim);
-  line-height: 1.6;
+  color: rgba(var(--text-rgb), 0.85);
+  line-height: 1.7;
+  text-shadow: var(--ts-soft);
 }
 
 .ttlBonus {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 11px;
   font-family: var(--font-mono);
   letter-spacing: 1px;
+  font-weight: 600;
+  text-shadow: var(--ts-soft);
 }
 
 .ttlBtn {
   flex-shrink: 0;
-  padding: 5px 12px;
-  border: 1px solid var(--accent-gold);
-  background: transparent;
-  color: var(--accent-gold);
+  padding: 7px 14px;
+  border: 1px solid rgba(var(--gold-rgb), 0.62);
+  border-radius: 6px;
+  background: rgba(var(--gold-rgb), 0.18);
+  color: var(--accent-gold-bright);
   font-size: 11px;
+  font-weight: 700;
   letter-spacing: 2px;
   cursor: pointer;
   font-family: var(--font-serif);
+  text-shadow: var(--ts-soft);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
+.ttlBtn:hover { background: rgba(var(--gold-rgb), 0.32); border-color: var(--accent-gold-bright); box-shadow: 0 0 12px rgba(var(--gold-rgb), 0.32); }
+.ttlBtn:active { transform: scale(0.96); }
 
 .ttlBtnGhost {
-  border-color: var(--text-dim);
-  color: var(--text-dim);
+  border-color: var(--glass-border-strong);
+  background: var(--glass-1);
+  color: rgba(var(--text-rgb), 0.78);
 }
+.ttlBtnGhost:hover { background: var(--glass-2); border-color: rgba(255, 255, 255, 0.28); color: var(--text-bright); box-shadow: none; }
 
 .ttlOwnedTag {
   font-size: 11px;
-  color: var(--text-dim);
+  color: rgba(var(--text-rgb), 0.78);
   letter-spacing: 2px;
+  text-shadow: var(--ts-soft);
 }
 
 /* ═══ 书籍世界 · BookWorld ═══ */
 .bwHero {
-  padding: 16px 14px;
+  padding: 18px 14px;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(200, 169, 104, 0.18), transparent 60%),
-    linear-gradient(180deg, #1d1813 0%, #0f0b08 100%);
-  border-bottom: 1px solid var(--border-gold);
+    radial-gradient(ellipse at 50% 0%, rgba(var(--gold-rgb), 0.32), transparent 60%),
+    var(--glass-2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(var(--gold-rgb), 0.42);
 }
 
 .bwHeroTitle {

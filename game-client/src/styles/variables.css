@@ -19,6 +19,42 @@
   --accent-purple: #9B7BB5;
   --accent-orange: #D4833B;
 
+  /* ═══ 亮调强化 · 用于毛玻璃面板上确保可读性 ═══ */
+  --accent-gold-bright: #FFD78A;
+  --accent-gold-brighter: #FFE4A8;
+  --accent-red-bright: #FFB0BE;
+  --accent-red-mid: #E27590;
+  --accent-orange-bright: #FFB670;
+  --text-bright: #FFF8EE;
+
+  /* ═══ RGB 三元组 · 便于 rgba(var(--xxx-rgb), alpha) 任意配 alpha
+        命名规则：xxx-rgb 配 --accent-xxx-bright（亮调）；xxx-base-rgb 配 --accent-xxx（原色） ═══ */
+  --gold-rgb: 232, 184, 108;          /* 亮调金 · 毛玻璃面板上使用 */
+  --gold-base-rgb: 200, 169, 104;     /* 原色金 · 对应 --accent-gold #C8A968 */
+  --red-rgb: 232, 88, 96;
+  --orange-rgb: 212, 131, 59;         /* 对应 --accent-orange #D4833B */
+  --text-rgb: 255, 240, 220;
+
+  /* ═══ 排行榜奖牌 ═══ */
+  --medal-gold: #c9a84c;
+  --medal-silver: #9e9e9e;
+  --medal-bronze: #a0522d;
+  --medal-text: #1a1208;
+
+  /* ═══ 玻璃面层 · 配合 backdrop-filter 使用 ═══ */
+  --glass-1: rgba(0, 0, 0, 0.32);
+  --glass-2: rgba(0, 0, 0, 0.45);
+  --glass-3: rgba(0, 0, 0, 0.55);
+  --glass-hover: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --glass-border-strong: rgba(255, 255, 255, 0.18);
+  --glass-divider: rgba(255, 255, 255, 0.06);
+
+  /* ═══ 文字阴影 · 夜间高可读 ═══ */
+  --ts-soft: 0 1px 2px rgba(0, 0, 0, 0.85);
+  --ts-strong: 0 1px 2px rgba(0, 0, 0, 0.95);
+  --ts-deep: 0 1px 3px rgba(0, 0, 0, 1);
+
   /* ═══ 旧 token · 按"语义用途"映射，保持 60+ 文件引用不破
         旧主题：paper=浅背景 / ink=深文字
         新主题反转：paper→深背景 / ink→浅文字，语义保持一致 ═══ */

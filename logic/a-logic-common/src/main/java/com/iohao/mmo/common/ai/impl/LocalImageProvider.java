@@ -238,7 +238,7 @@ public class LocalImageProvider implements AiImageProvider {
                     "type", "flux2")));
             p.put("3", node("VAELoader", map("vae_name", cfg.getVae())));
             p.put("4", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("2", 0))));
-            p.put("5", node("CLIPTextEncode", map("text", "", "clip", ref("2", 0))));
+            p.put("5", node("CLIPTextEncode", map("text", cfg.getNegativePrompt(), "clip", ref("2", 0))));
             Latent latent = latentSource(p, cfg, req, uploadedImage, ref("3", 0));
             p.put("7", node("KSampler", map(
                     "seed", seed, "steps", cfg.getSteps(), "cfg", cfg.getCfg(),
@@ -263,7 +263,7 @@ public class LocalImageProvider implements AiImageProvider {
                     "type", "flux")));
             p.put("3", node("VAELoader", map("vae_name", cfg.getVae())));
             p.put("4", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("2", 0))));
-            p.put("5", node("CLIPTextEncode", map("text", "", "clip", ref("2", 0))));
+            p.put("5", node("CLIPTextEncode", map("text", cfg.getNegativePrompt(), "clip", ref("2", 0))));
             Latent latent = latentSource(p, cfg, req, uploadedImage, ref("3", 0));
             p.put("7", node("KSampler", map(
                     "seed", seed, "steps", cfg.getSteps(), "cfg", cfg.getCfg(),
@@ -283,7 +283,7 @@ public class LocalImageProvider implements AiImageProvider {
             JSONObject p = new JSONObject();
             p.put("4", node("CheckpointLoaderSimple", map("ckpt_name", ckpt)));
             p.put("6", node("CLIPTextEncode", map("text", req.getPrompt(), "clip", ref("4", 1))));
-            p.put("7", node("CLIPTextEncode", map("text", "", "clip", ref("4", 1))));
+            p.put("7", node("CLIPTextEncode", map("text", cfg.getNegativePrompt(), "clip", ref("4", 1))));
             // sdxl 的 vae 从 CheckpointLoaderSimple 的 output[2] 取
             Latent latent = latentSource(p, cfg, req, uploadedImage, ref("4", 2));
             p.put("3", node("KSampler", map(

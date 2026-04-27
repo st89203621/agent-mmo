@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface SceneImageRepository extends MongoRepository<SceneImage, String> {
     List<SceneImage> findByCacheKey(String cacheKey);
-    List<SceneImage> findByCacheKeyStartingWith(String prefix);
+    List<SceneImage> findByCacheKeyStartingWithOrderByCreateTimeDesc(String prefix);
 }

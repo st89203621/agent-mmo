@@ -26,13 +26,23 @@ public class SceneImageService {
     private final AiImageProvider imageProvider;
 
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt) {
-        return getOrGenerate(cacheKey, prompt, 1024, 1024);
+        return getOrGenerate(cacheKey, prompt, 1024, 1024, false);
     }
 
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt, int width, int height) {
+        return getOrGenerate(cacheKey, prompt, width, height, false);
+    }
+
+    /**
+     * @param force true 表示重绘：先删除同 cacheKey 的旧记录，再生成。
+     *              这样同一资产永远只有一条记录，避免 prefix 查询读到历史图。
+     */
+    public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt, int width, int height, boolean force) {
         String cacheLookupKey = width + "x" + height + "_" + cacheKey;
         List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheLookupKey);
-        if (!cached.isEmpty()) {
+        if (force) {
+            cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
+        } else if (!cached.isEmpty()) {
             SceneImage existing = cached.get(0);
             if (existing.getImageData() != null && existing.getImageData().length > 0) {
                 log.info("【文生图】命中缓存: cacheKey={}", cacheLookupKey);
@@ -42,7 +52,8 @@ public class SceneImageService {
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
-        log.info("【文生图】发起请求: cacheKey={}, size={}x{}, provider={}", cacheLookupKey, width, height, imageProvider.providerName());
+        log.info("【文生图】发起请求: cacheKey={}, size={}x{}, force={}, provider={}",
+                cacheLookupKey, width, height, force, imageProvider.providerName());
         try {
             byte[] imageBytes = generateBytes(AiImageRequest.builder()
                     .prompt(prompt)
@@ -63,8 +74,15 @@ public class SceneImageService {
         return sceneImageRepository.findById(id);
     }
 
+    public Optional<SceneImage> findByExactKey(String cacheLookupKey) {
+        return sceneImageRepository.findByCacheKey(cacheLookupKey).stream()
+                .filter(si -> si.getImageData() != null && si.getImageData().length > 0)
+                .findFirst();
+    }
+
+    /** 取最新一张匹配前缀的图（按 createTime 倒序），用于不感知完整 cacheKey 的查找场景。 */
     public Optional<SceneImage> findCachedByPrefix(String prefix) {
-        return sceneImageRepository.findByCacheKeyStartingWith(prefix).stream()
+        return sceneImageRepository.findByCacheKeyStartingWithOrderByCreateTimeDesc(prefix).stream()
                 .filter(si -> si.getImageData() != null && si.getImageData().length > 0)
                 .findFirst();
     }

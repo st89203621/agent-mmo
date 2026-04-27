@@ -120,3 +120,8 @@ sliceEffect.png
 map_enemy_show_effect*.png
 /game-client/node_modules/
 /game-client/dist/
+
+### Python 编译产物 ###
+__pycache__/
+*.pyc
+*.pyo

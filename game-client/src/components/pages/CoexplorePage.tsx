@@ -7,6 +7,7 @@ import {
 } from '../../services/api';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
+import { toast } from '../../store/toastStore';
 import type { CoexploreSessionData, CoexploreRoundData } from '../../types';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
@@ -60,18 +61,21 @@ export default function CoexplorePage() {
     }
   }, [session?.sessionId, session?.status]);
 
-  // ── 大厅实时订阅 ──
-
+  // ── 大厅实时订阅（仅未入会话时订阅） ──
+  const inLobby = !session;
   useEffect(() => {
-    if (!session) {
-      return subscribeCoexploreLobby(d => setWaitingList(d.sessions));
-    }
-  }, [!session]);
+    if (!inLobby) return;
+    return subscribeCoexploreLobby(d => setWaitingList(d.sessions));
+  }, [inLobby]);
 
   // ── 操作 ──
 
+  const reportError = (e: unknown, fallback: string) => {
+    toast.error(e instanceof Error ? e.message : fallback);
+  };
+
   const handleCreate = async () => {
-    if (!bookWorld) return;
+    if (!bookWorld || loading) return;
     setLoading(true);
     try {
       setSession(await createCoexplore({
@@ -79,38 +83,51 @@ export default function CoexplorePage() {
         bookLoreSummary: bookWorld.loreSummary,
         bookArtStyle: bookWorld.artStyle,
       }));
-    } finally { setLoading(false); }
+    } catch (e) { reportError(e, '创建协探会话失败'); }
+    finally { setLoading(false); }
   };
 
   const handleJoin = async (id: string) => {
-    if (!id.trim()) return;
+    if (!id.trim() || loading) return;
     setLoading(true);
-    try { setSession(await joinCoexplore(id.trim())); } finally { setLoading(false); }
+    try { setSession(await joinCoexplore(id.trim())); }
+    catch (e) { reportError(e, '加入协探失败'); }
+    finally { setLoading(false); }
   };
 
   const handleExplore = async () => {
-    if (!session || !selectedLoc) return;
+    if (!session || !selectedLoc || loading) return;
     setLoading(true);
-    try { setSession(await coexploreExplore(session.sessionId, selectedLoc)); setSelectedLoc(null); }
+    try {
+      setSession(await coexploreExplore(session.sessionId, selectedLoc));
+      setSelectedLoc(null);
+    } catch (e) { reportError(e, '探查失败'); }
     finally { setLoading(false); }
   };
 
   const handleReason = async () => {
-    if (!session || selectedAnswer === null) return;
+    if (!session || selectedAnswer === null || loading) return;
     setLoading(true);
-    try { setSession(await coexploreReason(session.sessionId, selectedAnswer)); setSelectedAnswer(null); }
+    try {
+      setSession(await coexploreReason(session.sessionId, selectedAnswer));
+      setSelectedAnswer(null);
+    } catch (e) { reportError(e, '推理提交失败'); }
     finally { setLoading(false); }
   };
 
   const handleBossAttack = async () => {
     if (!session || attacking) return;
     setAttacking(true);
-    try { setSession(await coexploreBoss(session.sessionId)); } finally { setAttacking(false); }
+    try { setSession(await coexploreBoss(session.sessionId)); }
+    catch (e) { reportError(e, '攻击 BOSS 失败'); }
+    finally { setAttacking(false); }
   };
 
   const handleLeave = async () => {
     if (!session) return;
-    await leaveCoexplore(session.sessionId);
+    try {
+      await leaveCoexplore(session.sessionId);
+    } catch (e) { reportError(e, '退出会话失败'); }
     setSession(null);
   };
 

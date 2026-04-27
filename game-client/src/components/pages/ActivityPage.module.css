@@ -1,189 +1,6 @@
-﻿/* 活动页面专属样式 */
+/* 活动页面专属样式 */
 
-.banner {
-  position: relative;
-  margin-bottom: 14px;
-  padding: 18px 16px;
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(192, 64, 96, 0.08));
-  border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.bannerGlow {
-  position: absolute;
-  top: -30px;
-  right: -30px;
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(circle, rgba(201, 168, 76, 0.15), transparent 70%);
-  pointer-events: none;
-}
-
-.bannerTitle {
-  font-family: var(--font-main);
-  font-size: 16px;
-  color: var(--gold);
-  margin-bottom: 4px;
-}
-
-.bannerDesc {
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.6;
-}
-
-/* 活动网格 */
-.actGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.actCard {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 12px 12px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  overflow: hidden;
-  transition: all var(--transition-fast);
-}
-
-.actCard:active {
-  transform: scale(0.97);
-}
-
-.actCardGlow {
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0.3;
-}
-
-.actIcon {
-  font-size: 28px;
-  margin-bottom: 8px;
-  line-height: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.actName {
-  font-family: var(--font-main);
-  font-size: 14px;
-  color: var(--ink);
-  margin-bottom: 3px;
-  position: relative;
-  z-index: 1;
-}
-
-.actDesc {
-  font-size: 11px;
-  color: var(--ink);
-  opacity: 0.5;
-  line-height: 1.4;
-  position: relative;
-  z-index: 1;
-}
-
-.actTag {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 999px;
-  position: relative;
-  z-index: 1;
-}
-
-.actTagHot {
-  background: rgba(220, 60, 60, 0.15);
-  color: #e05050;
-  border: 1px solid rgba(220, 60, 60, 0.3);
-}
-
-.actTagNew {
-  background: rgba(80, 180, 120, 0.15);
-  color: #50b478;
-  border: 1px solid rgba(80, 180, 120, 0.3);
-}
-
-.actTagDaily {
-  background: rgba(100, 140, 220, 0.15);
-  color: #648cdc;
-  border: 1px solid rgba(100, 140, 220, 0.3);
-}
-
-.actTagLimited {
-  background: rgba(200, 120, 60, 0.15);
-  color: #c8783c;
-  border: 1px solid rgba(200, 120, 60, 0.3);
-}
-
-/* 大活动卡片（世界Boss等全宽卡片） */
-.actCardWide {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-}
-
-.actCardWide .actIcon {
-  font-size: 36px;
-  margin-bottom: 0;
-  flex-shrink: 0;
-}
-
-.actCardWide .actInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.actCardWide .actName {
-  font-size: 15px;
-}
-
-.actArrow {
-  font-size: 16px;
-  color: var(--ink);
-  opacity: 0.3;
-  flex-shrink: 0;
-}
-
-/* 倒计时标签 */
-.actCountdown {
-  font-size: 10px;
-  color: var(--gold-dim);
-  opacity: 0.8;
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
-  position: relative;
-  z-index: 1;
-}
-
-/* 分隔标题 */
-.sectionLabel {
-  font-family: var(--font-main);
-  font-size: 13px;
-  color: var(--ink);
-  opacity: 0.5;
-  margin: 16px 0 10px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--paper-darker);
-}
-
+/* ═══ 页面骨架 ═══ */
 .page {
   background: transparent;
   color: var(--text);
@@ -233,7 +50,7 @@
 .tabActive {
   border-color: var(--accent-gold);
   color: var(--accent-gold);
-  background: linear-gradient(180deg, rgba(212, 131, 59, 0.16), rgba(200, 169, 104, 0.1));
+  background: linear-gradient(180deg, rgba(var(--orange-rgb), 0.16), rgba(var(--gold-base-rgb), 0.1));
 }
 
 .scrollArea {
@@ -242,103 +59,241 @@
   padding: 12px 12px calc(12px + var(--safe-bottom, 0px));
 }
 
+/* ═══ 顶部 Banner ═══ */
 .banner {
-  border-radius: 0;
-  padding: 18px 14px;
+  position: relative;
+  margin-bottom: 14px;
+  padding: 18px 16px;
+  border-radius: 12px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 85% 18%, rgba(199, 62, 58, 0.14), transparent 24%),
-    radial-gradient(circle at 14% 80%, rgba(200, 169, 104, 0.14), transparent 28%),
-    linear-gradient(180deg, rgba(30, 22, 16, 0.98), rgba(16, 12, 9, 0.98));
-  border: 1px solid var(--accent-gold-dim);
+    radial-gradient(circle at 85% 18%, rgba(var(--red-rgb), 0.22), transparent 30%),
+    radial-gradient(circle at 14% 80%, rgba(var(--gold-rgb), 0.22), transparent 32%),
+    var(--glass-3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--gold-rgb), 0.42);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.bannerGlow {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(var(--gold-base-rgb), 0.15), transparent 70%);
+  pointer-events: none;
 }
 
 .bannerTitle {
   font-family: var(--font-serif);
-  font-size: 18px;
-  color: var(--accent-gold);
-  letter-spacing: 4px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--accent-gold-bright);
+  letter-spacing: 5px;
+  margin-bottom: 4px;
+  text-shadow: var(--ts-deep), 0 0 10px rgba(var(--gold-rgb), 0.32);
 }
 
 .bannerDesc {
   font-size: 11px;
-  color: var(--text-dim);
+  color: rgba(var(--text-rgb), 0.85);
+  opacity: 0.6;
   letter-spacing: 1px;
-  line-height: 1.7;
+  line-height: 1.75;
+  margin-top: 6px;
+  text-shadow: var(--ts-soft);
 }
 
+/* ═══ 活动卡片 ═══ */
 .actGrid {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .actCard {
-  border-radius: 0;
-  padding: 13px 11px 11px;
-  background: rgba(0, 0, 0, 0.42);
-  border: 1px solid var(--border);
-  color: var(--text);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px 12px;
+  background: var(--glass-2);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-bright);
   min-height: 158px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.32);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.actCard:hover {
+  background: var(--glass-3);
+  border-color: rgba(var(--gold-rgb), 0.42);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48), 0 0 14px rgba(var(--gold-rgb), 0.22);
+}
+.actCard:active {
+  transform: scale(0.97);
 }
 
+/* 大活动卡片（世界 Boss 等全宽） */
 .actCardWide {
-  border-color: var(--accent-red);
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-color: rgba(var(--red-rgb), 0.55);
   background:
-    radial-gradient(circle at 88% 18%, rgba(199, 62, 58, 0.12), transparent 26%),
-    linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+    radial-gradient(circle at 88% 18%, rgba(var(--red-rgb), 0.22), transparent 30%),
+    var(--glass-3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.42), 0 0 14px rgba(var(--red-rgb), 0.22);
+}
+.actCardWide:hover {
+  border-color: var(--accent-red-mid);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 18px rgba(var(--red-rgb), 0.42);
+}
+.actCardWide .actIcon {
+  font-size: 36px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.actCardWide .actInfo {
+  flex: 1;
+  min-width: 0;
+}
+.actCardWide .actName {
+  font-size: 15px;
 }
 
 .actCardGlow {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  pointer-events: none;
   opacity: 0.2;
 }
 
 .actIcon {
-  font-size: 24px;
-  color: var(--accent-gold);
+  font-size: 26px;
+  color: var(--accent-gold-bright);
+  margin-bottom: 8px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  text-shadow: var(--ts-deep), 0 0 8px rgba(var(--gold-rgb), 0.32);
 }
 
 .actName {
   font-family: var(--font-serif);
-  font-size: 13px;
-  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-bright);
   letter-spacing: 2px;
+  margin-bottom: 3px;
+  position: relative;
+  z-index: 1;
+  text-shadow: var(--ts-strong);
 }
 
 .actDesc {
-  color: var(--text-dim);
+  font-size: 11px;
+  color: rgba(var(--text-rgb), 0.85);
   opacity: 1;
   line-height: 1.65;
+  position: relative;
+  z-index: 1;
+  text-shadow: var(--ts-soft);
 }
 
 .actTag {
-  border-radius: 0;
-  letter-spacing: 2px;
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 1.5px;
+  border-radius: 999px;
+  position: relative;
+  z-index: 1;
+  text-shadow: var(--ts-soft);
+}
+
+.actTagHot {
+  background: rgba(220, 60, 60, 0.15);
+  color: #e05050;
+  border: 1px solid rgba(220, 60, 60, 0.3);
+}
+
+.actTagNew {
+  background: rgba(80, 180, 120, 0.15);
+  color: #50b478;
+  border: 1px solid rgba(80, 180, 120, 0.3);
+}
+
+.actTagDaily {
+  background: rgba(100, 140, 220, 0.15);
+  color: #648cdc;
+  border: 1px solid rgba(100, 140, 220, 0.3);
+}
+
+.actTagLimited {
+  background: rgba(200, 120, 60, 0.15);
+  color: #c8783c;
+  border: 1px solid rgba(200, 120, 60, 0.3);
 }
 
 .actArrow {
-  color: var(--accent-gold);
-  opacity: 0.7;
+  font-size: 16px;
+  color: var(--accent-gold-bright);
+  opacity: 0.85;
+  flex-shrink: 0;
+  text-shadow: var(--ts-soft);
 }
 
 .actCountdown {
+  font-size: 10px;
   font-family: var(--font-mono);
-  color: var(--accent-red);
+  font-weight: 700;
+  color: var(--accent-red-bright);
+  opacity: 0.8;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(var(--red-rgb), 0.42);
 }
 
+/* ═══ 通用 ═══ */
 .sectionLabel {
   font-family: var(--font-serif);
   font-size: 12px;
   letter-spacing: 4px;
   color: var(--accent-gold);
-  border-bottom-color: var(--border);
+  opacity: 0.5;
+  margin: 16px 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .empty {
-  padding: 20px 14px;
-  background: rgba(19, 15, 12, 0.86);
-  border: 1px solid var(--border);
+  padding: 32px 14px;
+  background: var(--glass-1);
+  border: 1px dashed var(--glass-border-strong);
+  border-radius: 10px;
   text-align: center;
-  color: var(--text-dim);
+  color: rgba(var(--text-rgb), 0.62);
+  letter-spacing: 1px;
+  text-shadow: var(--ts-soft);
 }
 
 .placeholderIcon {
@@ -349,16 +304,189 @@
 }
 
 .categoryBtn {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  background: var(--bg-raised);
-  color: var(--text-dim);
+  padding: 8px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-1);
+  color: rgba(var(--text-rgb), 0.78);
   font-size: 11px;
-  letter-spacing: 2px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-shadow: var(--ts-soft);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.categoryBtn:hover {
+  background: var(--glass-2);
+  color: var(--text-bright);
 }
 
 .categoryActive {
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
-  background: rgba(200, 169, 104, 0.1);
+  border-color: var(--accent-gold-bright);
+  color: var(--accent-gold-bright);
+  background: rgba(var(--gold-rgb), 0.22);
+  box-shadow: 0 0 10px rgba(var(--gold-rgb), 0.32);
 }
+
+/* ═══ 在线领奖 · 签到 ═══ */
+.rewardCard {
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.rewardRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.rewardTitle {
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: var(--gold);
+}
+
+.rewardSub {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  font-family: var(--font-ui);
+  margin-top: 2px;
+}
+
+.checkBtn {
+  padding: 8px 16px;
+  background: rgba(var(--gold-base-rgb), 0.2);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--gold);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.checkBtn:hover { background: rgba(var(--gold-base-rgb), 0.32); }
+.checkBtn:disabled {
+  background: none;
+  border-color: var(--paper-darker);
+  color: var(--ink);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ═══ 在线奖励项 ═══ */
+.onlineMeta {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.55;
+  font-family: var(--font-ui);
+  margin-bottom: 8px;
+}
+
+.onlineItem {
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.onlineLabel {
+  font-size: 14px;
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.onlineDesc {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.45;
+  font-family: var(--font-ui);
+  margin-top: 2px;
+}
+
+.onlineBtn {
+  padding: 7px 14px;
+  background: rgba(var(--gold-base-rgb), 0.15);
+  border: 1px solid rgba(var(--gold-base-rgb), 0.35);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gold-dim);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.onlineBtn:hover { background: rgba(var(--gold-base-rgb), 0.26); }
+.onlineBtn:disabled {
+  background: none;
+  border-color: var(--paper-darker);
+  color: var(--ink);
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ═══ 排行榜 ═══ */
+.rankFilter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.myRankBadge {
+  padding: 8px 12px;
+  background: rgba(var(--gold-base-rgb), 0.08);
+  border: 1px solid rgba(var(--gold-base-rgb), 0.2);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--gold-dim);
+  font-family: var(--font-ui);
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: var(--paper-dark);
+  border: 1px solid var(--paper-darker);
+  border-radius: 8px;
+}
+
+.rankRowTop {
+  background: rgba(var(--gold-base-rgb), 0.06);
+  border-color: rgba(var(--gold-base-rgb), 0.2);
+}
+
+.rankMedal {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-darker);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.rankMedalTop { font-size: 12px; color: var(--medal-text); }
+.rankMedal1 { background: var(--medal-gold); }
+.rankMedal2 { background: var(--medal-silver); }
+.rankMedal3 { background: var(--medal-bronze); }
+
+.rankInfo { flex: 1; }
+.rankName { font-size: 14px; color: var(--ink); font-family: var(--font-ui); }
+.rankLevel { font-size: 11px; color: var(--ink); opacity: 0.45; font-family: var(--font-ui); }
+.rankValue { font-size: 15px; color: var(--gold); font-family: var(--font-ui); font-weight: 600; }

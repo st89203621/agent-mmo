@@ -59,6 +59,8 @@ public class AiProperties {
             private String scheduler = "simple";
             private int steps = 4;
             private double cfg = 1.0;
+            /** 通用形态类负向提示词（模糊、文字水印、UI 等），由配置注入避免硬编码。 */
+            private String negativePrompt = "";
             private String weightDtype = "fp8_e4m3fn";
             private int pollIntervalMs = 100;
             private int timeoutSec = 300;
