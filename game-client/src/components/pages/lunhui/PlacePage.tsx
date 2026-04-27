@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchCurrentZone, moveToZone } from '../../../services/api';
 import { getPlaceInfo } from '../../../data/lunhuiWorld';
+import { monsterPortraitAsset, npcPortraitAsset, placeSceneAsset } from '../../../data/visualAssets';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
-import { ImageBackground } from '../../ImageBackground';
+import VisualAssetImage from '../../common/VisualAssetImage';
 import type { PlaceInfo, ZoneInfo } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
@@ -147,20 +148,19 @@ export default function PlacePage() {
       </div>
 
       <div className={styles.scrollPlain}>
-        <ImageBackground
-          imageId={`explore_bg_${place.zoneId}`}
-          sceneHint={place.landscape}
-          opacity={0.6}
+        <VisualAssetImage
+          {...placeSceneAsset(place)}
+          className={styles.placeBg}
+          generateLabel="生成场景"
+          autoGenerate
         >
-          <div className={styles.placeBg}>
-            <div className={styles.placeInk}>{place.title.slice(0, 1)}</div>
-            <div className={styles.placeText}>
-              <div className={styles.placeName}>{place.region} · {place.title}</div>
-              <div className={styles.placeCoord}>坐 标 ({place.coord[0]},{place.coord[1]})</div>
-              <div className={styles.placeMood}>{place.landscape}</div>
-            </div>
+          <div className={styles.placeInk}>{place.title.slice(0, 1)}</div>
+          <div className={styles.placeText}>
+            <div className={styles.placeName}>{place.region} · {place.title}</div>
+            <div className={styles.placeCoord}>坐 标 ({place.coord[0]},{place.coord[1]})</div>
+            <div className={styles.placeMood}>{place.landscape}</div>
           </div>
-        </ImageBackground>
+        </VisualAssetImage>
 
         <div className={styles.sectLine}>
           出 口 · 方 位
@@ -224,7 +224,13 @@ export default function PlacePage() {
                   onClick={() => enterNpc(npc)}
                   type="button"
                 >
-                  <div className={styles.placeIcon}>{npc.name.slice(0, 1)}</div>
+                  <VisualAssetImage
+                    {...npcPortraitAsset(place, npc)}
+                    className={styles.placeIcon}
+                    generateLabel="生图"
+                    showGenerate={false}
+                    autoGenerate
+                  />
                   <div className={styles.placeBody}>
                     <div className={styles.placeRowName}>{npc.name}</div>
                     <div className={styles.placeRowTip}>{npc.role} · {npc.line}</div>
@@ -247,7 +253,13 @@ export default function PlacePage() {
                   onClick={() => enterMonster(monster)}
                   type="button"
                 >
-                  <div className={styles.placeIcon}>{monster.name.slice(0, 1)}</div>
+                  <VisualAssetImage
+                    {...monsterPortraitAsset(place, monster)}
+                    className={styles.placeIcon}
+                    generateLabel="生图"
+                    showGenerate={false}
+                    autoGenerate
+                  />
                   <div className={styles.placeBody}>
                     <div className={styles.placeRowName}>{monster.name}</div>
                     <div className={styles.placeRowTip}>Lv.{monster.level} · {monster.reward}</div>

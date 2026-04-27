@@ -6591,6 +6591,7 @@
 }
 
 .btBg,
+.btGeneratedBg,
 .btBgOverlay,
 .btPhaserLayer {
   position: absolute;
@@ -6601,6 +6602,11 @@
   background-size: cover;
   background-position: center;
   filter: saturate(1.05) brightness(0.34);
+}
+
+.btGeneratedBg {
+  border: 0;
+  filter: saturate(1.05) brightness(0.42);
 }
 
 .btBgOverlay {

@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
+import { battleSceneAsset } from '../../data/visualAssets';
 import { usePhaserGame } from '../../phaser/usePhaserGame';
 import BattleScene from '../../phaser/BattleScene';
 import { useTransparentPortrait } from '../../hooks/useTransparentPortrait';
+import VisualAssetImage from '../common/VisualAssetImage';
 import {
   battleAction,
   fetchBagItems,
@@ -577,7 +579,18 @@ export default function BattlePage() {
 
   return (
     <div className={styles.btPage}>
-      {bgUrl && <div className={styles.btBg} style={{ backgroundImage: `url(${bgUrl})` }} />}
+      <VisualAssetImage
+        {...battleSceneAsset({
+          zoneId: sourceZoneId,
+          zoneName: sourceZoneName,
+          monsterId: sourceMonsterId,
+          monsterName: sourceMonsterName,
+        })}
+        className={styles.btGeneratedBg}
+        generateLabel="生成战场"
+        autoGenerate
+      />
+      {bgUrl && !sourceZoneId && <div className={styles.btBg} style={{ backgroundImage: `url(${bgUrl})` }} />}
       <div className={styles.btBgOverlay} />
       <div ref={phaserRef} className={styles.btPhaserLayer} />
 

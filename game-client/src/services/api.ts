@@ -205,6 +205,70 @@ export function generateSceneImage(npcId: string, worldIndex: number, artStyle?:
   });
 }
 
+export type VisualAssetType = 'scene' | 'portrait' | 'monster' | 'icon' | 'banner';
+
+export interface VisualAssetRequest {
+  assetKey: string;
+  type: VisualAssetType;
+  name: string;
+  description?: string;
+  context?: string;
+  width?: number;
+  height?: number;
+  force?: boolean;
+}
+
+export interface VisualAssetResponse {
+  assetKey: string;
+  imageId?: string;
+  imageUrl: string;
+  prompt?: string;
+}
+
+export function fetchVisualAsset(assetKey: string, width = 768, height = 512): Promise<VisualAssetResponse> {
+  const params = new URLSearchParams({ assetKey, width: String(width), height: String(height) });
+  return request<VisualAssetResponse>(`/visual-asset?${params}`).catch(() => ({
+    assetKey,
+    imageUrl: '',
+  }));
+}
+
+export function generateVisualAsset(params: VisualAssetRequest): Promise<VisualAssetResponse> {
+  return request<VisualAssetResponse>('/visual-asset/generate', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  }).catch(async () => {
+    const prompt = buildVisualAssetFallbackPrompt(params);
+    const npcId = params.type === 'scene' || params.type === 'banner'
+      ? `explore_bg_${params.assetKey}`
+      : `visual_${params.type}_${params.assetKey}`;
+    const result = await generateSceneImage(
+      params.force ? `${npcId}_${Date.now()}` : npcId,
+      0,
+      prompt,
+      `${params.name}。${params.description || ''}。${params.context || ''}`,
+      params.width || 832,
+      params.height || 512,
+    );
+    return {
+      assetKey: params.assetKey,
+      imageId: result.imageId,
+      imageUrl: result.imageUrl,
+      prompt,
+    };
+  });
+}
+
+function buildVisualAssetFallbackPrompt(params: VisualAssetRequest) {
+  const base = '轮回原版H5 MMO统一美术，东方玄幻，黑檀暗底，暖金光影，朱红点缀，精致国风游戏插画，和 fusion_mockup.html 的暗金卷轴界面协调。禁止文字，禁止水印，禁止logo，禁止UI按钮，禁止内置相框边框，牌匾和旗帜只能画空白纹样不能有可读文字，';
+  const subject = `资产类型：${params.type}，名称：${params.name}，设定：${params.description || ''}，上下文：${params.context || ''}。`;
+  if (params.type === 'icon') return `${base}${subject}单个游戏图标，主体居中，金属徽章感，适合小尺寸识别。`;
+  if (params.type === 'monster') return `${base}${subject}单体怪物全身立绘，主体占画面75%，姿态有压迫感，深色虚化背景。`;
+  if (params.type === 'portrait') return `${base}${subject}半身NPC立绘，人物占画面70%，暗金古风服饰，深色虚化背景。`;
+  if (params.type === 'banner') return `${base}${subject}横幅活动插画，宽屏构图，左右留安全空间，不包含文字。`;
+  return `${base}${subject}纯场景背景图，无人物，远近层次清楚，适合移动端H5页面顶部场景卡。`;
+}
+
 // ── NPC ──────────────────────────────────────
 
 export function fetchNpcs(worldIndex = 0, bookTitle?: string): Promise<{ npcs: NpcInfo[] }> {

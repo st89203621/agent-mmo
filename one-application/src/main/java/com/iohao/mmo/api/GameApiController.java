@@ -632,6 +632,106 @@ public class GameApiController {
                 .body(si.getImageData());
     }
 
+    @GetMapping("/visual-asset")
+    public ResponseEntity<Map<String, Object>> getVisualAsset(
+            @RequestParam String assetKey,
+            @RequestParam(defaultValue = "768") int width,
+            @RequestParam(defaultValue = "512") int height) {
+        String normalizedKey = normalizeVisualAssetKey(assetKey);
+        String cachePrefix = width + "x" + height + "_lunhui_asset_" + normalizedKey;
+        Optional<SceneImage> cached = sceneImageService.findCachedByPrefix(cachePrefix);
+        return ok(Map.of(
+                "assetKey", normalizedKey,
+                "imageUrl", cached.map(img -> "/api/story/scene-image/" + img.getId()).orElse("")
+        ));
+    }
+
+    @PostMapping("/visual-asset/generate")
+    public ResponseEntity<Map<String, Object>> generateVisualAsset(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        String type = normalizeVisualType(Objects.toString(body.get("type"), "scene"));
+        String rawKey = Objects.toString(body.get("assetKey"), type + "_" + Objects.toString(body.get("name"), "asset"));
+        String assetKey = normalizeVisualAssetKey(rawKey);
+        String name = Objects.toString(body.get("name"), "轮回资产");
+        String description = Objects.toString(body.get("description"), "");
+        String context = Objects.toString(body.get("context"), "");
+        int width = visualInt(body.get("width"), defaultVisualWidth(type));
+        int height = visualInt(body.get("height"), defaultVisualHeight(type));
+        boolean force = Boolean.TRUE.equals(body.get("force"));
+
+        String prompt = buildLunhuiVisualPrompt(type, name, description, context);
+        String cacheKey = "lunhui_asset_" + assetKey + (force ? "_" + System.currentTimeMillis() : "");
+        Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt, width, height);
+        if (result.isEmpty()) return err("图片生成失败");
+        return ok(Map.of(
+                "assetKey", assetKey,
+                "imageId", result.get().getId(),
+                "imageUrl", "/api/story/scene-image/" + result.get().getId(),
+                "prompt", prompt
+        ));
+    }
+
+    private String normalizeVisualType(String raw) {
+        return switch (raw == null ? "" : raw.trim().toLowerCase(Locale.ROOT)) {
+            case "npc", "portrait" -> "portrait";
+            case "monster" -> "monster";
+            case "icon", "item", "action" -> "icon";
+            case "banner" -> "banner";
+            default -> "scene";
+        };
+    }
+
+    private String normalizeVisualAssetKey(String raw) {
+        String value = raw == null ? "asset" : raw.trim().toLowerCase(Locale.ROOT);
+        value = value.replaceAll("[^a-z0-9_\\-]+", "_");
+        value = value.replaceAll("_+", "_");
+        if (value.isBlank()) return "asset";
+        return value.length() > 96 ? value.substring(0, 96) : value;
+    }
+
+    private int visualInt(Object raw, int fallback) {
+        if (raw instanceof Number n) return Math.max(256, Math.min(1536, n.intValue()));
+        return fallback;
+    }
+
+    private int defaultVisualWidth(String type) {
+        return switch (type) {
+            case "portrait", "monster" -> 768;
+            case "icon" -> 512;
+            case "banner" -> 1024;
+            default -> 832;
+        };
+    }
+
+    private int defaultVisualHeight(String type) {
+        return switch (type) {
+            case "portrait", "monster" -> 1024;
+            case "icon" -> 512;
+            case "banner" -> 512;
+            default -> 512;
+        };
+    }
+
+    private String buildLunhuiVisualPrompt(String type, String name, String description, String context) {
+        String base = "轮回原版H5 MMO统一美术，东方玄幻，暗金黑檀色调，暖金边缘光，"
+                + "少量朱红点缀，精致国风游戏插画，移动端UI可裁切，和 fusion_mockup.html 的暗金卷轴界面协调，"
+                + "画面干净，主体清晰，禁止文字、禁止水印、禁止logo、禁止UI按钮、禁止内置相框边框，"
+                + "牌匾和旗帜只能画空白纹样不能有可读文字，禁止大段留白。";
+        String subject = "名称：" + name + "。设定：" + description + "。场景上下文：" + context + "。";
+        return switch (type) {
+            case "portrait" -> base + subject
+                    + "半身NPC立绘，正面或三分之二侧身，人物占画面70%，服饰细节统一暗金古风，背景为深色虚化纹理，不要透明通道。";
+            case "monster" -> base + subject
+                    + "单体怪物全身立绘，主体占画面75%，姿态有压迫感，轮廓清楚，适合战斗页面抠图展示，深色虚化背景。";
+            case "icon" -> base + subject
+                    + "单个游戏功能或物品图标，居中构图，圆形或方形徽章感，金属描边，暗色底，适合64像素小图标识别。";
+            case "banner" -> base + subject
+                    + "横幅活动插画，宽屏构图，中心视觉明确，左右留出安全空间，不包含任何文字。";
+            default -> base + subject
+                    + "纯场景背景图，无人物，远近层次清楚，适合H5页面顶部场景卡和战斗背景，光影统一。";
+        };
+    }
+
     private String buildScenePrompt(String npcName, String bookTitle, String personality, String role,
                                      String artStyle, String sceneHint, String gender, String features) {
         StringBuilder sb = new StringBuilder();

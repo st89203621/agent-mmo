@@ -9,8 +9,9 @@ import {
   type PersonData,
 } from '../../services/api';
 import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
+import { placeSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
-import { ImageBackground } from '../ImageBackground';
+import VisualAssetImage from '../common/VisualAssetImage';
 import { StatBar, BarBlock, BarRow } from '../common/fusion';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
@@ -158,12 +159,7 @@ export default function ScenePage() {
   }
 
   return (
-    <ImageBackground
-      imageId={`explore_bg_${zone?.zoneId || 'main_city'}`}
-      sceneHint={zone?.sceneHint || '主城夜景'}
-      opacity={0.4}
-    >
-      <div className={styles.page}>
+    <div className={styles.page}>
       <div className={styles.appbar}>
         <div className={styles.row1}>
           <div className={styles.loc}>
@@ -189,7 +185,12 @@ export default function ScenePage() {
       />
 
       <div className={styles.scrollArea}>
-        <section className={styles.hero}>
+        <VisualAssetImage
+          {...placeSceneAsset(place)}
+          className={styles.hero}
+          generateLabel="生成场景"
+          autoGenerate
+        >
           <div className={styles.badges}>
             {notices.slice(0, 3).map((notice) => (
               <span
@@ -219,7 +220,7 @@ export default function ScenePage() {
             <div className={styles.heroTitle}>{place.landscape}</div>
             <div className={styles.heroSub}>{place.description}</div>
           </div>
-        </section>
+        </VisualAssetImage>
 
         <div className={styles.sect}>
           地 图
@@ -337,6 +338,5 @@ export default function ScenePage() {
         </div>
       </div>
     </div>
-    </ImageBackground>
   );
 }
