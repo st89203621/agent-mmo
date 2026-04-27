@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -28,7 +28,7 @@ const ACTS: { key: string; label: string }[] = [
 
 export default function CouplePage() {
   usePageBackground(PAGE_BG.COUPLE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   return (
     <div className={styles.mockPage}>
@@ -39,7 +39,7 @@ export default function CouplePage() {
             <span className={styles.appbarZone}>同 心 · 同 命 · 同 道</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

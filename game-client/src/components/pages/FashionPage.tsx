@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -51,6 +51,7 @@ const BUFFS: { icon: string; tone: Suit['tone']; name: string; desc: string; sta
 export default function FashionPage() {
   usePageBackground(PAGE_BG.FASHION);
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [activeId, setActiveId] = useState('s1');
 
   const handleWear = (s: Suit) => {
@@ -72,7 +73,7 @@ export default function FashionPage() {
           </div>
           <div className={styles.appbarIcons}>
             <button type="button" className={styles.appbarIcon} aria-label="商城" onClick={() => navigateTo('shop')}>购</button>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

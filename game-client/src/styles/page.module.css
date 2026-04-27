@@ -9,7 +9,7 @@
 }
 
 .header {
-  padding: 16px;
+  padding: 16px 76px 16px 16px; /* 右侧让位 PageShell toolbar */
   text-align: center;
   border-bottom: 1px solid var(--paper-darker);
   flex-shrink: 0;

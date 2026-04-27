@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { toast } from '../../store/toastStore';
 import { useGameStore } from '../../store/gameStore';
 import {
@@ -62,7 +62,7 @@ interface EventResult {
 
 export default function SecretRealmPage() {
   usePageBackground(PAGE_BG.SECRET_REALM);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [realm, setRealm] = useState<RealmData | null>(null);
   const [event, setEvent] = useState<RealmEvent | null>(null);
   const [eventResult, setEventResult] = useState<EventResult | null>(null);
@@ -171,7 +171,7 @@ export default function SecretRealmPage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >
               回

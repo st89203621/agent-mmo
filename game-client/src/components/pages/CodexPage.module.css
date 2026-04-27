@@ -1,4 +1,4 @@
-/* 通用布局由 page.module.css 提供 */
+﻿/* 通用布局由 page.module.css 提供 */
 
 /* ── 网格 ── */
 .codexGrid {
@@ -13,57 +13,73 @@
   align-items: center;
   gap: 6px;
   padding: 14px 8px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
   cursor: pointer;
   font-family: inherit;
-  transition: all var(--transition-fast);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+  transition: all 0.18s ease;
 }
 
+.codexCard:hover {
+  background: rgba(0, 0, 0, 0.48);
+  border-color: rgba(232, 184, 108, 0.42);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(232, 184, 108, 0.22);
+}
 .codexCard:active { transform: scale(0.96); }
 
 .locked {
-  opacity: 0.45;
-  filter: grayscale(0.6);
+  opacity: 0.5;
+  filter: grayscale(0.55);
   cursor: default;
 }
+.locked:hover { transform: none; }
 
 .codexAvatar {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: var(--paper);
+  background: linear-gradient(135deg, rgba(232, 184, 108, 0.28), rgba(0, 0, 0, 0.55));
+  border: 2px solid rgba(232, 184, 108, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-main);
-  font-size: 20px;
-  color: var(--ink);
+  font-size: 22px;
+  color: #FFF8EE;
   font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
 .codexName {
   font-size: 13px;
-  color: var(--ink);
-  font-weight: 600;
+  color: #FFF8EE;
+  font-weight: 700;
   text-align: center;
+  letter-spacing: 1px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .codexMeta {
   font-size: 10px;
-  color: var(--ink);
-  opacity: 0.5;
+  color: rgba(255, 240, 220, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .codexLock {
   font-size: 10px;
-  color: var(--ink);
-  opacity: 0.4;
+  color: rgba(255, 240, 220, 0.55);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 /* ── 弹窗 ── */
@@ -80,13 +96,18 @@
 }
 
 .modal {
-  background: var(--paper);
-  border-radius: var(--radius-xl);
+  background: rgba(20, 16, 13, 0.92);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(232, 184, 108, 0.32);
+  border-radius: 14px;
   padding: 28px 24px;
   max-width: 340px;
   width: 100%;
   text-align: center;
   position: relative;
+  color: #FFF8EE;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 28px rgba(232, 184, 108, 0.22);
   animation: slideUp 0.25s ease;
 }
 
@@ -192,7 +213,7 @@
 }
 
 .header {
-  padding: 12px 14px 10px;
+  padding: 12px 76px 10px 14px; /* 让位 PageShell toolbar */
   background: var(--bg-raised);
   border-bottom: 1px solid var(--border);
 }

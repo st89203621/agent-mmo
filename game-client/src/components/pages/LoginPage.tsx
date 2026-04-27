@@ -18,7 +18,7 @@ const COVER_ASSET = {
   assetKey: 'login_cover_qigai',
   type: 'banner' as const,
   name: '气盖山河 · 登录封面',
-  description: '执剑侠客云端而立，背后江山万里，赤金朱砂双色，云雾翻涌，仙气弥漫，正面构图，史诗氛围，半身像。',
+  description: '清丽仙侠少女半身立绘，飘逸长发轻纱古风衣，手持灵剑，云海花瓣飞舞，浅粉浅青柔光，水彩晕染质感，唯美工笔，正面构图，色彩明亮柔和。',
   width: 420,
   height: 520,
 };
@@ -36,20 +36,19 @@ export default function LoginPage() {
 
   const setPlayer = usePlayerStore((s) => s.setPlayer);
   const navigateTo = useGameStore((s) => s.navigateTo);
-  const currentServerId = usePlayerStore((s) => s.currentServerId);
-  const currentServerName = usePlayerStore((s) => s.currentServerName);
+  const currentServer = usePlayerStore((s) => s.currentServer);
   const setCurrentServer = usePlayerStore((s) => s.setCurrentServer);
 
   // 初始化默认分区（从后端获取 current）
   useEffect(() => {
-    if (currentServerId) return;
+    if (currentServer) return;
     fetchServerList()
       .then((res) => {
         const def = res.servers.find((s) => s.id === res.current) ?? res.servers[0];
-        if (def) setCurrentServer(def.id, def.name);
+        if (def) setCurrentServer(def);
       })
       .catch(() => {});
-  }, [currentServerId, setCurrentServer]);
+  }, [currentServer, setCurrentServer]);
 
   // 封面图：先取缓存 → 后端拉 → 仍无则触发生成
   useEffect(() => {
@@ -110,7 +109,8 @@ export default function LoginPage() {
     setError('');
   };
 
-  const serverLabel = currentServerName || '83 · 气盖山河';
+  const serverLabel = currentServer?.name || '加载中…';
+  const serverStatus = currentServer?.status;
 
   return (
     <div className={styles.lgPage}>
@@ -138,7 +138,7 @@ export default function LoginPage() {
           <span className={styles.lgServerK}>当 前 分 区</span>
           <span>
             <span className={styles.lgServerV}>{serverLabel}</span>
-            <span className={styles.lgServerState}>火爆</span>
+            {serverStatus && <span className={styles.lgServerState}>{serverStatus}</span>}
           </span>
         </div>
         <button type="button" className={styles.lgServerSwitch} onClick={() => setServerPickerOpen(true)}>
@@ -200,10 +200,10 @@ export default function LoginPage() {
 
       {serverPickerOpen && (
         <ServerSelectPanel
-          selectedId={currentServerId}
+          selectedId={currentServer?.id ?? ''}
           onClose={() => setServerPickerOpen(false)}
           onPick={(server) => {
-            setCurrentServer(server.id, server.name);
+            setCurrentServer(server);
             setServerPickerOpen(false);
           }}
         />

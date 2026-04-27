@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
@@ -47,6 +47,7 @@ interface SettleResult {
 
 export default function DungeonPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const pageParams = useGameStore((s) => s.pageParams);
   const [dungeons, setDungeons] = useState<DungeonData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +185,7 @@ export default function DungeonPage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >回</button>
           </div>

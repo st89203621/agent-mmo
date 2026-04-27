@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 
@@ -30,6 +30,7 @@ const DEFAULT_LOOT: LootRow[] = [
 
 export default function BattleResultPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const params = useGameStore((s) => s.pageParams) as BattleResultParams;
 
   const victory = params.victory ?? true;
@@ -41,7 +42,7 @@ export default function BattleResultPage() {
 
   const handlePick = () => {
     toast.reward('已 拾 取 全 部 战 利 品');
-    navigateTo('home');
+    back();
   };
 
   return (
@@ -53,7 +54,7 @@ export default function BattleResultPage() {
             <span className={styles.appbarZone}>{zone}</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="关闭" onClick={() => navigateTo('home')}>×</button>
+            <button type="button" className={styles.appbarIcon} aria-label="关闭" onClick={() => back()}>×</button>
           </div>
         </div>
       </div>
@@ -97,7 +98,7 @@ export default function BattleResultPage() {
           </div>
 
           <div className={styles.endBtns}>
-            <button type="button" className={styles.endBtn} onClick={() => navigateTo('home')}>离 开</button>
+            <button type="button" className={styles.endBtn} onClick={() => back()}>离 开</button>
             <button type="button" className={styles.endBtn} onClick={() => navigateTo('battle')}>再 战</button>
             <button type="button" className={`${styles.endBtn} ${styles.endBtnMain}`} onClick={handlePick}>拾 取</button>
           </div>

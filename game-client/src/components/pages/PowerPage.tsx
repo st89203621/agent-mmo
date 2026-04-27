@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import {
   fetchPersonInfo,
@@ -87,6 +87,7 @@ function companionPower(_c: CompanionData): number {
 export default function PowerPage() {
   usePageBackground(PAGE_BG.POWER);
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [person, setPerson] = useState<PersonData | null>(null);
   const [pets, setPets] = useState<PetData[]>([]);
   const [companions, setCompanions] = useState<CompanionData[]>([]);
@@ -139,7 +140,7 @@ export default function PowerPage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >
               回

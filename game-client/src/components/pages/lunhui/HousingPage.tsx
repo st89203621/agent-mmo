@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import type { PageId } from '../../../types';
@@ -50,6 +50,7 @@ const ACTS: { key: string; label: string; icon: string }[] = [
 export default function HousingPage() {
   usePageBackground(PAGE_BG.HOUSING);
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [pendingGold, setPendingGold] = useState(8460);
   const [collecting, setCollecting] = useState(false);
 
@@ -101,7 +102,7 @@ export default function HousingPage() {
             <span className={styles.appbarZone}>院 落 / 离 线 / 串 门 / 收 益</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

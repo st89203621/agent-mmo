@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -39,24 +39,19 @@ const TOOLS: Tool[] = [
 export default function FishingPage() {
   usePageBackground(PAGE_BG.FISHING);
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [bait, setBait] = useState(8);
   const [biting, setBiting] = useState(false);
   const [today, setToday] = useState(14);
   const [rare, setRare] = useState(3);
   const limit = 50;
-  const biteTimer = useRef<number | null>(null);
 
-  const triggerBite = useCallback(() => {
-    if (bait <= 0) return;
-    biteTimer.current = window.setTimeout(() => setBiting(true), 1800 + Math.random() * 2200);
-  }, [bait]);
-
+  // 仅当有饵且未咬钩时排定下一次咬钩；状态变化自动重排，无需手动 trigger
   useEffect(() => {
-    triggerBite();
-    return () => {
-      if (biteTimer.current) window.clearTimeout(biteTimer.current);
-    };
-  }, [triggerBite]);
+    if (bait <= 0 || biting) return;
+    const id = window.setTimeout(() => setBiting(true), 1800 + Math.random() * 2200);
+    return () => window.clearTimeout(id);
+  }, [bait, biting]);
 
   const handleHook = () => {
     if (!biting) {
@@ -72,7 +67,6 @@ export default function FishingPage() {
     } else {
       toast.info('+ 1 条 鲤 鱼');
     }
-    triggerBite();
   };
 
   const handleSwapBait = () => {
@@ -84,10 +78,7 @@ export default function FishingPage() {
     toast.info('换 上 新 饵');
   };
 
-  const handleStop = () => {
-    if (biteTimer.current) window.clearTimeout(biteTimer.current);
-    navigateTo('home');
-  };
+  const handleStop = () => back();
 
   return (
     <div className={styles.mockPage}>

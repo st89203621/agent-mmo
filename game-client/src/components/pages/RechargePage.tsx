@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -42,7 +42,7 @@ const PACKS: Pack[] = [
 
 export default function RechargePage() {
   usePageBackground(PAGE_BG.RECHARGE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const diamond = usePlayerStore((s) => s.diamond);
 
   const handleBuy = (item: TopupItem) => {
@@ -59,7 +59,7 @@ export default function RechargePage() {
           </div>
           <div className={styles.appbarIcons}>
             <button type="button" className={styles.appbarIcon} aria-label="历史" onClick={() => toast.info('充值历史尚未接入')}>史</button>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

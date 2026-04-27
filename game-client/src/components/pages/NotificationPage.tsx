@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -85,7 +85,7 @@ const tagClsMap: Record<ChipKey, string> = {
 
 export default function NotificationPage() {
   usePageBackground(PAGE_BG.NOTIFICATION);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [chip, setChip] = useState<ChipKey>('all');
 
   const list = chip === 'all' ? FEED : FEED.filter((f) => f.tag === chip);
@@ -99,7 +99,7 @@ export default function NotificationPage() {
             <span className={styles.appbarZone}>邸 报 · 战 报 · 来 札</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

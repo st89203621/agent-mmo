@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -30,7 +30,7 @@ const RANKING: RankRow[] = [
 
 export default function BattlefieldPage() {
   usePageBackground(PAGE_BG.BATTLEFIELD);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   const handleJoin = () => {
     toast.info('请 战 已 提 交 · 排 队 中 ...');
@@ -45,7 +45,7 @@ export default function BattlefieldPage() {
             <span className={styles.appbarZone}>朱 雀 vs 玄 武 · 跨 服 国 战</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

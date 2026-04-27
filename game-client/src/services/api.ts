@@ -276,13 +276,13 @@ export function generateVisualAsset(params: VisualAssetRequest): Promise<VisualA
 
 function buildVisualAssetFallbackPrompt(params: VisualAssetRequest) {
   const styleCtx = params.context ? `${params.context}，` : '';
-  const base = `东方玄幻游戏插画，${styleCtx}明亮鲜艳，色彩温柔饱和，精致唯美，禁止文字，禁止水印，禁止logo，禁止UI按钮，`;
+  const base = `东方仙侠游戏插画，${styleCtx}清新淡雅，色彩丰富明亮，柔光通透，水彩晕染质感，唯美工笔国风，画面干净，禁止暗沉厚重，禁止文字、禁止水印、禁止logo、禁止UI按钮，`;
   const subject = `名称：${params.name}，设定：${params.description || ''}。`;
-  if (params.type === 'icon') return `${base}${subject}单个游戏图标，主体居中，适合小尺寸识别，色彩明亮。`;
-  if (params.type === 'monster') return `${base}${subject}单体生物全身立绘，主体占画面75%，神态灵动，明亮虚化背景。`;
-  if (params.type === 'portrait') return `${base}${subject}半身人物立绘，人物占画面70%，古风服饰，色彩温柔，明亮虚化背景。`;
-  if (params.type === 'banner') return `${base}${subject}横幅插画，宽屏构图，左右留空，色彩丰富，不含文字。`;
-  return `${base}${subject}纯场景背景图，无人物，远近层次清楚，明亮色调，适合移动端H5页面顶部。`;
+  if (params.type === 'icon') return `${base}${subject}单个游戏图标，主体居中，柔和描边，浅色光泽底，适合小尺寸识别。`;
+  if (params.type === 'monster') return `${base}${subject}单体灵兽全身立绘，主体占画面75%，神态灵动飘逸，明亮虚化柔色背景。`;
+  if (params.type === 'portrait') return `${base}${subject}半身人物立绘，人物占画面70%，古风轻盈服饰，柔光通透，浅色虚化背景带细腻光斑。`;
+  if (params.type === 'banner') return `${base}${subject}横幅插画，宽屏构图，左右留空，色彩缤纷柔和，不含文字。`;
+  return `${base}${subject}纯场景背景图，无人物，远近层次清楚，柔和光影，明亮通透，适合移动端H5页面顶部。`;
 }
 
 // ── NPC ──────────────────────────────────────

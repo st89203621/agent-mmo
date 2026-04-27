@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -28,7 +28,7 @@ const TIERS: Tier[] = [
 
 export default function FirstRechargePage() {
   usePageBackground(PAGE_BG.FIRST_RECHARGE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const pct = Math.min(100, Math.round((STATE.paid / STATE.goal) * 100));
 
   const handleClaim = (t: Tier) => {
@@ -52,7 +52,7 @@ export default function FirstRechargePage() {
             <span className={styles.appbarZone}>七 阶 厚 礼 · 充 之 必 领</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

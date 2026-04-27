@@ -13,6 +13,18 @@
   --accent-gold-dim: #F0B670;
   --accent-red: #E27590;
 
+  /* ━━━ 旧 token 兼容覆盖 ━━━
+     早期页面用 --paper / --paper-dark / --ink / --gold 等取色；
+     若不在 .shell 里覆盖，会回落到 :root 的深褐实色，导致浅底图上面板"浮黑块"。 */
+  --bg: transparent;
+  --paper: #FFF8EE;
+  --paper-dark: rgba(0, 0, 0, 0.36);
+  --paper-darker: rgba(255, 240, 220, 0.62);
+  --ink: #FFF8EE;
+  --gold: #FFD78A;
+  --gold-dim: #F0B670;
+  --border-gold: rgba(232, 184, 108, 0.42);
+
   height: 100%;
   display: flex;
   flex-direction: column;

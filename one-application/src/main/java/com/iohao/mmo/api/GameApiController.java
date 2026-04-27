@@ -682,10 +682,13 @@ public class GameApiController {
 
     @PostMapping("/visual-asset/generate")
     public ResponseEntity<Map<String, Object>> generateVisualAsset(@RequestBody Map<String, Object> body, HttpSession session) {
-        requireLogin(session);
         String type = normalizeVisualType(Objects.toString(body.get("type"), "scene"));
         String rawKey = Objects.toString(body.get("assetKey"), type + "_" + Objects.toString(body.get("name"), "asset"));
         String assetKey = normalizeVisualAssetKey(rawKey);
+        // 登录页封面、公开资产无需登录态即可生成
+        if (!assetKey.startsWith("login_") && !assetKey.startsWith("public_")) {
+            requireLogin(session);
+        }
         String name = Objects.toString(body.get("name"), "轮回资产");
         String description = Objects.toString(body.get("description"), "");
         String context = Objects.toString(body.get("context"), "");
@@ -747,22 +750,28 @@ public class GameApiController {
     }
 
     private String buildLunhuiVisualPrompt(String type, String name, String description, String context) {
-        String base = "轮回原版H5 MMO统一美术，东方玄幻，暗金黑檀色调，暖金边缘光，"
-                + "少量朱红点缀，精致国风游戏插画，移动端UI可裁切，和 fusion_mockup.html 的暗金卷轴界面协调，"
-                + "画面干净，主体清晰，禁止文字、禁止水印、禁止logo、禁止UI按钮、禁止内置相框边框，"
-                + "牌匾和旗帜只能画空白纹样不能有可读文字，禁止大段留白。";
+        // 清新淡雅 + 色彩丰富的统一基调（替代旧版暗金黑檀厚重风）
+        String base = "东方仙侠游戏插画，清新淡雅，色彩丰富明亮，柔光通透，高饱和柔色调，"
+                + "粉青蓝绿白等多彩配色，水彩晕染质感，云雾轻盈，仙气飘逸，"
+                + "唯美工笔国风，精致细腻，画面干净，主体清晰，构图舒展，"
+                + "禁止暗黑沉闷、禁止厚重金属感、禁止血腥、"
+                + "禁止文字、禁止水印、禁止logo、禁止UI按钮、禁止相框边框。";
         String subject = "名称：" + name + "。设定：" + description + "。场景上下文：" + context + "。";
         return switch (type) {
             case "portrait" -> base + subject
-                    + "半身NPC立绘，正面或三分之二侧身，人物占画面70%，服饰细节统一暗金古风，背景为深色虚化纹理，不要透明通道。";
+                    + "半身人物立绘，正面或三分之二侧身，人物占画面70%，古风轻盈服饰，"
+                    + "明亮柔光，浅色虚化背景带细腻光斑，不要透明通道。";
             case "monster" -> base + subject
-                    + "单体怪物全身立绘，主体占画面75%，姿态有压迫感，轮廓清楚，适合战斗页面抠图展示，深色虚化背景。";
+                    + "单体灵兽/生物全身立绘，主体占画面75%，神态灵动飘逸，轮廓清楚，"
+                    + "明亮虚化背景带柔光，禁止凶煞阴森。";
             case "icon" -> base + subject
-                    + "单个游戏功能或物品图标，居中构图，圆形或方形徽章感，金属描边，暗色底，适合64像素小图标识别。";
+                    + "单个游戏功能或物品图标，居中构图，圆形或方形徽章感，柔和描边，"
+                    + "浅米色或淡青底，光泽清透，适合64像素小图标识别。";
             case "banner" -> base + subject
-                    + "横幅活动插画，宽屏构图，中心视觉明确，左右留出安全空间，不包含任何文字。";
+                    + "横幅活动插画，宽屏构图，中心视觉明确，左右留出安全空间，色彩缤纷，不含文字。";
             default -> base + subject
-                    + "纯场景背景图，无人物，远近层次清楚，适合H5页面顶部场景卡和战斗背景，光影统一。";
+                    + "纯场景背景图，无人物，远近层次清楚，柔和光影，明亮通透，"
+                    + "适合H5页面顶部场景卡和战斗背景。";
         };
     }
 

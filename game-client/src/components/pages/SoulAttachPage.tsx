@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+﻿import type { CSSProperties } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -37,7 +37,7 @@ const apStatsValueClass: Record<string, string> = {
 
 export default function SoulAttachPage() {
   usePageBackground(PAGE_BG.SOUL_ATTACH);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const pct = Math.min(100, Math.round((POOL.current / POOL.max) * 100));
 
   const handleAct = (key: string) => {
@@ -57,7 +57,7 @@ export default function SoulAttachPage() {
             <span className={styles.appbarZone}>魂 力 灌 注 · 神 兵 觉 醒</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

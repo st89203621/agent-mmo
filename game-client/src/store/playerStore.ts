@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Relation, PlayerWorld, Equipment, Pet } from '../types';
+import type { ServerInfo } from '../services/api';
 
 interface GlobalFate {
   totalFate: number;
@@ -30,8 +31,7 @@ interface PlayerState {
   diamond: number;
   globalFate: GlobalFate | null;
   levelInfo: LevelInfo | null;
-  currentServerId: string;
-  currentServerName: string;
+  currentServer: ServerInfo | null;
 
   setPlayer: (id: string, name: string, token: string) => void;
   setCurrentWorld: (index: number) => void;
@@ -42,24 +42,22 @@ interface PlayerState {
   setCurrency: (gold: number, diamond: number) => void;
   setGlobalFate: (fate: GlobalFate) => void;
   setLevelInfo: (info: LevelInfo | null) => void;
-  setCurrentServer: (id: string, name: string) => void;
+  setCurrentServer: (server: ServerInfo) => void;
   clearPlayer: () => void;
 }
 
 const SERVER_KEY = 'lunhui.currentServer';
 
-function loadServer(): { id: string; name: string } {
+function loadServer(): ServerInfo | null {
   try {
     const raw = localStorage.getItem(SERVER_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.id && parsed?.name) return parsed;
+      if (parsed?.id && parsed?.name) return parsed as ServerInfo;
     }
   } catch { /* noop */ }
-  return { id: '', name: '' };
+  return null;
 }
-
-const initialServer = loadServer();
 
 export const usePlayerStore = create<PlayerState>((set) => ({
   playerId: '',
@@ -75,8 +73,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   diamond: 0,
   globalFate: null,
   levelInfo: null,
-  currentServerId: initialServer.id,
-  currentServerName: initialServer.name,
+  currentServer: loadServer(),
 
   setPlayer: (id, name, token) => set({ playerId: id, playerName: name, token }),
   setCurrentWorld: (index) => set({ currentWorldIndex: index }),
@@ -86,9 +83,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setCurrency: (gold, diamond) => set({ gold, diamond }),
   setGlobalFate: (fate) => set({ globalFate: fate }),
   setLevelInfo: (info) => set({ levelInfo: info }),
-  setCurrentServer: (id, name) => {
-    try { localStorage.setItem(SERVER_KEY, JSON.stringify({ id, name })); } catch { /* noop */ }
-    set({ currentServerId: id, currentServerName: name });
+  setCurrentServer: (server) => {
+    try { localStorage.setItem(SERVER_KEY, JSON.stringify(server)); } catch { /* noop */ }
+    set({ currentServer: server });
   },
   clearPlayer: () => set({
     playerId: '', playerName: '', token: '', currentWorldIndex: 0,

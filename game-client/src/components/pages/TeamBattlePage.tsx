@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { createTeam, joinTeam, leaveTeam, type TeamData } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
@@ -8,7 +8,7 @@ import { PAGE_BG } from '../../data/pageBackgrounds';
 
 export default function TeamBattlePage() {
   usePageBackground(PAGE_BG.TEAM_BATTLE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [team, setTeam] = useState<TeamData | null>(null);
   const [joinId, setJoinId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function TeamBattlePage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >回</button>
           </div>

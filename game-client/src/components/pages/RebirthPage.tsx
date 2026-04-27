@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+﻿import { Fragment, useEffect, useState } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
 import { fetchRebirthStatus } from '../../services/api';
@@ -20,6 +20,7 @@ export default function RebirthPage() {
   const playerWorld = usePlayerStore((s) => s.playerWorld);
   const setCurrentWorld = usePlayerStore((s) => s.setCurrentWorld);
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [data, setData] = useState<RebirthData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -56,7 +57,7 @@ export default function RebirthPage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >
               回

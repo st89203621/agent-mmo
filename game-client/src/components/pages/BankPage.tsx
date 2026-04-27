@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
@@ -36,7 +36,7 @@ const OPS: { key: string; label: string; icon: string; danger?: boolean }[] = [
 
 export default function BankPage() {
   usePageBackground(PAGE_BG.BANK);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const gold = usePlayerStore((s) => s.gold);
   const diamond = usePlayerStore((s) => s.diamond);
   const setCurrency = usePlayerStore((s) => s.setCurrency);
@@ -68,7 +68,7 @@ export default function BankPage() {
             <span className={styles.appbarZone}>存 · 取 · 兑 · 利 息</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

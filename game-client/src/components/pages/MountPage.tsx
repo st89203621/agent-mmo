@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -40,7 +40,7 @@ const BUFFS: { icon: string; tone: Mount['tone']; name: string; desc: string; st
 
 export default function MountPage() {
   usePageBackground(PAGE_BG.MOUNT);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [activeId, setActiveId] = useState(MOCK_MOUNTS.find((m) => m.active)?.id || MOCK_MOUNTS[0].id);
 
   const active = MOCK_MOUNTS.find((m) => m.id === activeId) || MOCK_MOUNTS[0];
@@ -64,7 +64,7 @@ export default function MountPage() {
           </div>
           <div className={styles.appbarIcons}>
             <button type="button" className={styles.appbarIcon} aria-label="进阶" onClick={() => toast.info('进阶尚在筹备')}>进</button>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

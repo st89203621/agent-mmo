@@ -36,11 +36,11 @@ export function clearAllAssetCache(): void {
 }
 
 export function getVisualContext(): string {
-  return `统一参考 fusion_mockup.html：${getVisualStyle().desc}`;
+  return `画面风格：${getVisualStyle().desc} 总体清新淡雅，色彩丰富明亮，柔光通透，水彩晕染质感，唯美国风，画面干净，禁止暗沉厚重。`;
 }
 
 // 保留向后兼容
-export const LUNHUI_VISUAL_CONTEXT = '统一参考 fusion_mockup.html：黑檀暗底、鎏金边框、朱红点缀、卷轴纸纹、移动端H5 MMO界面。';
+export const LUNHUI_VISUAL_CONTEXT = '清新淡雅东方仙侠游戏画面，色彩丰富明亮，柔光通透，水彩晕染，唯美国风，移动端H5 MMO界面。';
 
 // ── 资产类型 ─────────────────────────────────────
 export interface VisualAssetSpec {

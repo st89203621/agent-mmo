@@ -1,4 +1,4 @@
-/* 太古秘典 - 技能书抽取 */
+﻿/* 太古秘典 - 技能书抽取 */
 
 /* 池子展示 */
 .poolBanner {
@@ -108,7 +108,7 @@
 
 .drawOne {
   background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  color: var(--paper);
+  color: var(--ink);
 }
 
 .drawTen {
@@ -191,7 +191,7 @@
 .revealClose {
   padding: 10px 40px;
   background: var(--gold);
-  color: var(--paper);
+  color: var(--ink);
   border: none;
   border-radius: var(--radius-md);
   font-size: 14px;
@@ -280,7 +280,7 @@
 }
 
 .header {
-  padding: 12px 14px 10px;
+  padding: 12px 76px 10px 14px; /* 让位 PageShell toolbar */
   background: var(--bg-raised);
   border-bottom: 1px solid var(--border);
 }

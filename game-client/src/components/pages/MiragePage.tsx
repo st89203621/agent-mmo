@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -21,7 +21,7 @@ const TRIALS: Trial[] = [
 
 export default function MiragePage() {
   usePageBackground(PAGE_BG.MIRAGE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   return (
     <div className={styles.mockPage}>
@@ -32,7 +32,7 @@ export default function MiragePage() {
             <span className={styles.appbarZone}>幻 由 心 生 · 镜 自 道 显</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

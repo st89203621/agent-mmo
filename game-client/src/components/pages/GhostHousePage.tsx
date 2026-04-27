@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -19,7 +19,7 @@ const MAX_GHOSTS = 6;
 // TODO: 接入 /ghosthouse/start 与 /ghosthouse/score 接口
 export default function GhostHousePage() {
   usePageBackground(PAGE_BG.GHOST_HOUSE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [ghosts, setGhosts] = useState<GhostMark[]>([]);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -83,7 +83,7 @@ export default function GhostHousePage() {
             <span className={styles.appbarZone}>子 时 三 刻 · 群 鬼 出 没</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

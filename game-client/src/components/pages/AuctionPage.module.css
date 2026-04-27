@@ -1,24 +1,32 @@
 /* 拍卖行独有样式（复用 page.module.css 共享类） */
 
-/* 物品名按品质着色 */
-.qWhite  { color: #7a7066; }
-.qGreen  { color: var(--quality-uncommon); }
-.qBlue   { color: var(--quality-rare); }
-.qPurple { color: var(--quality-epic); }
-.qOrange { color: var(--quality-legendary); }
+/* 物品名按品质着色 · 在深玻璃罩底图上加阴影 */
+.qWhite  { color: #C8BFB2; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); }
+.qGreen  { color: var(--quality-uncommon); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(127, 183, 126, 0.42); }
+.qBlue   { color: var(--quality-rare); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(106, 143, 176, 0.45); }
+.qPurple { color: var(--quality-epic); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(155, 123, 181, 0.5); }
+.qOrange { color: var(--quality-legendary); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 8px rgba(212, 131, 59, 0.55); }
 
 /* 一口价（橙色区分于主拍价） */
 .buyNowValue {
-  font-size: 13px;
-  color: #c56b2e;
+  font-size: 14px;
+  color: #FFB670;
   font-family: var(--font-ui);
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 1), 0 0 6px rgba(212, 131, 59, 0.45);
 }
 
 /* 倒计时临近结束 */
 .timerExpiring {
-  color: #b83b2a;
-  font-weight: 600;
+  color: #FFB0BE;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 1), 0 0 6px rgba(232, 88, 96, 0.55);
+  animation: timerBlink 1s ease-in-out infinite;
+}
+@keyframes timerBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* 竞拍+一口价双按钮并排 */
@@ -30,37 +38,43 @@
 
 .bidBtn {
   flex: 1;
-  padding: 9px;
-  background: rgba(201, 168, 76, 0.14);
-  border: 1px solid rgba(201, 168, 76, 0.4);
-  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: rgba(232, 184, 108, 0.18);
+  border: 1px solid rgba(232, 184, 108, 0.55);
+  border-radius: 6px;
   font-size: 13px;
-  color: var(--gold-dim);
-  font-weight: 600;
+  color: #FFD78A;
+  font-weight: 700;
+  letter-spacing: 2px;
   cursor: pointer;
   font-family: var(--font-ui);
-  transition: background var(--transition-fast);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  transition: all 0.15s ease;
 }
 
-.bidBtn:active { background: rgba(201, 168, 76, 0.26); }
-.bidBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.bidBtn:hover { background: rgba(232, 184, 108, 0.32); border-color: #FFD78A; box-shadow: 0 0 14px rgba(232, 184, 108, 0.32); }
+.bidBtn:active { transform: scale(0.97); }
+.bidBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .buyNowBtn {
   flex: 1;
-  padding: 9px;
-  background: rgba(197, 107, 46, 0.1);
-  border: 1px solid rgba(197, 107, 46, 0.35);
-  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: rgba(212, 131, 59, 0.18);
+  border: 1px solid rgba(212, 131, 59, 0.55);
+  border-radius: 6px;
   font-size: 13px;
-  color: #c56b2e;
-  font-weight: 600;
+  color: #FFB670;
+  font-weight: 700;
+  letter-spacing: 2px;
   cursor: pointer;
   font-family: var(--font-ui);
-  transition: background var(--transition-fast);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  transition: all 0.15s ease;
 }
 
-.buyNowBtn:active { background: rgba(197, 107, 46, 0.22); }
-.buyNowBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.buyNowBtn:hover { background: rgba(212, 131, 59, 0.32); border-color: #FFB670; box-shadow: 0 0 14px rgba(212, 131, 59, 0.32); }
+.buyNowBtn:active { transform: scale(0.97); }
+.buyNowBtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* 拍卖时长选择（分段按钮组） */
 .durationRow {
@@ -70,21 +84,22 @@
 
 .durationBtn {
   flex: 1;
-  padding: 8px;
-  background: var(--paper);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-sm);
+  padding: 9px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
   font-size: 13px;
-  color: var(--ink);
-  opacity: 0.6;
+  color: rgba(255, 240, 220, 0.78);
   cursor: pointer;
   font-family: var(--font-ui);
-  transition: all var(--transition-fast);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  transition: all 0.15s ease;
 }
+.durationBtn:hover { background: rgba(0, 0, 0, 0.45); color: #FFF8EE; }
 
 .durationBtnActive {
-  border-color: var(--gold);
-  color: var(--gold-dim);
-  opacity: 1;
-  background: rgba(201, 168, 76, 0.12);
+  border-color: #FFD78A;
+  color: #FFD78A;
+  background: rgba(232, 184, 108, 0.22);
+  box-shadow: 0 0 12px rgba(232, 184, 108, 0.32);
 }

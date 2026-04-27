@@ -1,4 +1,4 @@
-/* 通用布局由 page.module.css 提供 */
+﻿/* 通用布局由 page.module.css 提供 */
 
 .subtitle { color: var(--ink); opacity: 0.5; }
 
@@ -22,53 +22,66 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: var(--paper-dark);
-  border: 1px solid var(--paper-darker);
-  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
   width: 100%;
-  transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.32);
+  transition: all 0.18s ease;
 }
 
+.companionCard:hover {
+  background: rgba(0, 0, 0, 0.48);
+  border-color: rgba(232, 184, 108, 0.32);
+  transform: translateY(-1px);
+}
 .companionCard:active { transform: scale(0.98); }
 
 .cardSelected {
-  border-color: var(--gold);
-  background: linear-gradient(135deg, var(--paper-dark), rgba(201, 168, 76, 0.06));
+  border-color: #FFD78A;
+  background: rgba(232, 184, 108, 0.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 14px rgba(232, 184, 108, 0.32);
 }
 
 .companionAvatar {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  border: 2px solid var(--paper-darker);
-  background: linear-gradient(135deg, var(--paper), var(--paper-dark));
+  border: 2px solid rgba(232, 184, 108, 0.55);
+  background: linear-gradient(135deg, rgba(232, 184, 108, 0.32), rgba(0, 0, 0, 0.55));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
 .avatarText {
   font-family: var(--font-main);
-  font-size: 18px;
-  color: var(--ink);
+  font-size: 20px;
+  color: #FFF8EE;
   font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 1);
 }
 
 .levelBadge {
   position: absolute;
-  bottom: -4px;
-  font-size: 9px;
-  padding: 0 5px;
-  background: var(--ink);
-  color: var(--paper);
+  bottom: -6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  background: linear-gradient(135deg, #F0B670, #D4833B);
+  color: #1A140E;
   border-radius: 999px;
   white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
 }
 
 .companionBrief {
@@ -81,25 +94,31 @@
 
 .companionName {
   font-family: var(--font-main);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFF8EE;
+  letter-spacing: 1.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
 .companionMeta {
   font-size: 12px;
-  color: var(--ink);
-  opacity: 0.5;
+  color: rgba(255, 240, 220, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .bondBadge {
   display: inline-block;
   width: fit-content;
   font-size: 10px;
-  padding: 1px 8px;
-  background: rgba(201, 168, 76, 0.12);
-  color: var(--gold-dim);
+  font-weight: 700;
+  padding: 2px 10px;
+  background: rgba(232, 184, 108, 0.22);
+  color: #FFD78A;
   border-radius: 999px;
-  border: 1px solid rgba(201, 168, 76, 0.2);
+  border: 1px solid rgba(232, 184, 108, 0.55);
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 /* ── 详情面板 ── */
@@ -305,7 +324,7 @@
 }
 
 .header {
-  padding: 12px 14px 10px;
+  padding: 12px 76px 10px 14px; /* 让位 PageShell toolbar */
   background: var(--bg-raised);
   border-bottom: 1px solid var(--border);
 }

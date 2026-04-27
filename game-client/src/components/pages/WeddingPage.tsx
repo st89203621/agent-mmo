@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -50,11 +50,11 @@ const ACTIONS: { key: string; label: string; icon: string }[] = [
 
 export default function WeddingPage() {
   usePageBackground(PAGE_BG.WEDDING);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   const handleAction = (key: string) => {
     if (key === 'depart') {
-      navigateTo('home');
+      back();
       return;
     }
     toast.info('该礼节正在筹备');
@@ -69,7 +69,7 @@ export default function WeddingPage() {
             <span className={styles.appbarZone}>三 生 同 修 · 七 世 缔 缘</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

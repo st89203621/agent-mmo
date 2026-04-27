@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -18,7 +18,7 @@ const TTL = 1500;
 // TODO: 接入 /shooting/start 与 /shooting/score 接口
 export default function ShootingPage() {
   usePageBackground(PAGE_BG.SHOOTING);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [targets, setTargets] = useState<Target[]>([]);
   const [hits, setHits] = useState(0);
   const [misses, setMisses] = useState(0);
@@ -82,7 +82,7 @@ export default function ShootingPage() {
             <span className={styles.appbarZone}>百 步 穿 杨 · 一 弦 见 真</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

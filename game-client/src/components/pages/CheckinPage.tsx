@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import { fetchCheckinStatus, doCheckin } from '../../services/api';
@@ -41,7 +41,7 @@ interface CheckinStatus {
 
 export default function CheckinPage() {
   usePageBackground(PAGE_BG.CHECKIN);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [status, setStatus] = useState<CheckinStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [doing, setDoing] = useState(false);
@@ -104,7 +104,7 @@ export default function CheckinPage() {
             <button
               type="button"
               className={styles.appbarIcon}
-              onClick={() => navigateTo('home')}
+              onClick={() => back()}
               aria-label="返回"
             >
               回

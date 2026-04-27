@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -28,7 +28,7 @@ const DAYS: DayCell[] = Array.from({ length: 30 }, (_, i) => ({
 
 export default function MonthlyCardPage() {
   usePageBackground(PAGE_BG.MONTHLY_CARD);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   return (
     <div className={styles.mockPage}>
@@ -39,7 +39,7 @@ export default function MonthlyCardPage() {
             <span className={styles.appbarZone}>三 旬 渐 进 · 日 日 有 礼</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

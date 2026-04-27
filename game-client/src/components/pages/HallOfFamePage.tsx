@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -53,7 +53,7 @@ const DATA: Record<TabKey, HallRow[]> = {
 
 export default function HallOfFamePage() {
   usePageBackground(PAGE_BG.HALL_OF_FAME);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [tab, setTab] = useState<TabKey>('power');
   const list = DATA[tab];
   const [first, second, third, ...rest] = list;
@@ -67,7 +67,7 @@ export default function HallOfFamePage() {
             <span className={styles.appbarZone}>百 川 排 位 · 万 众 瞻 仰</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

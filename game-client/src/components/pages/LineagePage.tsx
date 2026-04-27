@@ -1,4 +1,4 @@
-import { useGameStore } from '../../store/gameStore';
+﻿import { useGameStore } from '../../store/gameStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
@@ -24,7 +24,7 @@ const LINES: LineageLine[] = [
 
 export default function LineagePage() {
   usePageBackground(PAGE_BG.LINEAGE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
 
   return (
     <div className={styles.mockPage}>
@@ -35,7 +35,7 @@ export default function LineagePage() {
             <span className={styles.appbarZone}>世 系 谱 · 五 代 二 十 四 脉</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>

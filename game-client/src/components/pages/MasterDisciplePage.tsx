@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -38,7 +38,7 @@ const MOCK_PAIRS: PairRow[] = [
 
 export default function MasterDisciplePage() {
   usePageBackground(PAGE_BG.MASTER_DISCIPLE);
-  const navigateTo = useGameStore((s) => s.navigateTo);
+  const back = useGameStore((s) => s.back);
   const [tab, setTab] = useState<TabKey>('pair');
 
   const handleAct = (target: string) => {
@@ -54,7 +54,7 @@ export default function MasterDisciplePage() {
             <span className={styles.appbarZone}>授 业 · 解 惑 · 传 承</span>
           </div>
           <div className={styles.appbarIcons}>
-            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => navigateTo('home')}>回</button>
+            <button type="button" className={styles.appbarIcon} aria-label="返回" onClick={() => back()}>回</button>
           </div>
         </div>
       </div>
