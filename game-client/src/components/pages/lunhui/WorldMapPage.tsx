@@ -3,6 +3,7 @@ import { fetchCurrentZone, teleportToZone } from '../../../services/api';
 import { WORLD_MAP_ORDER } from '../../../data/lunhuiWorld';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
+import { ImageBackground } from '../../ImageBackground';
 import styles from './LunhuiPages.module.css';
 
 const POSITIONS: Record<string, { left: string; top: string }> = {
@@ -44,7 +45,12 @@ export default function WorldMapPage() {
   }, [movingZoneId, navigateTo]);
 
   return (
-    <div className={styles.mockPage}>
+    <ImageBackground
+      imageId="explore_bg_world_map"
+      sceneHint="广阔的世界地图，山川河流交织，各大城镇闪烁着灯火"
+      opacity={0.45}
+    >
+      <div className={styles.mockPage}>
       <div className={styles.appbar}>
         <div className={styles.appbarRow}>
           <div className={styles.appbarLoc}>
@@ -102,5 +108,6 @@ export default function WorldMapPage() {
         </div>
       </div>
     </div>
+    </ImageBackground>
   );
 }

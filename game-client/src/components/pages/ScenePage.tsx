@@ -10,6 +10,7 @@ import {
 } from '../../services/api';
 import { BOTTOM_ACTIONS, getPlaceInfo } from '../../data/lunhuiWorld';
 import { toast } from '../../store/toastStore';
+import { ImageBackground } from '../ImageBackground';
 import { StatBar, BarBlock, BarRow } from '../common/fusion';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
@@ -157,7 +158,12 @@ export default function ScenePage() {
   }
 
   return (
-    <div className={styles.page}>
+    <ImageBackground
+      imageId={`explore_bg_${zone?.zoneId || 'main_city'}`}
+      sceneHint={zone?.sceneHint || '主城夜景'}
+      opacity={0.4}
+    >
+      <div className={styles.page}>
       <div className={styles.appbar}>
         <div className={styles.row1}>
           <div className={styles.loc}>
@@ -331,5 +337,6 @@ export default function ScenePage() {
         </div>
       </div>
     </div>
+    </ImageBackground>
   );
 }

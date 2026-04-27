@@ -477,27 +477,23 @@
 }
 
 .placeBg {
-  position: relative;
   padding: 14px;
-  background: linear-gradient(180deg, #1a1510 0%, #0c0a08 100%);
+  background: linear-gradient(180deg, rgba(26, 21, 16, 0.7) 0%, rgba(12, 10, 8, 0.7) 100%);
   border-bottom: 1px solid var(--border);
   display: flex;
   gap: 12px;
   align-items: center;
-  overflow: hidden;
   min-height: 140px;
 }
 
 .placeInk {
-  position: relative;
-  z-index: 2;
   width: 72px;
   height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--accent-gold);
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   color: var(--accent-gold);
   font-family: var(--font-serif);
   font-size: 38px;

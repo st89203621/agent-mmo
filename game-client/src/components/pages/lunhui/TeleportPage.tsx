@@ -3,6 +3,7 @@ import { TELEPORT_GROUPS } from '../../../data/lunhuiWorld';
 import { teleportToZone } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
+import { ImageBackground } from '../../ImageBackground';
 import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
@@ -33,7 +34,12 @@ export default function TeleportPage() {
   }, [navigateTo]);
 
   return (
-    <div className={styles.mockPage}>
+    <ImageBackground
+      imageId="explore_bg_main_city"
+      sceneHint="梦幻的传送枢纽，多彩的传送阵法闪烁着神秘光芒"
+      opacity={0.35}
+    >
+      <div className={styles.mockPage}>
       <div className={styles.appbar}>
         <div className={styles.appbarRow}>
           <div className={styles.appbarLoc}>
@@ -77,5 +83,6 @@ export default function TeleportPage() {
         </button>
       </div>
     </div>
+    </ImageBackground>
   );
 }
