@@ -358,3 +358,173 @@
   font-size: 12px;
   opacity: 0.6;
 }
+
+/* 2026-04 lunhui overhaul: memory aligned to fusion mockup */
+.page {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
+    linear-gradient(180deg, #16110d, #0f0b08);
+  color: var(--text);
+}
+
+.header {
+  padding: 12px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 6px;
+  color: var(--accent-gold);
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: var(--text-dim);
+  opacity: 1;
+  font-family: var(--font-mono);
+}
+
+.hallStats {
+  margin-top: 12px;
+}
+
+.statNum {
+  font-family: var(--font-mono);
+  color: var(--accent-gold);
+}
+
+.statLabel {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.statDivider {
+  background: var(--border);
+}
+
+.tabRow {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.tabActive {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  background: rgba(200, 169, 104, 0.1);
+}
+
+.worldRow {
+  padding: 8px 12px;
+  border-bottom-color: var(--border);
+}
+
+.worldBtn {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--text-dim);
+  opacity: 1;
+  font-family: var(--font-mono);
+}
+
+.worldActive {
+  border-color: var(--border-gold);
+  background: rgba(200, 169, 104, 0.1);
+  color: var(--accent-gold);
+}
+
+.scrollArea {
+  padding: 14px;
+}
+
+.detailPanel,
+.memoryCard {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  border-color: var(--border);
+}
+
+.detailTitle,
+.memoryTitle {
+  font-family: var(--font-serif);
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.detailMeta,
+.detailExcerpt,
+.detailTime,
+.lockedHint,
+.memoryMeta,
+.memoryExcerpt,
+.fateNum,
+.lockHint,
+.empty,
+.emptyHint {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.detailDot,
+.metaDot {
+  background: var(--text-faint);
+}
+
+.fateBadge {
+  color: var(--accent-red);
+  font-family: var(--font-mono);
+}
+
+.emotionTag,
+.affectsBadge {
+  border-radius: 0;
+}
+
+.affectsBadge {
+  color: var(--accent-gold);
+  border-color: var(--border-gold);
+}
+
+.unlockBtn {
+  border-radius: 0;
+  border: 1px solid var(--border-gold);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}
+
+.fateBar {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.fateBarFill {
+  border-radius: 0;
+}
+
+.affectsDot {
+  border-radius: 0;
+  background: var(--accent-gold);
+}
+
+.emptyIcon {
+  color: var(--accent-gold);
+}

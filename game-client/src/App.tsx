@@ -12,6 +12,7 @@ import CharacterPage from './components/pages/CharacterPage';
 import InventoryPage from './components/pages/InventoryPage';
 import QuestPage from './components/pages/QuestPage';
 import PetPage from './components/pages/PetPage';
+import PetSummonPage from './components/pages/PetSummonPage';
 import TradePage from './components/pages/TradePage';
 import AuctionPage from './components/pages/AuctionPage';
 import ShopPage from './components/pages/ShopPage';
@@ -25,6 +26,49 @@ import TreasureMountainPage from './components/pages/TreasureMountainPage';
 import EnchantPage from './components/pages/EnchantPage';
 import ActivityPage from './components/pages/ActivityPage';
 import HomePage from './components/pages/HomePage';
+import StoryPage from './components/pages/StoryPage';
+import ExplorePage from './components/pages/ExplorePage';
+import MemoryPage from './components/pages/MemoryPage';
+import RebirthPage from './components/pages/RebirthPage';
+import EquipDetailPage from './components/pages/EquipDetailPage';
+import SkillTreePage from './components/pages/SkillTreePage';
+import BookWorldPage from './components/pages/BookWorldPage';
+import CodexPage from './components/pages/CodexPage';
+import AchievementPage from './components/pages/AchievementPage';
+import CompanionPage from './components/pages/CompanionPage';
+import TitlePage from './components/pages/TitlePage';
+import FlowerPage from './components/pages/FlowerPage';
+import TeamBattlePage from './components/pages/TeamBattlePage';
+import FateMapPage from './components/pages/FateMapPage';
+import CoexplorePage from './components/pages/CoexplorePage';
+import MysticTomePage from './components/pages/MysticTomePage';
+import SecretRealmPage from './components/pages/SecretRealmPage';
+import CheckinPage from './components/pages/CheckinPage';
+import PowerPage from './components/pages/PowerPage';
+import MountPage from './components/pages/MountPage';
+import FashionPage from './components/pages/FashionPage';
+import BankPage from './components/pages/BankPage';
+import FishingPage from './components/pages/FishingPage';
+import ArenaPage from './components/pages/ArenaPage';
+import RechargePage from './components/pages/RechargePage';
+import BattleResultPage from './components/pages/BattleResultPage';
+import PkResultPage from './components/pages/PkResultPage';
+import WeddingPage from './components/pages/WeddingPage';
+import MasterDisciplePage from './components/pages/MasterDisciplePage';
+import LineagePage from './components/pages/LineagePage';
+import CouplePage from './components/pages/CouplePage';
+import RuneFurnacePage from './components/pages/RuneFurnacePage';
+import SoulAttachPage from './components/pages/SoulAttachPage';
+import TutorialPage from './components/pages/TutorialPage';
+import NotificationPage from './components/pages/NotificationPage';
+import SoulTowerPage from './components/pages/SoulTowerPage';
+import MiragePage from './components/pages/MiragePage';
+import BattlefieldPage from './components/pages/BattlefieldPage';
+import GhostHousePage from './components/pages/GhostHousePage';
+import ShootingPage from './components/pages/ShootingPage';
+import HallOfFamePage from './components/pages/HallOfFamePage';
+import MonthlyCardPage from './components/pages/MonthlyCardPage';
+import FirstRechargePage from './components/pages/FirstRechargePage';
 import CharSelectPage from './components/pages/lunhui/CharSelectPage';
 import TeleportPage from './components/pages/lunhui/TeleportPage';
 import PlacePage from './components/pages/lunhui/PlacePage';
@@ -95,26 +139,52 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   settings: SettingsPage,
   'treasure-mountain': TreasureMountainPage,
   home: HomePage,
-  story: ChatPage,
-  explore: PlacePage,
-  memory: CharacterPage,
-  rebirth: CharacterPage,
-  'equip-detail': CharacterPage,
+  story: StoryPage,
+  explore: ExplorePage,
+  memory: MemoryPage,
+  rebirth: RebirthPage,
+  'equip-detail': EquipDetailPage,
   enchant: EnchantPage,
-  'skill-tree': CharacterPage,
-  'pet-summon': PetPage,
-  'book-world': ScenePage,
-  codex: CharacterPage,
-  achievement: CharacterPage,
-  companion: HomePage,
-  title: CharacterPage,
-  flower: HomePage,
-  'team-battle': BattlePage,
-  'fate-map': MatchmakingPage,
-  coexplore: ChatPage,
-  'mystic-tome': ActivityPage,
-  'secret-realm': ActivityPage,
+  'skill-tree': SkillTreePage,
+  'pet-summon': PetSummonPage,
+  'book-world': BookWorldPage,
+  codex: CodexPage,
+  achievement: AchievementPage,
+  companion: CompanionPage,
+  title: TitlePage,
+  flower: FlowerPage,
+  'team-battle': TeamBattlePage,
+  'fate-map': FateMapPage,
+  coexplore: CoexplorePage,
+  'mystic-tome': MysticTomePage,
+  'secret-realm': SecretRealmPage,
   'destiny-path': ActivityPage,
+  checkin: CheckinPage,
+  power: PowerPage,
+  mount: MountPage,
+  fashion: FashionPage,
+  bank: BankPage,
+  fishing: FishingPage,
+  arena: ArenaPage,
+  recharge: RechargePage,
+  'battle-result': BattleResultPage,
+  'pk-result': PkResultPage,
+  wedding: WeddingPage,
+  'master-disciple': MasterDisciplePage,
+  lineage: LineagePage,
+  'couple-cultivation': CouplePage,
+  'rune-furnace': RuneFurnacePage,
+  'soul-attach': SoulAttachPage,
+  tutorial: TutorialPage,
+  notification: NotificationPage,
+  'soul-tower': SoulTowerPage,
+  mirage: MiragePage,
+  battlefield: BattlefieldPage,
+  'ghost-house': GhostHousePage,
+  shooting: ShootingPage,
+  'hall-of-fame': HallOfFamePage,
+  'monthly-card': MonthlyCardPage,
+  'first-recharge': FirstRechargePage,
 };
 
 const SHELL_LESS_PAGES: PageId[] = ['login', 'char-select', 'char-create'];

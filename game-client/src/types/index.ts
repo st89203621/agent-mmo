@@ -460,4 +460,10 @@ export type PageId =
   | 'flower' | 'trade' | 'team-battle' | 'fate-map' | 'coexplore' | 'activity'
   | 'world-boss' | 'wheel' | 'mystic-tome' | 'secret-realm'
   | 'auction' | 'market' | 'forge' | 'housing' | 'message-board' | 'stall'
-  | 'destiny-path' | 'ranking';
+  | 'destiny-path' | 'ranking'
+  | 'checkin' | 'mount' | 'fashion' | 'power'
+  | 'bank' | 'fishing' | 'arena' | 'recharge' | 'battle-result' | 'pk-result'
+  | 'wedding' | 'master-disciple' | 'lineage' | 'couple-cultivation'
+  | 'rune-furnace' | 'soul-attach' | 'tutorial' | 'notification'
+  | 'soul-tower' | 'mirage' | 'battlefield' | 'ghost-house' | 'shooting'
+  | 'hall-of-fame' | 'monthly-card' | 'first-recharge';

@@ -690,3 +690,156 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* 2026-04 lunhui overhaul: home aligned to fusion mockup */
+.page {
+  background-color: #120d09;
+}
+
+.bgVignette {
+  background:
+    linear-gradient(to bottom,
+      rgba(14, 11, 9, 0.9) 0%,
+      rgba(14, 11, 9, 0.45) 12%,
+      transparent 28%,
+      transparent 72%,
+      rgba(14, 11, 9, 0.32) 88%,
+      rgba(14, 11, 9, 0.75) 100%
+    ),
+    radial-gradient(ellipse at center, transparent 40%, rgba(14, 11, 9, 0.55) 100%);
+}
+
+.hud {
+  max-width: 430px;
+}
+
+.worldTag,
+.checkinDone {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  text-shadow: none;
+}
+
+.coinBadge,
+.diamondBadge,
+.checkinBtn,
+.subjectTab,
+.actionBtn {
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+.coinBadge,
+.diamondBadge {
+  background: rgba(15, 11, 8, 0.82);
+  border-color: var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+}
+
+.checkinBtn {
+  background: rgba(200, 169, 104, 0.12);
+  color: var(--accent-gold);
+  border-color: var(--border-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 2px;
+}
+
+.charName {
+  font-family: var(--font-serif);
+  color: var(--accent-gold);
+  text-shadow: none;
+  letter-spacing: 4px;
+}
+
+.levelHudBadge {
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+  text-shadow: none;
+}
+
+.levelHudBar {
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+  height: 8px;
+}
+
+.levelHudFill {
+  background: linear-gradient(90deg, var(--accent-jade), var(--accent-gold));
+}
+
+.subjectTab,
+.actionBtn {
+  background: rgba(15, 11, 8, 0.84);
+  border-color: var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-serif);
+  letter-spacing: 2px;
+}
+
+.subjectTabActive {
+  background: rgba(200, 169, 104, 0.12);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+}
+
+.actionBtn:active {
+  background: rgba(200, 169, 104, 0.12);
+  color: var(--accent-gold);
+}
+
+.pickerPanel {
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  border-top-color: var(--border-gold);
+  border-radius: 0;
+}
+
+.pickerTitle,
+.editDimLabel {
+  font-family: var(--font-serif);
+  color: var(--accent-gold);
+  letter-spacing: 2px;
+}
+
+.pickerHint {
+  color: var(--text-dim);
+  opacity: 1;
+  font-family: var(--font-mono);
+}
+
+.pickerItem,
+.editOption {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.pickerActive,
+.editOptionActive {
+  border-color: var(--border-gold) !important;
+  background: rgba(200, 169, 104, 0.1) !important;
+  color: var(--accent-gold) !important;
+  box-shadow: none;
+}
+
+.pickerConfirm {
+  border-radius: 0;
+  border: 1px solid var(--border-gold);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}
+
+.editInput {
+  border-radius: 0;
+  border-color: var(--border);
+  background: var(--bg-ink);
+  color: var(--text);
+}
+
+.editInput::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}

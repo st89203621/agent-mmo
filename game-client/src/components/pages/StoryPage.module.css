@@ -885,3 +885,165 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
+
+/* 2026-04 lunhui overhaul: story aligned to fusion mockup */
+.page,
+.pageLibrary {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
+    linear-gradient(180deg, #16110d, #0f0b08);
+  color: var(--text);
+}
+
+.libraryHeader {
+  padding: 16px 14px 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.libraryTitle {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  letter-spacing: 6px;
+  color: var(--accent-gold);
+}
+
+.librarySubtitle,
+.artStyleLabel,
+.artCurrent,
+.addBookHint,
+.emptyHint,
+.loadingHint {
+  color: var(--text-dim);
+  opacity: 1;
+  font-family: var(--font-mono);
+}
+
+.artStyleBar,
+.addBookBar {
+  border-bottom-color: var(--border);
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+.artTag,
+.addBookToggle,
+.showHistoryBtn,
+.endBtn {
+  border-radius: 0;
+  border-color: var(--border);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.artTagActive {
+  border-color: var(--border-gold);
+  background: rgba(200, 169, 104, 0.1);
+  color: var(--accent-gold);
+}
+
+.artCustomInput,
+.addBookInput,
+.freeInput {
+  border-radius: 0;
+  border-color: var(--border);
+  background: var(--bg-ink);
+  color: var(--text);
+}
+
+.artCustomInput::placeholder,
+.addBookInput::placeholder,
+.freeInput::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+
+.artCustomBtn,
+.addBookBtn,
+.sendBtn {
+  border-radius: 0;
+  border: 1px solid var(--border-gold);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}
+
+.bookScroll {
+  padding: 14px;
+}
+
+.bookCard {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  border-color: var(--border);
+}
+
+.scenePortrait,
+.dialogueBubble,
+.historyMsg,
+.historyMsgPlayer {
+  border-radius: 0;
+}
+
+.dialogueBubble {
+  background: var(--bg-panel);
+  border-color: var(--border);
+}
+
+.dialogueText,
+.historyText {
+  color: var(--text);
+  opacity: 1;
+}
+
+.historySpeaker,
+.historySpeakerPlayer {
+  font-family: var(--font-serif);
+}
+
+.historySpeaker {
+  color: var(--accent-gold);
+}
+
+.historySpeakerPlayer {
+  color: var(--accent-azure);
+}
+
+.actionArea {
+  border-top-color: var(--border);
+  background: rgba(15, 11, 8, 0.95);
+}
+
+.choiceBtn {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--text);
+  font-family: var(--font-serif);
+}
+
+.choiceBtn:active {
+  background: rgba(200, 169, 104, 0.12);
+  color: var(--accent-gold);
+}
+
+.choiceWeight {
+  font-family: var(--font-mono);
+}
+
+.fullscreenHint,
+.galleryCounter {
+  font-family: var(--font-mono);
+}
+
+.galleryDotActive {
+  background: var(--accent-gold);
+}
+
+.errorHint {
+  border-radius: 0;
+  background: rgba(180, 60, 60, 0.12);
+  border-color: rgba(180, 60, 60, 0.35);
+}

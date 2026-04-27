@@ -297,3 +297,183 @@
   font-size: 12px;
   opacity: 0.6;
 }
+
+/* 2026-04 lunhui overhaul: companion aligned to fusion mockup */
+.page {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
+    linear-gradient(180deg, #16110d, #0f0b08);
+  color: var(--text);
+}
+
+.header {
+  padding: 12px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 6px;
+  color: var(--accent-gold);
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: var(--text-dim);
+  opacity: 1;
+  font-family: var(--font-mono);
+}
+
+.body {
+  padding: 14px;
+}
+
+.companionList {
+  gap: 6px;
+}
+
+.companionCard {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  border-color: var(--border);
+}
+
+.cardSelected {
+  border-color: var(--border-gold);
+  background: linear-gradient(180deg, rgba(35, 27, 22, 0.98), rgba(18, 13, 10, 0.98));
+}
+
+.companionAvatar {
+  border-radius: 0;
+  background: var(--bg-ink);
+}
+
+.avatarText {
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+}
+
+.levelBadge {
+  border-radius: 0;
+  background: var(--accent-gold);
+  color: #1b130b;
+  font-family: var(--font-mono);
+}
+
+.companionName {
+  font-family: var(--font-serif);
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.companionMeta {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.bondBadge {
+  border-radius: 0;
+  background: rgba(200, 169, 104, 0.1);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.detailPanel {
+  border-radius: 0;
+  background: var(--bg-panel);
+  border-color: var(--border);
+}
+
+.detailName,
+.skillTitle {
+  font-family: var(--font-serif);
+  color: var(--accent-gold);
+  letter-spacing: 2px;
+}
+
+.detailType,
+.hpLabel,
+.skillLoading,
+.skillEmpty,
+.hint {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.hpTrack {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.hpFill {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-jade));
+}
+
+.statCell {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.statLabel {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.statValue {
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.skillItem {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.skillIcon {
+  color: var(--accent-gold);
+}
+
+.skillName {
+  color: var(--text);
+  font-family: var(--font-serif);
+}
+
+.skillDesc {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.feedBtn,
+.activeBtn {
+  border-radius: 0;
+  border: 1px solid var(--border);
+  font-family: var(--font-serif);
+  letter-spacing: 2px;
+}
+
+.feedBtn {
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  border-color: var(--border-gold);
+}
+
+.activeBtn {
+  background: var(--bg-raised);
+  color: var(--text-dim);
+}
+
+.empty {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.placeholderIcon {
+  color: var(--accent-gold);
+}

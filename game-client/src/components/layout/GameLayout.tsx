@@ -28,6 +28,8 @@ const NAV_ITEMS: NavItem[] = [
       'hub', 'scene', 'place', 'teleport', 'nearby', 'book-world',
       'world-map', 'hunt', 'battle', 'dungeon', 'world-boss',
       'team-battle', 'treasure-mountain', 'secret-realm', 'explore',
+      'arena', 'battlefield', 'soul-tower', 'mirage',
+      'ghost-house', 'shooting', 'battle-result', 'pk-result',
     ],
   },
   {
@@ -35,14 +37,20 @@ const NAV_ITEMS: NavItem[] = [
     label: '家园',
     icon: '家',
     pageId: 'housing',
-    matches: ['housing', 'flower'],
+    matches: [
+      'housing', 'flower', 'fishing', 'bank',
+      'wedding', 'couple-cultivation',
+    ],
   },
   {
     id: 'inventory',
     label: '背包',
     icon: '包',
     pageId: 'inventory',
-    matches: ['inventory', 'equip-detail', 'enchant', 'forge'],
+    matches: [
+      'inventory', 'equip-detail', 'enchant', 'forge',
+      'mount', 'fashion', 'rune-furnace', 'soul-attach',
+    ],
   },
   {
     id: 'me',
@@ -55,6 +63,10 @@ const NAV_ITEMS: NavItem[] = [
       'title', 'codex', 'quest', 'skill-tree', 'rebirth',
       'destiny-path', 'mystic-tome', 'fate-map', 'matchmaking',
       'coexplore', 'memory', 'companion',
+      'master-disciple', 'lineage',
+      'checkin', 'wheel', 'power', 'recharge',
+      'monthly-card', 'first-recharge', 'hall-of-fame',
+      'tutorial', 'notification',
     ],
   },
 ];

@@ -323,3 +323,236 @@
 .quickLink:active {
   background: var(--paper-darker);
 }
+
+/* 2026-04 lunhui overhaul: character shell aligned to fusion mockup */
+.page {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
+    linear-gradient(180deg, #16110d, #0f0b08);
+  color: var(--text);
+}
+
+.header {
+  padding: 12px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 6px;
+  color: var(--accent-gold);
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.tabRow {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+
+.tabActive {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  background: rgba(200, 169, 104, 0.1);
+}
+
+.timeline {
+  justify-content: space-between;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.worldDot {
+  width: 38px;
+  height: 46px;
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.worldDot.active {
+  background: rgba(200, 169, 104, 0.14);
+  border-color: var(--accent-gold);
+  box-shadow: none;
+}
+
+.worldDot.done {
+  background: rgba(53, 157, 124, 0.12);
+  border-color: var(--accent-jade);
+}
+
+.worldNum,
+.worldLabel {
+  color: var(--text);
+}
+
+.content {
+  padding: 14px;
+}
+
+.section {
+  margin-bottom: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--accent-gold);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+  letter-spacing: 3px;
+}
+
+.levelRow {
+  gap: 10px;
+}
+
+.levelBadge {
+  border-radius: 0;
+  background: rgba(200, 169, 104, 0.14);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.expBarWrap {
+  height: 10px;
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.expBarFill {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--accent-jade), var(--accent-gold));
+}
+
+.expText {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.statsGrid {
+  gap: 6px;
+}
+
+.statItem {
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  color: var(--text-dim);
+}
+
+.statVal {
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.equipGrid {
+  gap: 6px;
+}
+
+.equipSlot {
+  border-radius: 0;
+  border-color: var(--border);
+  background: var(--bg-ink);
+}
+
+.equipSlot.equipped {
+  border-color: var(--accent-gold);
+  background: rgba(200, 169, 104, 0.08);
+}
+
+.equipLabel {
+  color: var(--text-faint);
+}
+
+.qualityDot {
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+.attrPointsBadge {
+  float: none;
+  display: inline-block;
+  margin-left: 8px;
+  border-radius: 0;
+  color: var(--accent-gold);
+  border-color: var(--border-gold);
+  background: rgba(200, 169, 104, 0.1);
+  font-family: var(--font-mono);
+}
+
+.allotRow {
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.allotLabel,
+.allotPer {
+  color: var(--text-dim);
+}
+
+.allotBtn {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border-color: var(--border);
+  color: var(--accent-gold);
+}
+
+.allotCount {
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.allotConfirmBtn {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  border: 1px solid var(--border-gold);
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 4px;
+}
+
+.quickLinks {
+  gap: 6px;
+}
+
+.quickLink {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border-color: var(--border);
+  color: var(--text);
+  font-family: var(--font-serif);
+}
+
+.emptyText {
+  color: var(--text-faint);
+}

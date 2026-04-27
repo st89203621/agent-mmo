@@ -272,3 +272,147 @@
   font-weight: 600;
   opacity: 1;
 }
+
+/* 2026-04 lunhui overhaul: mystic tome aligned to fusion mockup */
+.page {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(200, 169, 104, 0.08), transparent 22%),
+    linear-gradient(180deg, #16110d, #0f0b08);
+  color: var(--text);
+}
+
+.header {
+  padding: 12px 14px 10px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  letter-spacing: 6px;
+  color: var(--accent-gold);
+}
+
+.subtitle {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.poolBanner {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(200, 169, 104, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+  border-bottom-color: var(--border);
+}
+
+.poolGlow {
+  background: radial-gradient(ellipse at 50% 40%, rgba(200, 169, 104, 0.08), transparent 70%);
+}
+
+.poolName {
+  font-family: var(--font-serif);
+  color: var(--accent-gold);
+  letter-spacing: 3px;
+}
+
+.poolDesc {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.rateBadge {
+  border-radius: 0;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+
+.drawSection {
+  padding: 12px 14px;
+}
+
+.drawBtn {
+  border-radius: 0;
+  border: 1px solid var(--border);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}
+
+.drawOne {
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.22), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  border-color: var(--border-gold);
+}
+
+.drawTen {
+  background: linear-gradient(180deg, rgba(199, 62, 58, 0.22), rgba(125, 51, 49, 0.18));
+  color: var(--text);
+  border-color: rgba(199, 62, 58, 0.4);
+}
+
+.drawCost,
+.pityRow {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.pityVal {
+  color: var(--accent-gold);
+}
+
+.scrollArea {
+  padding-bottom: 16px;
+}
+
+.bookSection {
+  padding: 0 14px 14px;
+}
+
+.bookSectionTitle {
+  font-family: var(--font-serif);
+  color: var(--accent-gold);
+  letter-spacing: 3px;
+  border-bottom-color: var(--border);
+}
+
+.bookCard {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+}
+
+.bookName {
+  font-family: var(--font-serif);
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.bookRank {
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+.revealCard {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(31, 24, 19, 0.98), rgba(15, 11, 8, 0.98));
+}
+
+.revealName {
+  color: var(--text);
+  font-family: var(--font-serif);
+}
+
+.revealRank {
+  font-family: var(--font-mono);
+}
+
+.revealClose {
+  border-radius: 0;
+  border: 1px solid var(--border-gold);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}

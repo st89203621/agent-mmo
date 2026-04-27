@@ -412,3 +412,149 @@
 .rankName { font-family: var(--font-main); font-size: 14px; color: var(--ink); display: block; }
 .rankLevel { font-size: 12px; color: var(--ink); opacity: 0.5; }
 .rankValue { font-size: 16px; color: var(--gold); font-weight: 700; }
+
+/* 2026-04 lunhui overhaul: achievement/fate/rank visual alignment */
+.starMapBtn {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border-color: var(--border-gold);
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 2px;
+}
+
+.achieveList,
+.fateList,
+.rankList {
+  gap: 6px;
+}
+
+.achieveCard,
+.fateCard,
+.fateDetail,
+.rankItem,
+.myRankBanner {
+  border-radius: 0;
+  background: var(--bg-panel);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.achieveUnlocked,
+.rankTop {
+  border-color: var(--border-gold);
+  background: linear-gradient(180deg, rgba(32, 25, 20, 0.96), rgba(19, 15, 12, 0.96));
+}
+
+.achieveIcon,
+.rankPos {
+  color: var(--accent-gold);
+}
+
+.achieveName,
+.fateName,
+.fateDetailName,
+.rankName {
+  font-family: var(--font-serif);
+  color: var(--text);
+  letter-spacing: 1px;
+}
+
+.achieveDesc,
+.fateKeyFact,
+.fateDetailSub,
+.fateDetailPersonality,
+.rankLevel {
+  color: var(--text-dim);
+  opacity: 1;
+}
+
+.achieveBar {
+  border-radius: 0;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+}
+
+.achieveBarFill {
+  border-radius: 0;
+  background: linear-gradient(90deg, var(--accent-jade), var(--accent-gold));
+}
+
+.achievePct,
+.myRankBanner {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.achieveCheck {
+  color: var(--accent-gold);
+}
+
+.claimBtn,
+.goStoryBtn {
+  border-radius: 0;
+  border: 1px solid var(--border-gold);
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.2), rgba(200, 169, 104, 0.14));
+  color: var(--accent-gold);
+  font-family: var(--font-serif);
+  letter-spacing: 3px;
+}
+
+.fateCard:active {
+  transform: scale(0.99);
+}
+
+.fateAvatar,
+.fateDetailAvatar {
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(212, 131, 59, 0.18), rgba(200, 169, 104, 0.12));
+  border: 1px solid var(--border-gold);
+  color: var(--accent-gold);
+}
+
+.fateAvatarImg,
+.fateDetailImg {
+  border-radius: 0;
+}
+
+.fateLevel,
+.milestoneNum,
+.rankValue {
+  color: var(--accent-gold);
+  font-family: var(--font-mono);
+}
+
+.fateMilestone,
+.traitTag {
+  border-radius: 0;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.fateDetailClose {
+  color: var(--text-faint);
+}
+
+.milestoneRow {
+  gap: 12px;
+}
+
+.milestoneLabel,
+.keyFactsTitle {
+  color: var(--text-dim);
+}
+
+.keyFactItem {
+  color: var(--text-dim);
+  border-bottom-color: var(--border);
+}
+
+.memoryFate {
+  color: var(--accent-red);
+}
+
+.myRankBanner {
+  border-style: dashed;
+  text-align: left;
+}
