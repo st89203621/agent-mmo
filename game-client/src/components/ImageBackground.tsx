@@ -32,17 +32,20 @@ export function ImageBackground({
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const generateBg = async () => {
       if (!containerRef.current) return;
 
       try {
         setLoading(true);
         setError('');
+        setImageUrl('');
 
         const rect = containerRef.current.getBoundingClientRect();
         const size = getOptimalImageSize(
-          Math.ceil(rect.width),
-          Math.ceil(rect.height),
+          Math.ceil(rect.width) || 512,
+          Math.ceil(rect.height) || 512,
           window.devicePixelRatio,
         );
 
@@ -55,16 +58,19 @@ export function ImageBackground({
           size.height,
         );
 
-        setImageUrl(result.imageUrl);
+        if (!cancelled) setImageUrl(result.imageUrl);
       } catch (err) {
-        console.error('背景图片生成失败:', err);
-        setError(err instanceof Error ? err.message : '生成失败');
+        if (!cancelled) {
+          console.error('背景图片生成失败:', err);
+          setError(err instanceof Error ? err.message : '生成失败');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     generateBg();
+    return () => { cancelled = true; };
   }, [imageId, sceneHint, artStyle]);
 
   return (
