@@ -26,26 +26,35 @@ public class SceneImageService {
     private final AiImageProvider imageProvider;
 
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt) {
-        List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheKey);
+        return getOrGenerate(cacheKey, prompt, 1024, 1024);
+    }
+
+    public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt, int width, int height) {
+        String cacheLookupKey = width + "x" + height + "_" + cacheKey;
+        List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheLookupKey);
         if (!cached.isEmpty()) {
             SceneImage existing = cached.get(0);
             if (existing.getImageData() != null && existing.getImageData().length > 0) {
-                log.info("【文生图】命中缓存: cacheKey={}", cacheKey);
+                log.info("【文生图】命中缓存: cacheKey={}", cacheLookupKey);
                 return Optional.of(existing);
             }
-            log.info("清除无效缓存: cacheKey={}", cacheKey);
+            log.info("清除无效缓存: cacheKey={}", cacheLookupKey);
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
-        log.info("【文生图】发起请求: cacheKey={}, provider={}", cacheKey, imageProvider.providerName());
+        log.info("【文生图】发起请求: cacheKey={}, size={}x{}, provider={}", cacheLookupKey, width, height, imageProvider.providerName());
         try {
-            byte[] imageBytes = generateBytes(AiImageRequest.builder().prompt(prompt).build());
+            byte[] imageBytes = generateBytes(AiImageRequest.builder()
+                    .prompt(prompt)
+                    .width(width)
+                    .height(height)
+                    .build());
             if (imageBytes == null || imageBytes.length == 0) {
                 return Optional.empty();
             }
-            return Optional.of(persist(cacheKey, prompt, imageBytes));
+            return Optional.of(persist(cacheLookupKey, prompt, imageBytes));
         } catch (Exception e) {
-            log.warn("场景图片生成失败: cacheKey={}, error={}", cacheKey, e.getMessage());
+            log.warn("场景图片生成失败: cacheKey={}, error={}", cacheLookupKey, e.getMessage());
             return Optional.empty();
         }
     }

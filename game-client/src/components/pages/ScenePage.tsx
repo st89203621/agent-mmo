@@ -92,6 +92,12 @@ export default function ScenePage() {
     pageId: 'teleport' as const,
   };
 
+  const pageContext = useMemo(() => ({
+    zoneId: place.zoneId,
+    zoneName: place.title,
+    region: place.region,
+  }), [place.region, place.title, place.zoneId]);
+
   const handleMove = useCallback(async (targetZoneId: string) => {
     if (moving) return;
     setMoving(true);
@@ -191,7 +197,12 @@ export default function ScenePage() {
 
           <button
             className={styles.namecard}
-            onClick={() => navigateTo(primaryNpc.pageId)}
+            onClick={() => navigateTo(primaryNpc.pageId, {
+              ...pageContext,
+              source: 'npc',
+              npcId: primaryNpc.id,
+              npcName: primaryNpc.name,
+            })}
             type="button"
           >
             <div className={styles.namecardName}>{primaryNpc.name} · {primaryNpc.role}</div>
@@ -258,7 +269,11 @@ export default function ScenePage() {
             <button
               key={item.id}
               className={`${styles.menuItem} ${item.badge === 'hot' ? styles.hot : ''}`.trim()}
-              onClick={() => navigateTo(item.pageId)}
+              onClick={() => navigateTo(item.pageId, {
+                ...pageContext,
+                source: 'hub',
+                actionId: item.id,
+              })}
               type="button"
             >
               <span className={styles.menuIcon}>{item.label.slice(0, 1)}</span>

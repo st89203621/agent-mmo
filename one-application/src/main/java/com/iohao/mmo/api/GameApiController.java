@@ -550,6 +550,8 @@ public class GameApiController {
         int worldIndex = ((Number) body.getOrDefault("worldIndex", 1)).intValue();
         String artStyleOverride = (String) body.getOrDefault("artStyle", null);
         String sceneHint = (String) body.getOrDefault("sceneHint", null);
+        int width = ((Number) body.getOrDefault("width", 1024)).intValue();
+        int height = ((Number) body.getOrDefault("height", 1024)).intValue();
 
         Optional<NpcTemplate> npcOpt = fateService.getNpcTemplate(npcId);
         NpcTemplate npc = npcOpt.orElse(null);
@@ -572,7 +574,7 @@ public class GameApiController {
                 ? buildLandscapePrompt(bookTitle, artStyle, sceneHint)
                 : buildScenePrompt(npcName, bookTitle, personality, role, artStyle, sceneHint, gender, features);
 
-        Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt);
+        Optional<SceneImage> result = sceneImageService.getOrGenerate(cacheKey, prompt, width, height);
         if (result.isEmpty()) return err("图片生成失败");
 
         String imageId = result.get().getId();
@@ -1852,7 +1854,12 @@ public class GameApiController {
         long userId = requireLogin(session);
         int[] stats = buildPlayerStats(userId);
         List<BattleState.BattleSkill> battleSkills = buildBattleSkills(userId);
-        BattleState state = battleService.startBattle(userId, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], battleSkills);
+        String monsterName = body == null ? null : Objects.toString(body.get("monsterName"), "");
+        int monsterLevel = 0;
+        if (body != null && body.get("monsterLevel") instanceof Number number) {
+            monsterLevel = number.intValue();
+        }
+        BattleState state = battleService.startBattle(userId, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6], battleSkills, monsterName, monsterLevel);
         attachBattlePortraits(userId, state);
         return ok(Map.of("battle", battleToMap(state)));
     }
@@ -4310,6 +4317,15 @@ public class GameApiController {
         String targetZoneId = body.get("zoneId");
         var info = zoneService.moveToZone(userId, targetZoneId);
         if (info == null) return err("无法移动到目标区域");
+        return ok(zoneInfoToMap(info));
+    }
+
+    @PostMapping("/zone/teleport")
+    public ResponseEntity<Map<String, Object>> teleportToZone(@RequestBody Map<String, String> body, HttpSession session) {
+        long userId = requireLogin(session);
+        String targetZoneId = body.get("zoneId");
+        var info = zoneService.teleportToZone(userId, targetZoneId);
+        if (info == null) return err("无法传送到目标区域");
         return ok(zoneInfoToMap(info));
     }
 

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchCurrentZone, moveToZone } from '../../../services/api';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchCurrentZone, generateSceneImage, moveToZone } from '../../../services/api';
 import { getPlaceInfo } from '../../../data/lunhuiWorld';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
+import { useGenerateResponsiveImage } from '../../../hooks/useResponsiveImage';
 import type { PlaceInfo, ZoneInfo } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
@@ -35,6 +36,9 @@ export default function PlacePage() {
   const pageZoneId = useGameStore((s) => String(s.pageParams.zoneId || ''));
   const [zone, setZone] = useState<ZoneInfo | null>(null);
   const [moving, setMoving] = useState(false);
+  const bgContainerRef = useRef<HTMLDivElement>(null);
+  const [bgImageUrl, setBgImageUrl] = useState<string>('');
+  const [bgLoading, setBgLoading] = useState(false);
 
   const loadZone = useCallback(async () => {
     try {
@@ -50,6 +54,33 @@ export default function PlacePage() {
   }, [loadZone]);
 
   const place: PlaceInfo = useMemo(() => getPlaceInfo(pageZoneId || zone?.zoneId || 'main_city'), [pageZoneId, zone]);
+
+  const generatePlaceBg = useCallback(async (width: number, height: number) => {
+    try {
+      setBgLoading(true);
+      const result = await generateSceneImage(
+        `explore_bg_${place.zoneId}`,
+        0,
+        undefined,
+        place.landscape,
+        Math.min(width, 768),
+        Math.min(height, 512),
+      );
+      setBgImageUrl(result.imageUrl);
+    } catch (err) {
+      console.error('生成背景图片失败:', err);
+    } finally {
+      setBgLoading(false);
+    }
+  }, [place.zoneId, place.landscape]);
+
+  useEffect(() => {
+    if (!bgContainerRef.current) return;
+    const rect = bgContainerRef.current.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      generatePlaceBg(Math.ceil(rect.width), Math.ceil(rect.height));
+    }
+  }, [place.zoneId, generatePlaceBg]);
 
   const handleMove = useCallback(async (targetZoneId: string) => {
     if (moving) return;
@@ -97,6 +128,39 @@ export default function PlacePage() {
     });
   }, [handleMove, place]);
 
+  const enterFeature = useCallback((pageId: PlaceInfo['quickActions'][number]['pageId'], actionId?: string) => {
+    navigateTo(pageId, {
+      zoneId: place.zoneId,
+      zoneName: place.title,
+      region: place.region,
+      source: 'place',
+      actionId,
+    });
+  }, [navigateTo, place]);
+
+  const enterNpc = useCallback((npc: PlaceInfo['npcs'][number]) => {
+    navigateTo(npc.pageId, {
+      zoneId: place.zoneId,
+      zoneName: place.title,
+      region: place.region,
+      source: 'npc',
+      npcId: npc.id,
+      npcName: npc.name,
+    });
+  }, [navigateTo, place]);
+
+  const enterMonster = useCallback((monster: PlaceInfo['monsters'][number]) => {
+    navigateTo(monster.pageId, {
+      zoneId: place.zoneId,
+      zoneName: place.title,
+      region: place.region,
+      source: 'monster',
+      monsterId: monster.id,
+      monsterName: monster.name,
+      monsterLevel: monster.level,
+    });
+  }, [navigateTo, place]);
+
   return (
     <div className={styles.mockPage}>
       <div className={styles.appbar}>
@@ -113,9 +177,38 @@ export default function PlacePage() {
       </div>
 
       <div className={styles.scrollPlain}>
-        <div className={styles.placeBg}>
+        <div className={styles.placeBg} ref={bgContainerRef}>
+          {bgImageUrl && (
+            <img
+              src={bgImageUrl}
+              alt={place.title}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                opacity: 0.6,
+                zIndex: 0,
+              }}
+            />
+          )}
+          {bgLoading && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1,
+              background: 'rgba(0,0,0,0.3)',
+              color: '#ccc',
+            }}>
+              生成背景中...
+            </div>
+          )}
           <div className={styles.placeInk}>{place.title.slice(0, 1)}</div>
-          <div className={styles.placeText}>
+          <div className={styles.placeText} style={{ position: 'relative', zIndex: 2 }}>
             <div className={styles.placeName}>{place.region} · {place.title}</div>
             <div className={styles.placeCoord}>坐 标 ({place.coord[0]},{place.coord[1]})</div>
             <div className={styles.placeMood}>{place.landscape}</div>
@@ -155,6 +248,24 @@ export default function PlacePage() {
           })}
         </div>
 
+        {place.quickActions.length > 0 && (
+          <>
+            <div className={styles.sectLine}>此 地 功 能 · 可 直 接 办 理</div>
+            <div className={styles.tpGrid}>
+              {place.quickActions.map((action) => (
+                <button
+                  key={action.id}
+                  className={`${styles.tpItem} ${action.badge === 'hot' ? styles.tpItemRed : ''}`.trim()}
+                  onClick={() => enterFeature(action.pageId, action.id)}
+                  type="button"
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         {place.npcs.length > 0 && (
           <>
             <div className={styles.sectLine}>N P C · 在 此 可 对 话</div>
@@ -163,7 +274,7 @@ export default function PlacePage() {
                 <button
                   key={npc.id}
                   className={styles.placeRow}
-                  onClick={() => navigateTo(npc.pageId)}
+                  onClick={() => enterNpc(npc)}
                   type="button"
                 >
                   <div className={styles.placeIcon}>{npc.name.slice(0, 1)}</div>
@@ -186,7 +297,7 @@ export default function PlacePage() {
                 <button
                   key={monster.id}
                   className={`${styles.placeRow} ${styles.placeRowMob}`}
-                  onClick={() => navigateTo(monster.pageId)}
+                  onClick={() => enterMonster(monster)}
                   type="button"
                 >
                   <div className={styles.placeIcon}>{monster.name.slice(0, 1)}</div>

@@ -10,7 +10,9 @@
       "sceneHint": "繁华城市广场，商贾云集",
       "exits": [
         { "direction": "西", "target": "social_district", "labelTemplate": "婚介代练(1,2)" },
-        { "direction": "南", "target": "hunting_ground",  "labelTemplate": "猎场宝山(2,1)" }
+        { "direction": "南", "target": "hunting_ground",  "labelTemplate": "猎场宝山(2,1)" },
+        { "direction": "东", "target": "auction_lane",    "labelTemplate": "拍卖长街(3,2)" },
+        { "direction": "北", "target": "snow_field",      "labelTemplate": "极北大陆(2,3)" }
       ],
       "hotEvents": [
         { "id": "divine_pet", "label": "★天降神宠★", "pageId": "wheel" },
@@ -29,7 +31,7 @@
       "sceneHint": "古朴小镇街道，花灯处处",
       "exits": [
         { "direction": "东", "target": "main_city",     "labelTemplate": "主城(2,2)" },
-        { "direction": "北", "target": "north_gate",    "labelTemplate": "小镇北门(1,3)" },
+        { "direction": "北", "target": "fishing_wharf", "labelTemplate": "钓鱼台(1,3)" },
         { "direction": "南", "target": "plaza",         "labelTemplate": "小镇广场(1,1)" }
       ],
       "hotEvents": []
@@ -44,10 +46,76 @@
       "sceneHint": "荒野山林，妖兽出没",
       "exits": [
         { "direction": "北", "target": "main_city",  "labelTemplate": "主城(2,2)" },
-        { "direction": "东", "target": "pvp_arena",  "labelTemplate": "杀戮阶梯(3,1)" }
+        { "direction": "东", "target": "mystic_forge",  "labelTemplate": "神匠坊(3,1)" }
       ],
       "hotEvents": [
         { "id": "world_boss", "label": "【世界Boss】", "pageId": "world-boss" }
+      ]
+    },
+    {
+      "zoneId": "auction_lane",
+      "nameTemplate": "拍卖长街",
+      "coordX": 3,
+      "coordY": 2,
+      "type": "trade_hub",
+      "description": "拍卖、集市与小摊并列的全服经济中心",
+      "sceneHint": "长街灯牌高挂，拍卖钟声与叫卖声此起彼伏",
+      "exits": [
+        { "direction": "西", "target": "main_city",    "labelTemplate": "主城(2,2)" },
+        { "direction": "南", "target": "mystic_forge", "labelTemplate": "神匠坊(3,1)" }
+      ],
+      "hotEvents": [
+        { "id": "auction_hot", "label": "【宝石拍卖】", "pageId": "auction" },
+        { "id": "market_tax",  "label": "【集市低税】", "pageId": "market" }
+      ]
+    },
+    {
+      "zoneId": "snow_field",
+      "nameTemplate": "极北大陆",
+      "coordX": 2,
+      "coordY": 3,
+      "type": "adventure",
+      "description": "雪线之上通往钓鱼、探险与秘境入口",
+      "sceneHint": "漫天风雪，冰晶栈道延伸至远处古塔",
+      "exits": [
+        { "direction": "南", "target": "main_city",      "labelTemplate": "主城(2,2)" },
+        { "direction": "西", "target": "fishing_wharf", "labelTemplate": "钓鱼台(1,3)" }
+      ],
+      "hotEvents": [
+        { "id": "realm", "label": "【秘境入口】", "pageId": "secret-realm" }
+      ]
+    },
+    {
+      "zoneId": "fishing_wharf",
+      "nameTemplate": "钓鱼台",
+      "coordX": 1,
+      "coordY": 3,
+      "type": "leisure",
+      "description": "休闲玩家和社交玩家常来的水岸钓台",
+      "sceneHint": "浮桥轻舟停泊在结冰水面旁，晚霞落在木栏上",
+      "exits": [
+        { "direction": "东", "target": "snow_field",      "labelTemplate": "极北大陆(2,3)" },
+        { "direction": "南", "target": "social_district", "labelTemplate": "婚介代练(1,2)" }
+      ],
+      "hotEvents": [
+        { "id": "fishing", "label": "【钓鱼活动】", "pageId": "events" }
+      ]
+    },
+    {
+      "zoneId": "mystic_forge",
+      "nameTemplate": "神匠坊",
+      "coordX": 3,
+      "coordY": 1,
+      "type": "craft",
+      "description": "锻造、强化和家园工坊聚集之地",
+      "sceneHint": "炉火通明，铁砧轰鸣，地面映着流动火光",
+      "exits": [
+        { "direction": "北", "target": "auction_lane",    "labelTemplate": "拍卖长街(3,2)" },
+        { "direction": "西", "target": "hunting_ground", "labelTemplate": "猎场宝山(2,1)" }
+      ],
+      "hotEvents": [
+        { "id": "forge_up", "label": "【强化暴击】", "pageId": "forge" },
+        { "id": "home_gain", "label": "【家园收益】", "pageId": "housing" }
       ]
     },
     {

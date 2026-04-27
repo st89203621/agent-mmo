@@ -1,9 +1,36 @@
+import { useCallback, useState } from 'react';
 import { TELEPORT_GROUPS } from '../../../data/lunhuiWorld';
+import { teleportToZone } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
+import { toast } from '../../../store/toastStore';
+import type { PageId } from '../../../types';
 import styles from './LunhuiPages.module.css';
 
 export default function TeleportPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
+  const [movingZoneId, setMovingZoneId] = useState<string | null>(null);
+
+  const handleJump = useCallback(async (item: { pageId: PageId; zoneId?: string; label: string }) => {
+    if (!item.zoneId) {
+      navigateTo(item.pageId);
+      return;
+    }
+
+    setMovingZoneId(item.zoneId);
+    try {
+      const nextZone = await teleportToZone(item.zoneId);
+      toast.success(`已传送至 ${nextZone.name}`);
+      navigateTo(item.pageId, {
+        zoneId: nextZone.zoneId,
+        zoneName: nextZone.name,
+        source: 'teleport',
+      });
+    } catch {
+      toast.error('传送失败');
+    } finally {
+      setMovingZoneId(null);
+    }
+  }, [navigateTo]);
 
   return (
     <div className={styles.mockPage}>
@@ -34,10 +61,11 @@ export default function TeleportPage() {
                 <button
                   key={item.id}
                   className={`${styles.tpItem} ${item.badge === 'hot' ? styles.tpItemRed : ''}`.trim()}
-                  onClick={() => navigateTo(item.pageId, item.zoneId ? { zoneId: item.zoneId } : undefined)}
+                  disabled={movingZoneId === item.zoneId}
+                  onClick={() => handleJump(item)}
                   type="button"
                 >
-                  {item.label}
+                  {movingZoneId === item.zoneId ? '传送中...' : item.label}
                 </button>
               ))}
             </div>

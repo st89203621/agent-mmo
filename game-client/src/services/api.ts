@@ -198,10 +198,10 @@ export function parseChoices(choicesJson: string): DialogueChoice[] {
 
 // ── 场景图片 ──────────────────────────────────────
 
-export function generateSceneImage(npcId: string, worldIndex: number, artStyle?: string, sceneHint?: string): Promise<{ imageId: string; imageUrl: string }> {
+export function generateSceneImage(npcId: string, worldIndex: number, artStyle?: string, sceneHint?: string, width?: number, height?: number): Promise<{ imageId: string; imageUrl: string }> {
   return request('/story/scene-image', {
     method: 'POST',
-    body: JSON.stringify({ npcId, worldIndex, artStyle, sceneHint }),
+    body: JSON.stringify({ npcId, worldIndex, artStyle, sceneHint, width: width || 1024, height: height || 1024 }),
   });
 }
 
@@ -719,8 +719,22 @@ export interface BattleData {
   rewardDetail?: BattleRewardDetail;
 }
 
-export function startBattle(): Promise<{ battle: BattleData }> {
-  return request('/battle/start', { method: 'POST' });
+export interface BattleStartParams {
+  zoneId?: string;
+  zoneName?: string;
+  monsterId?: string;
+  monsterName?: string;
+  monsterLevel?: number;
+  dungeonId?: string;
+  questId?: string;
+  source?: string;
+}
+
+export function startBattle(params?: BattleStartParams): Promise<{ battle: BattleData }> {
+  return request('/battle/start', {
+    method: 'POST',
+    body: params ? JSON.stringify(params) : undefined,
+  });
 }
 
 export function getBattleState(): Promise<{ battle: BattleData }> {
@@ -1472,6 +1486,13 @@ export function fetchCurrentZone(): Promise<ZoneInfo> {
 
 export function moveToZone(zoneId: string): Promise<ZoneInfo> {
   return request('/zone/move', {
+    method: 'POST',
+    body: JSON.stringify({ zoneId }),
+  });
+}
+
+export function teleportToZone(zoneId: string): Promise<ZoneInfo> {
+  return request('/zone/teleport', {
     method: 'POST',
     body: JSON.stringify({ zoneId }),
   });

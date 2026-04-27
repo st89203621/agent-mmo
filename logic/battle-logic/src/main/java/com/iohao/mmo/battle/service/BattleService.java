@@ -132,6 +132,36 @@ public class BattleService {
         return mongoTemplate.save(buildBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed, skills));
     }
 
+    public BattleState startBattle(long userId, int playerHp, int playerMp,
+                                   int pAtk, int pDef, int mAtk, int mDef, int speed,
+                                   List<BattleSkill> skills, String enemyName, int enemyLevel) {
+        mongoTemplate.remove(
+                Query.query(Criteria.where("userId").is(userId).and("status").is("ONGOING")),
+                BattleState.class);
+        BattleState state = buildBattle(userId, playerHp, playerMp, pAtk, pDef, mAtk, mDef, speed, skills);
+        applyEnemyContext(state, enemyName, enemyLevel);
+        return mongoTemplate.save(state);
+    }
+
+    private void applyEnemyContext(BattleState state, String enemyName, int enemyLevel) {
+        if (state == null || state.getEnemyUnits() == null) return;
+        for (BattleUnit enemy : state.getEnemyUnits()) {
+            if (enemyName != null && !enemyName.isBlank()) {
+                enemy.setName(enemyName);
+            }
+            if (enemyLevel > 0) {
+                double scale = 1.0 + Math.min(60, Math.max(1, enemyLevel) - 1) * 0.04;
+                enemy.setMaxHp((int) Math.max(enemy.getMaxHp(), enemy.getMaxHp() * scale));
+                enemy.setHp(enemy.getMaxHp());
+                enemy.setPhysicsAttack((int) Math.max(enemy.getPhysicsAttack(), enemy.getPhysicsAttack() * scale));
+                enemy.setPhysicsDefense((int) Math.max(enemy.getPhysicsDefense(), enemy.getPhysicsDefense() * scale));
+                enemy.setMagicAttack((int) Math.max(enemy.getMagicAttack(), enemy.getMagicAttack() * scale));
+                enemy.setMagicDefense((int) Math.max(enemy.getMagicDefense(), enemy.getMagicDefense() * scale));
+                enemy.setSpeed((int) Math.max(enemy.getSpeed(), enemy.getSpeed() * Math.min(1.8, scale)));
+            }
+        }
+    }
+
     private BattleState buildBattle(long userId, int playerHp, int playerMp,
                                     int pAtk, int pDef, int mAtk, int mDef, int speed,
                                     List<BattleSkill> skills) {

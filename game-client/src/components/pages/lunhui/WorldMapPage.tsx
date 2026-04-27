@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { fetchCurrentZone } from '../../../services/api';
+import { useCallback, useEffect, useState } from 'react';
+import { fetchCurrentZone, teleportToZone } from '../../../services/api';
 import { WORLD_MAP_ORDER } from '../../../data/lunhuiWorld';
 import { useGameStore } from '../../../store/gameStore';
+import { toast } from '../../../store/toastStore';
 import styles from './LunhuiPages.module.css';
 
 const POSITIONS: Record<string, { left: string; top: string }> = {
@@ -17,10 +18,30 @@ const POSITIONS: Record<string, { left: string; top: string }> = {
 export default function WorldMapPage() {
   const navigateTo = useGameStore((s) => s.navigateTo);
   const [currentZoneId, setCurrentZoneId] = useState('main_city');
+  const [movingZoneId, setMovingZoneId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCurrentZone().then((zone) => setCurrentZoneId(zone.zoneId)).catch(() => {});
   }, []);
+
+  const handleTravel = useCallback(async (zoneId: string) => {
+    if (movingZoneId) return;
+    setMovingZoneId(zoneId);
+    try {
+      const nextZone = await teleportToZone(zoneId);
+      setCurrentZoneId(nextZone.zoneId);
+      toast.success(`已到达 ${nextZone.name}`);
+      navigateTo(nextZone.zoneId === 'main_city' ? 'hub' : 'place', {
+        zoneId: nextZone.zoneId,
+        zoneName: nextZone.name,
+        source: 'world-map',
+      });
+    } catch {
+      toast.error('移动失败');
+    } finally {
+      setMovingZoneId(null);
+    }
+  }, [movingZoneId, navigateTo]);
 
   return (
     <div className={styles.mockPage}>
@@ -47,7 +68,8 @@ export default function WorldMapPage() {
                 key={node.zoneId}
                 className={`${styles.mapPoint} ${active ? styles.mapPointActive : ''}`.trim()}
                 style={{ left: pos.left, top: pos.top }}
-                onClick={() => navigateTo(node.zoneId === 'main_city' ? 'hub' : 'place', { zoneId: node.zoneId })}
+                disabled={!!movingZoneId}
+                onClick={() => handleTravel(node.zoneId)}
                 type="button"
               >
                 <div className={styles.mapPointTitle}>{node.title}</div>
@@ -63,7 +85,8 @@ export default function WorldMapPage() {
             <button
               key={node.zoneId}
               className={styles.placeRow}
-              onClick={() => navigateTo(node.zoneId === 'main_city' ? 'hub' : 'place', { zoneId: node.zoneId })}
+              disabled={!!movingZoneId}
+              onClick={() => handleTravel(node.zoneId)}
               type="button"
             >
               <div className={styles.placeIcon}>{node.title.slice(0, 1)}</div>
@@ -71,7 +94,9 @@ export default function WorldMapPage() {
                 <div className={styles.placeRowName}>{node.region} · {node.title}</div>
                 <div className={styles.placeRowTip}>坐标 ({node.coord[0]},{node.coord[1]}) · {node.description}</div>
               </div>
-              <div className={styles.placeRowGo}>{node.zoneId === currentZoneId ? '当 前' : '前 往'}</div>
+              <div className={styles.placeRowGo}>
+                {movingZoneId === node.zoneId ? '移 动' : node.zoneId === currentZoneId ? '当 前' : '前 往'}
+              </div>
             </button>
           ))}
         </div>

@@ -70,6 +70,13 @@ public class ZoneService {
         return buildProto(targetZoneId, playerId);
     }
 
+    /** Teleport ignores adjacency but still validates that the target zone exists. */
+    public ZoneInfoProto teleportToZone(long playerId, String targetZoneId) {
+        if (targetZoneId == null || !zoneMap.containsKey(targetZoneId)) return null;
+        setPlayerZone(playerId, targetZoneId);
+        return buildProto(targetZoneId, playerId);
+    }
+
     public List<NearbyPlayerProto> getNearbyPlayers(long playerId) {
         String zoneId = getPlayerZone(playerId);
         List<NearbyPlayerProto> result = new ArrayList<>();

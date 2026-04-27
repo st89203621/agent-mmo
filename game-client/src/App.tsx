@@ -246,7 +246,7 @@ export default function App() {
     return (
       <>
         <Toast />
-        <PageErrorBoundary>
+        <PageErrorBoundary key={currentPage}>
           <Page />
         </PageErrorBoundary>
       </>
@@ -257,7 +257,7 @@ export default function App() {
     <>
       <Toast />
       <GameLayout>
-        <PageErrorBoundary>
+        <PageErrorBoundary key={currentPage}>
           <Page />
         </PageErrorBoundary>
       </GameLayout>

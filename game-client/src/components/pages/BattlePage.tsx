@@ -200,6 +200,11 @@ export default function BattlePage() {
   const exploreEventId = pageParams?.exploreEventId as string | undefined;
   const dungeonId = pageParams?.dungeonId as string | undefined;
   const isDungeonBattle = pageParams?.dungeonBattle as boolean | undefined;
+  const sourceZoneId = pageParams?.zoneId as string | undefined;
+  const sourceZoneName = pageParams?.zoneName as string | undefined;
+  const sourceMonsterId = pageParams?.monsterId as string | undefined;
+  const sourceMonsterName = pageParams?.monsterName as string | undefined;
+  const sourceMonsterLevel = pageParams?.monsterLevel as number | undefined;
 
   const loadBagItems = useCallback(async () => {
     try {
@@ -244,7 +249,15 @@ export default function BattlePage() {
   const handleStart = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await startBattle();
+      const response = await startBattle({
+        zoneId: sourceZoneId,
+        zoneName: sourceZoneName,
+        monsterId: sourceMonsterId,
+        monsterName: sourceMonsterName,
+        monsterLevel: sourceMonsterLevel,
+        dungeonId,
+        source: String(pageParams?.source || 'battle'),
+      });
       setBattle(response.battle);
       setDisplayPlayers(response.battle.playerUnits);
       setDisplayEnemies(response.battle.enemyUnits);
@@ -259,7 +272,7 @@ export default function BattlePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dungeonId, pageParams?.source, sourceMonsterId, sourceMonsterLevel, sourceMonsterName, sourceZoneId, sourceZoneName]);
 
   const playActionsSequentially = useCallback(
     async (
@@ -556,7 +569,7 @@ export default function BattlePage() {
 
   const zoneTitle = primaryEnemy ? `${primaryEnemy.name} x ${aliveEnemyCount}` : '遭遇战';
   const zoneCoord = String(
-    pageParams?.zoneName || pageParams?.sceneName || pageParams?.zoneId || dungeonId || '猎场宝山',
+    sourceMonsterName || sourceZoneName || pageParams?.sceneName || sourceZoneId || dungeonId || '猎场宝山',
   );
   const rageValue = player?.actionGauge ?? 0;
   const playerHit = player ? hitIds.has(player.unitId) : false;
@@ -573,8 +586,14 @@ export default function BattlePage() {
       ) : !battle?.id ? (
         <div className={styles.emptyState}>
           <span className={styles.emptyIcon}>⚔</span>
-          <span className={styles.emptyTitle}>准备迎战</span>
-          <span className={styles.emptyHint}>以当前角色属性开启一场遭遇战</span>
+          <span className={styles.emptyTitle}>
+            {sourceMonsterName ? `准备挑战 ${sourceMonsterName}` : '准备迎战'}
+          </span>
+          <span className={styles.emptyHint}>
+            {sourceZoneName
+              ? `${sourceZoneName}${sourceMonsterLevel ? ` · Lv.${sourceMonsterLevel}` : ''}`
+              : '以当前角色属性开启一场遭遇战'}
+          </span>
           <button className={styles.startBtn} onClick={handleStart}>
             开始战斗
           </button>

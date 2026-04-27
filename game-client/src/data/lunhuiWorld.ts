@@ -202,6 +202,18 @@ export const WORLD_MAP_ORDER = Object.values(LUNHUI_PLACES);
 
 export const TELEPORT_GROUPS: TeleportGroup[] = [
   {
+    label: '地域传送',
+    items: [
+      { id: 'main_city', label: '气盖主城', pageId: 'hub', zoneId: 'main_city' },
+      { id: 'social_district', label: '婚介代练', pageId: 'place', zoneId: 'social_district' },
+      { id: 'auction_lane', label: '拍卖长街', pageId: 'place', zoneId: 'auction_lane', badge: 'hot' },
+      { id: 'hunting_ground', label: '猎场宝山', pageId: 'place', zoneId: 'hunting_ground', badge: 'hot' },
+      { id: 'snow_field', label: '极北大陆', pageId: 'place', zoneId: 'snow_field' },
+      { id: 'fishing_wharf', label: '钓鱼台', pageId: 'place', zoneId: 'fishing_wharf' },
+      { id: 'mystic_forge', label: '神匠坊', pageId: 'place', zoneId: 'mystic_forge' },
+    ],
+  },
+  {
     label: '功能区',
     items: [
       { id: 'events', label: '活动', pageId: 'events' },
