@@ -69,6 +69,7 @@ import com.iohao.mmo.event.entity.WorldBossEvent;
 import com.iohao.mmo.event.service.LuckyWheelEventService;
 import com.iohao.mmo.event.service.WorldBossEventService;
 import com.iohao.mmo.pet.entity.PetBag;
+import com.iohao.mmo.common.ai.image.ImageScaler;
 import com.iohao.mmo.story.entity.SceneImage;
 import com.iohao.mmo.story.service.SceneImageService;
 import com.iohao.mmo.auction.service.AuctionService;
@@ -612,7 +613,7 @@ public class GameApiController {
         if (result.isEmpty()) return err("图片生成失败");
 
         String imageId = result.get().getId();
-        String imageUrl = "/api/story/scene-image/" + imageId;
+        String imageUrl = buildScaledImageUrl(imageId, width, height);
 
         // 无场景提示时为NPC立绘，同步更新Relation的imageUrl
         if (sceneHint == null || sceneHint.isBlank()) {
@@ -649,21 +650,47 @@ public class GameApiController {
     }
 
     /**
-     * 获取场景图片二进制流
+     * 获取场景图片二进制流。可选 ?w=&h= 在服务端按需缩放高清原图（1024x1024）。
      */
     @GetMapping("/story/scene-image/{id}")
-    public ResponseEntity<byte[]> getSceneImage(@PathVariable String id) {
+    public ResponseEntity<byte[]> getSceneImage(
+            @PathVariable String id,
+            @RequestParam(value = "w", required = false) Integer w,
+            @RequestParam(value = "h", required = false) Integer h) {
         Optional<SceneImage> opt = sceneImageService.getById(id);
         if (opt.isEmpty() || opt.get().getImageData() == null) {
             return ResponseEntity.notFound().build();
         }
         SceneImage si = opt.get();
-        String ct = si.getContentType();
-        MediaType mediaType = (ct != null && !ct.isBlank()) ? MediaType.parseMediaType(ct) : MediaType.IMAGE_PNG;
+        byte[] data = si.getImageData();
+        boolean rescaled = false;
+        if (w != null && h != null && w > 0 && h > 0) {
+            byte[] scaled = ImageScaler.scale(data, w, h);
+            rescaled = scaled != data;
+            data = scaled;
+        }
+        // 缩放后统一以 PNG 编码；未缩放时保留原 contentType
+        MediaType mediaType;
+        if (rescaled) {
+            mediaType = MediaType.IMAGE_PNG;
+        } else {
+            String ct = si.getContentType();
+            mediaType = (ct != null && !ct.isBlank()) ? MediaType.parseMediaType(ct) : MediaType.IMAGE_PNG;
+        }
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .header("Cache-Control", "max-age=86400")
-                .body(si.getImageData());
+                .body(data);
+    }
+
+    /** 拼接带尺寸参数的图片 URL。1024x1024 视为原图，省略参数。 */
+    private String buildScaledImageUrl(String imageId, int width, int height) {
+        String base = "/api/story/scene-image/" + imageId;
+        if (width <= 0 || height <= 0
+                || (width == SceneImageService.CANONICAL_SIZE && height == SceneImageService.CANONICAL_SIZE)) {
+            return base;
+        }
+        return base + "?w=" + width + "&h=" + height;
     }
 
     @GetMapping("/visual-asset")
@@ -672,11 +699,11 @@ public class GameApiController {
             @RequestParam(defaultValue = "768") int width,
             @RequestParam(defaultValue = "512") int height) {
         String normalizedKey = normalizeVisualAssetKey(assetKey);
-        String cacheLookupKey = width + "x" + height + "_lunhui_asset_" + normalizedKey;
+        String cacheLookupKey = "lunhui_asset_" + normalizedKey;
         Optional<SceneImage> cached = sceneImageService.findByExactKey(cacheLookupKey);
         return ok(Map.of(
                 "assetKey", normalizedKey,
-                "imageUrl", cached.map(img -> "/api/story/scene-image/" + img.getId()).orElse("")
+                "imageUrl", cached.map(img -> buildScaledImageUrl(img.getId(), width, height)).orElse("")
         ));
     }
 
@@ -703,7 +730,7 @@ public class GameApiController {
         return ok(Map.of(
                 "assetKey", assetKey,
                 "imageId", result.get().getId(),
-                "imageUrl", "/api/story/scene-image/" + result.get().getId(),
+                "imageUrl", buildScaledImageUrl(result.get().getId(), width, height),
                 "prompt", prompt
         ));
     }

@@ -25,8 +25,11 @@ public class SceneImageService {
     private final SceneImageRepository sceneImageRepository;
     private final AiImageProvider imageProvider;
 
+    /** 服务端统一生成的高清原图边长。所有缓存均为该尺寸，下游按需缩放。 */
+    public static final int CANONICAL_SIZE = 1024;
+
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt) {
-        return getOrGenerate(cacheKey, prompt, 1024, 1024, false);
+        return getOrGenerate(cacheKey, prompt, CANONICAL_SIZE, CANONICAL_SIZE, false);
     }
 
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt, int width, int height) {
@@ -34,38 +37,40 @@ public class SceneImageService {
     }
 
     /**
+     * 始终以 1024x1024 生成并缓存高清原图（同一 cacheKey 仅一条记录）。
+     * width/height 仅用于通知调用方期望的展示尺寸，缓存与生成本身不再按尺寸分桶 ——
+     * 实际下发给客户端的尺寸由 Controller 在读取时缩放。
+     *
      * @param force true 表示重绘：先删除同 cacheKey 的旧记录，再生成。
-     *              这样同一资产永远只有一条记录，避免 prefix 查询读到历史图。
      */
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt, int width, int height, boolean force) {
-        String cacheLookupKey = width + "x" + height + "_" + cacheKey;
-        List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheLookupKey);
+        List<SceneImage> cached = sceneImageRepository.findByCacheKey(cacheKey);
         if (force) {
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         } else if (!cached.isEmpty()) {
             SceneImage existing = cached.get(0);
             if (existing.getImageData() != null && existing.getImageData().length > 0) {
-                log.info("【文生图】命中缓存: cacheKey={}", cacheLookupKey);
+                log.info("【文生图】命中缓存: cacheKey={}", cacheKey);
                 return Optional.of(existing);
             }
-            log.info("清除无效缓存: cacheKey={}", cacheLookupKey);
+            log.info("清除无效缓存: cacheKey={}", cacheKey);
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
-        log.info("【文生图】发起请求: cacheKey={}, size={}x{}, force={}, provider={}",
-                cacheLookupKey, width, height, force, imageProvider.providerName());
+        log.info("【文生图】发起请求: cacheKey={}, displaySize={}x{}, force={}, provider={} (canonical {}x{})",
+                cacheKey, width, height, force, imageProvider.providerName(), CANONICAL_SIZE, CANONICAL_SIZE);
         try {
             byte[] imageBytes = generateBytes(AiImageRequest.builder()
                     .prompt(prompt)
-                    .width(width)
-                    .height(height)
+                    .width(CANONICAL_SIZE)
+                    .height(CANONICAL_SIZE)
                     .build());
             if (imageBytes == null || imageBytes.length == 0) {
                 return Optional.empty();
             }
-            return Optional.of(persist(cacheLookupKey, prompt, imageBytes));
+            return Optional.of(persist(cacheKey, prompt, imageBytes));
         } catch (Exception e) {
-            log.warn("场景图片生成失败: cacheKey={}, error={}", cacheLookupKey, e.getMessage());
+            log.warn("场景图片生成失败: cacheKey={}, error={}", cacheKey, e.getMessage());
             return Optional.empty();
         }
     }

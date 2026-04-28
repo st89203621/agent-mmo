@@ -6,10 +6,18 @@ import { triggerRedraw } from './redrawStore';
 export const VISUAL_STYLE_KEY = 'lunhui.visualStyle';
 
 export const VISUAL_STYLES = [
-  { id: 'fairy',  label: '仙气', desc: '明亮仙气，淡雅柔美，粉青银三色，云雾缭绕，温柔梦幻，高饱和清透，东方幻想。' },
-  { id: 'spring', label: '春彩', desc: '明艳春日风，鲜花盛开，暖粉橙绿，清新明亮，色彩鲜艳饱和，生机勃勃。' },
-  { id: 'glow',   label: '金华', desc: '金色光晕，明亮暖调，璀璨华贵，史诗大气，发光国风，鎏金流光。' },
-  { id: 'ink',    label: '水墨', desc: '工笔重彩，明亮宣纸质感，淡雅色调，传统山水风，清雅通透。' },
+  { id: 'fairy',     label: '仙气',  desc: '国风仙气，淡雅柔美，粉青银三色，云雾缭绕，温柔梦幻，高饱和清透，东方幻想。' },
+  { id: 'guofeng',   label: '国漫',  desc: '现代国风动漫，少女主角立绘，明亮鲜艳，发光大眼，柔光清透，仙气飘逸，新国潮华丽。' },
+  { id: 'shoujo',    label: '少漫',  desc: '经典少女漫画，闪亮大眼，星光泡泡，唯美粉调，柔和光晕，浪漫梦幻，蕾丝花边。' },
+  { id: 'fairytale', label: '童话',  desc: '梦幻童话绘本，公主气息，星点闪光，温柔色彩，奶油糖霜质感，纯真浪漫，迪士尼系。' },
+  { id: 'magic',     label: '魔法',  desc: '魔法少女风，蝴蝶羽翼，星光特效，蕾丝飘带，粉紫渐变，华丽变身，梦幻闪耀。' },
+  { id: 'starry',    label: '星梦',  desc: '星空梦境，紫粉星河，璀璨星点，月光柔美，宇宙浪漫，幽蓝高光，星辰流转。' },
+  { id: 'macaron',   label: '糖彩',  desc: '马卡龙糖果色，粉蓝薄荷，清甜可爱，柔和高亮，少女糖果系，奶油泡芙感。' },
+  { id: 'blossom',   label: '花漫',  desc: '樱花漫天，粉白花瓣纷飞，柔美浪漫，花海少女，春日花季，粉调花卉满屏。' },
+  { id: 'crystal',   label: '水晶',  desc: '水晶通透，珠光宝气，琉璃彩虹质感，闪耀光泽，奇幻华美，宝石折射光。' },
+  { id: 'watercolor',label: '水彩',  desc: '水彩晕染，柔美渐变，梦幻笔触，粉彩透明，温柔治愈，绘本插画质感。' },
+  { id: 'spring',    label: '春彩',  desc: '明艳春日风，鲜花盛开，暖粉橙绿，清新明亮，色彩鲜艳饱和，生机勃勃。' },
+  { id: 'glow',      label: '流光',  desc: '金色光晕，明亮暖调，璀璨华贵，发光国风，鎏金流光，霞光万丈。' },
 ] as const;
 
 export type VisualStyleId = typeof VISUAL_STYLES[number]['id'];
