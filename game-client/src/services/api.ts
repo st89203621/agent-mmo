@@ -2178,3 +2178,13 @@ export async function leaveParty(): Promise<void> {
 }
 
 // === FANOUT END: flow-D ===
+
+// === FANOUT BLOCK: wave2-nearby ===
+// 注：addFriend 已在文件早段定义（返回 {success,msg}），此处仅追加缺失接口。
+export async function requestPvP(playerId: number): Promise<void> {
+  await request('/pvp/challenge', {
+    method: 'POST',
+    body: JSON.stringify({ targetPlayerId: playerId }),
+  });
+}
+// === FANOUT END: wave2-nearby ===

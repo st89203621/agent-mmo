@@ -317,8 +317,10 @@
 
 .appbar {
   padding: 8px 76px 10px 14px; /* 右侧让出 PageShell 顶部 toolbar 空间 */
-  background: var(--bg-raised);
-  border-bottom: 1px solid var(--border);
+  background: var(--glass-1);
+  border-bottom: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   flex-shrink: 0;
 }
 
@@ -1248,10 +1250,12 @@
   text-align: center;
   font-size: 12px;
   color: var(--text-dim);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   border-right: 1px solid var(--border);
+  border-top: 2px solid transparent;
   background: transparent;
   cursor: pointer;
+  font-family: var(--font-serif);
 }
 
 .aucTab:last-child {
@@ -1261,7 +1265,7 @@
 .aucTabOn {
   color: var(--accent-gold);
   background: var(--bg-panel);
-  border-top: 2px solid var(--accent-gold);
+  border-top-color: var(--accent-gold);
 }
 
 .aucTopbar {

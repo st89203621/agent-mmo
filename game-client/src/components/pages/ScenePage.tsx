@@ -13,6 +13,7 @@ import { toast } from '../../store/toastStore';
 import { BarBlock, BarRow } from '../common/fusion';
 import { usePageBackground } from '../common/PageShell';
 import TeleportMenu from '../scene/TeleportMenu';
+import NearbyPlayerCard from '../scene/NearbyPlayerCard';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
 
@@ -63,6 +64,7 @@ export default function ScenePage() {
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
   const [teleportOpen, setTeleportOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<NearbyPlayer | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -270,7 +272,7 @@ export default function ScenePage() {
             <button
               key={player.playerId}
               className={styles.playerTag}
-              onClick={() => navigateTo('chat', { targetId: player.playerId, targetName: player.name })}
+              onClick={() => setSelectedPlayer(player)}
               type="button"
             >
               <span>{player.name}</span>
@@ -305,6 +307,12 @@ export default function ScenePage() {
       </div>
 
       {teleportOpen && <TeleportMenu onClose={() => setTeleportOpen(false)} />}
+      {selectedPlayer && (
+        <NearbyPlayerCard
+          player={selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </>
   );
 }

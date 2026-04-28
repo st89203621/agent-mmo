@@ -2,15 +2,18 @@ package com.iohao.mmo.auction.service;
 
 import com.iohao.mmo.auction.entity.AuctionBid;
 import com.iohao.mmo.auction.entity.AuctionItem;
+import com.iohao.mmo.auction.entity.AuctionNotice;
 import com.iohao.mmo.auction.proto.AuctionItemProto;
 import com.iohao.mmo.auction.proto.AuctionListRes;
 import com.iohao.mmo.auction.repository.AuctionBidRepository;
 import com.iohao.mmo.auction.repository.AuctionItemRepository;
+import com.iohao.mmo.auction.repository.AuctionNoticeRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -19,8 +22,9 @@ import java.util.List;
 @Service
 public class AuctionService {
 
-    @Resource AuctionItemRepository auctionRepo;
-    @Resource AuctionBidRepository  bidRepo;
+    @Resource AuctionItemRepository    auctionRepo;
+    @Resource AuctionBidRepository     bidRepo;
+    @Resource AuctionNoticeRepository  noticeRepo;
 
     public AuctionListRes listAuctions(String tab, long requesterId) {
         List<AuctionItem> items = switch (tab) {
@@ -45,11 +49,17 @@ public class AuctionService {
         if (amount < minBid) throw new RuntimeException("出价低于最低加价：" + minBid);
         if (bidderId == item.getSellerId()) throw new RuntimeException("不能竞拍自己的物品");
 
+        long prevHighBidderId = item.getHighBidderId();
+
         item.setCurrentBid(amount);
         item.setHighBidderId(bidderId);
         item.setHighBidderName(bidderName);
         item.setBidCount(item.getBidCount() + 1);
         auctionRepo.save(item);
+
+        if (prevHighBidderId > 0 && prevHighBidderId != bidderId) {
+            noticeRepo.save(buildNotice(prevHighBidderId, "BID_OUTBID", auctionId, item.getItemName(), amount));
+        }
 
         AuctionBid bid = new AuctionBid();
         bid.setAuctionId(auctionId);
@@ -104,18 +114,45 @@ public class AuctionService {
     }
 
     /** 每分钟检查到期拍卖并结算 */
-    @Scheduled(fixedDelay = 60_000)
-    public void settleExpiredAuctions() {
+    @Scheduled(fixedRate = 60_000)
+    public void settleExpired() {
         List<AuctionItem> expired = auctionRepo.findByStatusAndEndTimeBefore("ACTIVE", LocalDateTime.now());
+        int sold = 0, exp = 0;
         for (AuctionItem item : expired) {
             if (item.getBidCount() > 0) {
                 item.setStatus("SOLD");
-                log.info("拍卖结算：{} 由 {} 以 {} 金币成交", item.getItemName(), item.getHighBidderName(), item.getCurrentBid());
+                long finalAmount = item.getCurrentBid();
+                long sellerReceives = (long) (finalAmount * 0.95);
+                noticeRepo.save(buildNotice(item.getHighBidderId(), "WON_AS_BUYER",
+                        item.getId(), item.getItemName(), finalAmount));
+                noticeRepo.save(buildNotice(item.getSellerId(), "SOLD_AS_SELLER",
+                        item.getId(), item.getItemName(), sellerReceives));
+                sold++;
+                log.info("拍卖结算：{} 由 {} 以 {} 金币成交（卖家到手 {}）",
+                        item.getItemName(), item.getHighBidderName(), finalAmount, sellerReceives);
             } else {
                 item.setStatus("EXPIRED");
+                noticeRepo.save(buildNotice(item.getSellerId(), "EXPIRED",
+                        item.getId(), item.getItemName(), 0));
+                exp++;
             }
             auctionRepo.save(item);
         }
+        if (sold + exp > 0) {
+            log.info("拍卖结算完成：成交 {} 件，流标 {} 件", sold, exp);
+        }
+    }
+
+    private AuctionNotice buildNotice(long playerId, String type, String auctionId, String itemName, long amount) {
+        AuctionNotice n = new AuctionNotice();
+        n.setPlayerId(playerId);
+        n.setType(type);
+        n.setAuctionId(auctionId);
+        n.setItemName(itemName);
+        n.setAmount(amount);
+        n.setCreatedAt(Instant.now());
+        n.setRead(false);
+        return n;
     }
 
     private AuctionItemProto toProto(AuctionItem item, long requesterId) {

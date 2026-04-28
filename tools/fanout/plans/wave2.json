@@ -1,0 +1,8 @@
+{
+  "wave": 2,
+  "tasks": [
+    { "account": 2, "task": "tasks/wave2-nearby-interaction.md" },
+    { "account": 3, "task": "tasks/wave2-flow-E-auction-finalize.md" },
+    { "account": 4, "task": "tasks/wave2-ui-style-audit.md" }
+  ]
+}

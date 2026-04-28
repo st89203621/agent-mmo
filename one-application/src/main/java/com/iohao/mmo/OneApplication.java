@@ -61,6 +61,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.*;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.List;
 
@@ -71,6 +72,7 @@ import java.util.List;
  * @date 2023-07-21
  */
 @Slf4j
+@EnableScheduling
 @ComponentScan({"com.iohao.mmo.**"})
 @SpringBootApplication
 @org.springframework.session.data.mongo.config.annotation.web.http.EnableMongoHttpSession(maxInactiveIntervalInSeconds = 604800)

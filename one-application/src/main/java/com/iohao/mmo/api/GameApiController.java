@@ -72,6 +72,8 @@ import com.iohao.mmo.pet.entity.PetBag;
 import com.iohao.mmo.common.ai.image.ImageScaler;
 import com.iohao.mmo.story.entity.SceneImage;
 import com.iohao.mmo.story.service.SceneImageService;
+import com.iohao.mmo.auction.entity.AuctionNotice;
+import com.iohao.mmo.auction.repository.AuctionNoticeRepository;
 import com.iohao.mmo.auction.service.AuctionService;
 import com.iohao.mmo.map.zone.ZoneService;
 import jakarta.annotation.Resource;
@@ -209,6 +211,9 @@ public class GameApiController {
 
     @Resource
     AuctionService auctionService;
+
+    @Resource
+    AuctionNoticeRepository auctionNoticeRepo;
 
     @Resource
     ZoneService zoneService;
@@ -4657,6 +4662,37 @@ public class GameApiController {
         }
     }
 
+    @GetMapping("/auction/notices")
+    public ResponseEntity<Map<String, Object>> auctionNotices(HttpSession session) {
+        long userId = requireLogin(session);
+        var notices = auctionNoticeRepo.findByPlayerIdOrderByCreatedAtDesc(userId);
+        var out = notices.stream().map(n -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.getId());
+            m.put("type", n.getType());
+            m.put("auctionId", n.getAuctionId());
+            m.put("itemName", n.getItemName());
+            m.put("amount", n.getAmount());
+            m.put("createdAt", n.getCreatedAt().toEpochMilli());
+            m.put("read", n.isRead());
+            return m;
+        }).toList();
+        return ok(Map.of("notices", out));
+    }
+
+    @PostMapping("/auction/notices/read")
+    public ResponseEntity<Map<String, Object>> auctionNoticesRead(@RequestBody Map<String, Object> body, HttpSession session) {
+        requireLogin(session);
+        @SuppressWarnings("unchecked")
+        List<String> ids = (List<String>) body.get("ids");
+        if (ids != null && !ids.isEmpty()) {
+            var notices = auctionNoticeRepo.findAllById(ids);
+            notices.forEach(n -> n.setRead(true));
+            auctionNoticeRepo.saveAll(notices);
+        }
+        return ok(Map.of("ok", true));
+    }
+
     // ── 留言板 (Message Board) ─────────────────────────
 
     @GetMapping("/message-board/list")
@@ -4933,13 +4969,23 @@ public class GameApiController {
         long fee = Math.max(1L, totalCost * 5 / 100);
         shopService.addCurrency(listing.getSellerId(), (int) (totalCost - fee), 0);
 
-        // 物品加入买家背包（可堆叠物品；唯一装备需另行处理）
-        // TODO: 唯一装备的转移需创建新 BagItem 记录，不能直接叠加
-        BagItem toAdd = new BagItem();
-        toAdd.setId(listing.getItemId());
-        toAdd.setItemTypeId(listing.getItemId());
-        toAdd.setQuantity(bought);
-        bagService.incrementItem(toAdd, userId);
+        // 物品加入买家背包：不可叠加品类（装备/宠物/饰品）每件独立 UUID；可叠加用 itemTypeId 复用
+        boolean stackable = isStackableCategory(listing.getItemCategory());
+        if (stackable) {
+            BagItem toAdd = new BagItem();
+            toAdd.setId(listing.getItemId());
+            toAdd.setItemTypeId(listing.getItemId());
+            toAdd.setQuantity(bought);
+            bagService.incrementItem(toAdd, userId);
+        } else {
+            for (int i = 0; i < bought; i++) {
+                BagItem toAdd = new BagItem();
+                toAdd.setId(java.util.UUID.randomUUID().toString());
+                toAdd.setItemTypeId(listing.getItemId());
+                toAdd.setQuantity(1);
+                bagService.incrementItem(toAdd, userId);
+            }
+        }
 
         log.info("集市购买 buyer={} listing={} qty={} cost={}", userId, listingId, bought, totalCost);
         return ok(Map.of("ok", true, "bought", bought));
@@ -4977,6 +5023,15 @@ public class GameApiController {
         }
 
         return ok(Map.of("ok", true));
+    }
+
+    /** 集市/拍卖品类是否可叠加：装备/宠物/饰品每件独立 UUID，其余按 itemTypeId 叠加 */
+    private static boolean isStackableCategory(String category) {
+        if (category == null) return true;
+        return switch (category.toLowerCase()) {
+            case "weapon", "armor", "accessory", "pet" -> false;
+            default -> true;
+        };
     }
 
     private Map<String, Object> marketListingView(com.iohao.mmo.trade.entity.MarketListing listing) {
