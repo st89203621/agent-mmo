@@ -11,6 +11,7 @@ import type { MarketListing } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
+import EmptyState from '../common/EmptyState';
 
 const CATEGORIES = [
   { key: '', label: '全部' },
@@ -210,11 +211,31 @@ export default function TradePage() {
 
       <div className={styles.scrollPlain}>
         {loading ? (
-          <div className={styles.feedEmpty}>交易数据载入中...</div>
+          <EmptyState icon="◷" title="交易载入中" hint="集市档口正在清点物什…" />
         ) : displayList.length === 0 ? (
-          <div className={styles.feedEmpty}>
-            {tab === 'mine' ? '尚未摆摊，去挑几件上架吧' : '当前没有可购买的挂单'}
-          </div>
+          tab === 'mine' ? (
+            <EmptyState
+              icon="摊"
+              title="虚位以待"
+              hint={<>集市方寸之地，等你摆摊兴市。<br/>从背包挑几件物什定价售出，无需手续费。</>}
+              action={
+                <button className={styles.marketMineBtn} onClick={openSellPanel} type="button">
+                  ＋ 摆 摊 开 张
+                </button>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon="集"
+              title="集市冷清"
+              hint={<>当前无侠客挂单 · 不如先开个小摊？<br/>切换分类或换关键词或可发现遗珠。</>}
+              action={
+                <button className={styles.marketMineBtn} onClick={openSellPanel} type="button">
+                  ＋ 摆 摊 开 张
+                </button>
+              }
+            />
+          )
         ) : (
           <div className={styles.marketList}>
             {displayList.map((item) => {

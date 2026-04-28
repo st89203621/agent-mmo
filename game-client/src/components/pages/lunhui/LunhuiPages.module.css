@@ -1787,11 +1787,13 @@
 .invTab {
   flex: 1;
   min-width: 60px;
-  padding: 10px 4px;
+  min-height: 32px;
+  padding: 12px 6px;
   text-align: center;
-  font-size: 12px;
+  font-family: var(--font-serif);
+  font-size: 13px;
   color: rgba(255, 240, 220, 0.7);
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   font-weight: 600;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   white-space: nowrap;
@@ -2002,12 +2004,18 @@
 
 .invCapbar .capLabel {
   color: rgba(255, 240, 220, 0.78);
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  font-family: var(--font-serif);
+  font-size: 12px;
 }
 
 .invCapbar .capValue {
-  color: #FFD78A;
+  color: var(--gold);
+  font-family: var(--font-serif);
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
 }
 
 .invCapExt {

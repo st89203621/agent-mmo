@@ -1,0 +1,7 @@
+{
+  "wave": "round1",
+  "tasks": [
+    { "account": 2, "task": "tasks/round1-inventory.md" },
+    { "account": 3, "task": "tasks/round1-quest.md" }
+  ]
+}

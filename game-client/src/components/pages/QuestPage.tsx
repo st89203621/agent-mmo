@@ -12,6 +12,7 @@ import { Bar } from '../common/fusion';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
+import EmptyState from '../common/EmptyState';
 
 type QuestTab = 'main' | 'active' | 'scroll' | 'achievement';
 
@@ -234,26 +235,62 @@ export default function QuestPage() {
         ))}
       </div>
 
-      <div className={styles.qsDaily}>
-        <div>
-          <div className={styles.qsDailyLabel}>今日任务完成度</div>
-          <div className={styles.qsDailyVal}>{daily.done} / {daily.total} · {daily.percent}%</div>
+      {daily.total > 0 && (
+        <div className={styles.qsDaily}>
+          <div style={{ flex: 1 }}>
+            <div className={styles.qsDailyLabel}>今日任务完成度</div>
+            <div className={styles.qsDailyVal}>{daily.done} / {daily.total} · {daily.percent}%</div>
+            <Bar kind="gold" current={daily.done} max={daily.total} />
+          </div>
+          <button
+            className={styles.qsFast}
+            onClick={() => toast.info('快进功能待开放')}
+            type="button"
+          >
+            快进全部
+            <span className={styles.qsFastCost}>20 玩币</span>
+          </button>
         </div>
-        <button
-          className={styles.qsFast}
-          onClick={() => toast.info('快进功能待开放')}
-          type="button"
-        >
-          快进全部
-          <span className={styles.qsFastCost}>20 玩币</span>
-        </button>
-      </div>
+      )}
 
       <div className={styles.qsList}>
         {loading ? (
-          <div className={styles.qsEmpty}>任务载入中...</div>
+          <EmptyState icon="◷" title="任务载入中" hint="正在调阅功过簿…" />
         ) : filtered.length === 0 ? (
-          <div className={styles.qsEmpty}>此分类暂无任务</div>
+          <EmptyState
+            icon="✦"
+            title="尚无任务"
+            hint={
+              <>
+                {tab === 'achievement'
+                  ? '尚未达成此类成就，去江湖中走一遭吧。'
+                  : tab === 'main'
+                  ? '主线任务暂歇，去主城与 NPC 攀谈，新缘起或在前方。'
+                  : '此分类暂无委托。'}
+              </>
+            }
+            action={
+              tab !== 'achievement' ? (
+                <button
+                  onClick={() => navigateTo('scene')}
+                  type="button"
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 4,
+                    border: '1px solid var(--gold)',
+                    color: 'var(--gold)',
+                    background: 'transparent',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 14,
+                    letterSpacing: 3,
+                    cursor: 'pointer',
+                  }}
+                >
+                  去 主 城 走 走
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
           filtered.map(renderCard)
         )}

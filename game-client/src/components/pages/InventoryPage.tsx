@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
 import { Bar } from '../common/fusion';
+import EmptyState from '../common/EmptyState';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
@@ -86,9 +87,11 @@ export default function InventoryPage() {
 
   const usedCount = capacity?.used ?? items.length;
   const maxCount = capacity?.max ?? Math.max(items.length, 40);
-  const minSlots = Math.max(maxCount, 20);
+  // 自适应：实际物品数 + 至多 4 个空槽（提示还可以装更多），上限 20
+  const minSlots = Math.min(20, filtered.length + 4);
   const slots: (BagItemData | null)[] = [...filtered];
   while (slots.length < minSlots) slots.push(null);
+  const bagEmpty = !loading && items.length === 0;
 
   return (
     <div className={styles.mockPage}>
@@ -105,29 +108,56 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div className={`${styles.invTabs} ${styles.invTabsScroller}`}>
-        {TABS.map((item) => (
-          <button
-            key={item.key}
-            className={`${styles.invTab} ${tab === item.key ? styles.invTabOn : ''}`.trim()}
-            onClick={() => { setTab(item.key); setSelected(null); }}
-            type="button"
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {!bagEmpty && (
+        <>
+          <div className={`${styles.invTabs} ${styles.invTabsScroller}`}>
+            {TABS.map((item) => (
+              <button
+                key={item.key}
+                className={`${styles.invTab} ${tab === item.key ? styles.invTabOn : ''}`.trim()}
+                onClick={() => { setTab(item.key); setSelected(null); }}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
-      <div className={styles.invCapbar}>
-        <span className={styles.capLabel}>容量</span>
-        <span className={styles.capValue}>{usedCount} / {maxCount}</span>
-        <Bar kind="gold" current={usedCount} max={maxCount} />
-        <button className={styles.invCapExt} onClick={() => toast.info('扩容卡暂未开放')} type="button">＋ 扩容卡</button>
-      </div>
+          <div className={styles.invCapbar}>
+            <span className={styles.capLabel}>容量</span>
+            <span className={styles.capValue}>{usedCount} / {maxCount}</span>
+            <Bar kind="gold" current={usedCount} max={maxCount} />
+            <button className={styles.invCapExt} onClick={() => toast.info('扩容卡暂未开放')} type="button">＋ 扩容卡</button>
+          </div>
+        </>
+      )}
 
       <div className={styles.scrollPlain}>
         {loading ? (
           <div className={styles.feedEmpty}>背包载入中...</div>
+        ) : bagEmpty ? (
+          <EmptyState
+            icon="囊"
+            title="行囊空空"
+            hint={<>江湖路远，先去打打怪积攒些物什。<br />探索、副本、任务皆可获得。</>}
+            action={
+              <button
+                onClick={() => navigateTo('scene')}
+                type="button"
+                style={{
+                  padding: '10px 24px',
+                  border: '1px solid var(--gold)',
+                  color: 'var(--gold)',
+                  background: 'transparent',
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: 14,
+                  letterSpacing: 3,
+                }}
+              >
+                去 主 城
+              </button>
+            }
+          />
         ) : (
           <>
             <div className={styles.invGrid}>
