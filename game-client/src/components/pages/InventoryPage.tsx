@@ -94,7 +94,7 @@ export default function InventoryPage() {
   const bagEmpty = !loading && items.length === 0;
 
   return (
-    <div className={styles.mockPage}>
+    <div className={`${styles.mockPage} ${styles.dim}`}>
       <div className={styles.appbar}>
         <div className={styles.appbarRow}>
           <div className={styles.appbarLoc}>
