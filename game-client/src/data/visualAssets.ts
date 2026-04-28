@@ -44,7 +44,9 @@ export function clearAllAssetCache(): void {
 }
 
 export function getVisualContext(): string {
-  return `画面风格：${getVisualStyle().desc} 总体清新淡雅，色彩丰富明亮，柔光通透，唯美工笔国风，焦点清晰，主体锐利，细节丰富，画面干净，禁止暗沉厚重，禁止柔焦糊片。`;
+  // 仅传"风格 flavor"，质量词与反向词由后端 base + ComfyUI negative 通道统一处理，
+  // 这里再叠加只会与具体场景描述（夜景/暮色/雪景等）冲突。
+  return `画面风格：${getVisualStyle().desc}`;
 }
 
 // 保留向后兼容

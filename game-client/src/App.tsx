@@ -150,7 +150,7 @@ const PAGE_MAP: Record<PageId, React.FC> = {
   coexplore: CoexplorePage,
   'mystic-tome': MysticTomePage,
   'secret-realm': SecretRealmPage,
-  'destiny-path': ActivityPage,
+  'destiny-path': MysticTomePage,
   checkin: CheckinPage,
   power: PowerPage,
   mount: MountPage,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import { useGameStore } from '../../store/gameStore';
-import { fetchMessageBoard, postBoardMessage } from '../../services/api';
+import { fetchCurrentZone, fetchMessageBoard, postBoardMessage } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import type { BoardMessage, BoardMessageType } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -11,10 +11,7 @@ import { PAGE_BG } from '../../data/pageBackgrounds';
 type Scope = 'world' | 'zone';
 type FilterKey = 'all' | 'system' | 'ad' | 'trade' | 'user';
 
-const SCOPE_TABS: { key: Scope; label: string; zoneId?: string }[] = [
-  { key: 'world', label: '全 服', zoneId: undefined },
-  { key: 'zone', label: '本 区', zoneId: 'main_city' },
-];
+interface ZoneScope { id: string; name: string; }
 
 const FILTERS: { key: FilterKey; label: string; match: (m: BoardMessage) => boolean }[] = [
   { key: 'all', label: '全部', match: () => true },
@@ -59,8 +56,39 @@ export default function MessageBoardPage() {
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
   const [posting, setPosting] = useState(false);
+  const [zone, setZone] = useState<ZoneScope | null>(null);
+  const [zoneFailed, setZoneFailed] = useState(false);
 
-  const zoneId = SCOPE_TABS.find((t) => t.key === scope)?.zoneId;
+  useEffect(() => {
+    let cancelled = false;
+    fetchCurrentZone()
+      .then((info) => {
+        if (cancelled) return;
+        if (info?.zoneId) {
+          setZone({ id: info.zoneId, name: info.name || info.zoneId });
+        } else {
+          setZoneFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setZoneFailed(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const scopeTabs = useMemo<{ key: Scope; label: string; zoneId?: string }[]>(() => {
+    const list: { key: Scope; label: string; zoneId?: string }[] = [
+      { key: 'world', label: '全 服', zoneId: undefined },
+    ];
+    if (zone) list.push({ key: 'zone', label: '本 区', zoneId: zone.id });
+    return list;
+  }, [zone]);
+
+  useEffect(() => {
+    if (scope === 'zone' && !zone) setScope('world');
+  }, [scope, zone]);
+
+  const zoneId = scopeTabs.find((t) => t.key === scope)?.zoneId;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,7 +140,9 @@ export default function MessageBoardPage() {
           <div className={styles.appbarLoc}>
             <span className={styles.appbarBook}>留 言 板</span>
             <span className={styles.appbarZone}>
-              {scope === 'world' ? '全 服 · 实时刷新' : '本 区 · 主 城'}
+              {scope === 'world'
+                ? '全 服 · 实时刷新'
+                : `本 区 · ${zone?.name || ''}`}
             </span>
           </div>
           <div className={styles.appbarIcons}>
@@ -123,7 +153,7 @@ export default function MessageBoardPage() {
       </div>
 
       <div className={styles.enchTabs}>
-        {SCOPE_TABS.map((t) => (
+        {scopeTabs.map((t) => (
           <button
             key={t.key}
             className={`${styles.enchTab} ${scope === t.key ? styles.enchTabOn : ''}`.trim()}
@@ -133,6 +163,21 @@ export default function MessageBoardPage() {
             {t.label}
           </button>
         ))}
+        {!zone && zoneFailed && (
+          <span
+            style={{
+              flex: 1,
+              padding: '10px 4px',
+              textAlign: 'center',
+              fontSize: 11,
+              letterSpacing: 1,
+              color: 'var(--text-faint)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            暂无区域信息
+          </span>
+        )}
       </div>
 
       <div className={styles.bbPillTabs}>

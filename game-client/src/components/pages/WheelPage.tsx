@@ -3,9 +3,9 @@ import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
 import {
   fetchWheelInfo,
-  spinWheel,
+  rollGacha,
+  type GachaResult,
   type WheelPrize,
-  type WheelSpinResult,
 } from '../../services/api';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -14,6 +14,7 @@ import { PAGE_BG } from '../../data/pageBackgrounds';
 const SLICES = 8;
 const SLICE_DEG = 360 / SLICES;
 const SPIN_MS = 3200;
+const GACHA_ID = 'wheel';
 
 interface LogEntry {
   time: string;
@@ -25,6 +26,32 @@ function hhmm(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+const QUALITY_ICON: Record<GachaResult['quality'], string> = {
+  white: '宝',
+  green: '玉',
+  blue: '珠',
+  purple: '神',
+  orange: '圣',
+};
+
+const QUALITY_LABEL: Record<GachaResult['quality'], string> = {
+  white: '凡品',
+  green: '良品',
+  blue: '稀世',
+  purple: '至尊',
+  orange: '神级',
+};
+
+function pickSliceIndex(prizes: WheelPrize[], result: GachaResult): number {
+  const direct = prizes.findIndex((p) => p.id === result.itemId || p.name === result.itemName);
+  if (direct >= 0 && direct < SLICES) return direct;
+  let hash = 0;
+  for (let i = 0; i < result.itemId.length; i++) {
+    hash = (hash * 31 + result.itemId.charCodeAt(i)) | 0;
+  }
+  return ((hash % SLICES) + SLICES) % SLICES;
+}
+
 export default function WheelPage() {
   usePageBackground(PAGE_BG.WHEEL);
   const navigateTo = useGameStore((s) => s.navigateTo);
@@ -34,7 +61,7 @@ export default function WheelPage() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [result, setResult] = useState<WheelSpinResult | null>(null);
+  const [result, setResult] = useState<GachaResult | null>(null);
   const totalRot = useRef(0);
 
   const load = useCallback(async () => {
@@ -58,8 +85,15 @@ export default function WheelPage() {
       if (spinning || prizes.length === 0) return;
       setSpinning(true);
       try {
-        const res = await spinWheel();
-        const idx = ((res.prizeIndex ?? 0) % SLICES + SLICES) % SLICES;
+        const results = await rollGacha(GACHA_ID, isTen ? 10 : 1);
+        if (!results || results.length === 0) {
+          toast.error('系统繁忙，请稍后再试');
+          setSpinning(false);
+          return;
+        }
+
+        const headline = results[0];
+        const idx = pickSliceIndex(prizes, headline);
         const sliceMid = idx * SLICE_DEG + SLICE_DEG / 2;
         const cur = totalRot.current;
         const base = Math.ceil(cur / 360) * 360;
@@ -68,20 +102,33 @@ export default function WheelPage() {
         setRotation(target);
 
         window.setTimeout(() => {
-          setResult(res);
-          setFreeSpins(res.remainingFreeSpins ?? Math.max(0, freeSpins - 1));
-          if (res.rewardName) {
-            setLog((prev) => [{ time: hhmm(), reward: res.rewardName }, ...prev].slice(0, 12));
-          }
+          setResult(headline);
+          setFreeSpins((prev) => Math.max(0, prev - (isTen ? 10 : 1)));
+          setLog((prev) => {
+            const additions = results.map((r) => ({
+              time: hhmm(),
+              reward: `${QUALITY_LABEL[r.quality]} · ${r.itemName} ×${r.quantity}`,
+            }));
+            return [...additions, ...prev].slice(0, 12);
+          });
           setSpinning(false);
-          if (isTen) toast.info('连抽首格公示 · 剩余 9 次自动结算');
+          if (isTen) {
+            const top = results.find((r) => r.quality === 'orange' || r.quality === 'purple');
+            if (top) {
+              toast.reward(`10 连保底命中 · ${QUALITY_LABEL[top.quality]} ${top.itemName}`);
+            } else {
+              toast.info(`10 连完成 · 共获 ${results.length} 件物品`);
+            }
+          } else {
+            toast.success(`获得 ${headline.itemName} ×${headline.quantity}`);
+          }
         }, SPIN_MS + 80);
-      } catch (e) {
-        toast.error((e as Error).message || '转盘失败');
+      } catch {
+        toast.error('系统繁忙，请稍后再试');
         setSpinning(false);
       }
     },
-    [spinning, prizes, freeSpins],
+    [spinning, prizes],
   );
 
   const rendered = prizes.slice(0, SLICES);
@@ -214,9 +261,11 @@ export default function WheelPage() {
         <div className={styles.whOverlay} onClick={() => setResult(null)}>
           <div className={styles.whCard} onClick={(e) => e.stopPropagation()}>
             <div className={styles.whCardTag}>★ 气 运 所 归 ★</div>
-            <div className={styles.whCardIcon}>{result.rewardIcon || '宝'}</div>
-            <div className={styles.whCardName}>{result.rewardName || '神秘奖品'}</div>
-            <div className={styles.whCardDesc}>{result.rewardDesc || '恭 喜 获 得 奖 品'}</div>
+            <div className={styles.whCardIcon}>{QUALITY_ICON[result.quality]}</div>
+            <div className={styles.whCardName}>{result.itemName}</div>
+            <div className={styles.whCardDesc}>
+              {QUALITY_LABEL[result.quality]} · 数量 ×{result.quantity}
+            </div>
             <button
               type="button"
               className={styles.whCardBtn}

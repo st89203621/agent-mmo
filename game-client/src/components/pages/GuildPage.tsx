@@ -9,8 +9,13 @@ import {
   dissolveGuild,
   donateGold,
   kickGuildMember,
+  fetchPartyList,
+  createParty,
+  joinParty,
+  leaveParty,
   type GuildData,
   type GuildMemberData,
+  type PartyRecruitment,
 } from '../../services/api';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
@@ -46,12 +51,201 @@ function memberFirstChar(name?: string) {
   return (name || '').trim().slice(0, 1) || '侠';
 }
 
+type MainTab = 'guild' | 'party';
+
+function PartyHallPanel() {
+  const [parties, setParties] = useState<PartyRecruitment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [goal, setGoal] = useState('');
+  const [maxStr, setMaxStr] = useState('5');
+  const [minLevelStr, setMinLevelStr] = useState('1');
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchPartyList();
+      setParties(res.parties);
+    } catch {
+      setParties([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const handleCreate = async () => {
+    const trimmed = goal.trim();
+    if (!trimmed) { toast.warning('请输入队伍目标'); return; }
+    const max = Number.parseInt(maxStr, 10);
+    const minLevel = Number.parseInt(minLevelStr, 10);
+    if (!Number.isFinite(max) || max < 2 || max > 5) { toast.warning('队伍人数 2~5'); return; }
+    if (!Number.isFinite(minLevel) || minLevel < 1) { toast.warning('请输入有效等级'); return; }
+    setBusy('create');
+    try {
+      await createParty(trimmed, max, minLevel);
+      toast.success('队伍创建成功');
+      setGoal('');
+      setCreating(false);
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  };
+
+  const handleJoin = async (p: PartyRecruitment) => {
+    setBusy(`join-${p.partyId}`);
+    try {
+      await joinParty(p.partyId);
+      toast.success(`已加入「${p.leaderName}」的队伍`);
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  };
+
+  const handleLeave = async () => {
+    const ok = await confirmDialog({
+      title: '离 队',
+      message: '确认离开当前队伍？',
+      confirmText: '离 队',
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy('leave');
+    try {
+      await leaveParty();
+      toast.success('已离队');
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  };
+
+  return (
+    <div className={styles.scrollPlain}>
+      <div className={styles.guJoinBanner}>
+        <div className={styles.guJoinTitle}>四 海 同 行</div>
+        <div className={styles.guJoinSub}>组队挑战副本、世界 BOSS · 同袍而行，事半功倍</div>
+        {creating ? (
+          <div className={styles.guJoinCreate} style={{ flexDirection: 'column', gap: 6 }}>
+            <input
+              className={styles.guDonateInput}
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="队伍目标 · 如：扫荡灵霄洞"
+              maxLength={24}
+            />
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                className={styles.guDonateInput}
+                value={maxStr}
+                onChange={(e) => setMaxStr(e.target.value)}
+                placeholder="人数 2-5"
+                type="number"
+                min={2}
+                max={5}
+              />
+              <input
+                className={styles.guDonateInput}
+                value={minLevelStr}
+                onChange={(e) => setMinLevelStr(e.target.value)}
+                placeholder="最低等级"
+                type="number"
+                min={1}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                className={styles.guDonateBtn}
+                onClick={handleCreate}
+                disabled={busy === 'create'}
+                type="button"
+              >
+                {busy === 'create' ? '...' : '创 建'}
+              </button>
+              <button
+                className={styles.guDonateBtn}
+                onClick={() => setCreating(false)}
+                type="button"
+                style={{ opacity: 0.7 }}
+              >
+                取 消
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.guJoinCreate} style={{ gap: 6 }}>
+            <button
+              className={styles.guDonateBtn}
+              onClick={() => setCreating(true)}
+              type="button"
+            >
+              创 建 队 伍
+            </button>
+            <button
+              className={styles.guDonateBtn}
+              onClick={handleLeave}
+              disabled={busy === 'leave'}
+              type="button"
+              style={{ opacity: 0.85 }}
+            >
+              {busy === 'leave' ? '...' : '离 队'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.sectRow}>
+        招 募 中 的 队 伍
+        <span className={styles.sectMore}>{parties.length} 支</span>
+      </div>
+
+      <div className={styles.guList}>
+        {loading ? (
+          <div className={styles.feedEmpty}>队伍信息载入中...</div>
+        ) : parties.length === 0 ? (
+          <div className={styles.feedEmpty}>当前无招募中的队伍，可创建一支</div>
+        ) : (
+          parties.map((p) => {
+            const full = p.current >= p.max;
+            return (
+              <div key={p.partyId} className={styles.guListItem}>
+                <div className={styles.guListCrest}>{firstChar(p.leaderName)}</div>
+                <div className={styles.guListBody}>
+                  <div className={styles.guListName}>{p.goal || '组队同行'}</div>
+                  <div className={styles.guListMeta}>
+                    队长 {p.leaderName} · {p.current}/{p.max} 人 · 入队 Lv ≥ {p.minLevel}
+                  </div>
+                </div>
+                <button
+                  className={styles.guListJoin}
+                  onClick={() => handleJoin(p)}
+                  disabled={full || busy === `join-${p.partyId}`}
+                  type="button"
+                >
+                  {busy === `join-${p.partyId}` ? '...' : (full ? '已满' : '加入')}
+                </button>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function GuildPage() {
   usePageBackground(PAGE_BG.GUILD);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const playerId = usePlayerStore((s) => s.playerId);
   const playerName = usePlayerStore((s) => s.playerName);
 
+  const [mainTab, setMainTab] = useState<MainTab>('guild');
   const [guild, setGuild] = useState<GuildData | null>(null);
   const [members, setMembers] = useState<GuildMemberData[]>([]);
   const [guildList, setGuildList] = useState<GuildData[]>([]);
@@ -59,6 +253,25 @@ export default function GuildPage() {
   const [newName, setNewName] = useState('');
   const [donateAmount, setDonateAmount] = useState('');
   const [operating, setOperating] = useState<string | null>(null);
+
+  const renderTabBar = () => (
+    <div className={styles.enchTabs}>
+      <button
+        className={`${styles.enchTab} ${mainTab === 'guild' ? styles.enchTabOn : ''}`.trim()}
+        onClick={() => setMainTab('guild')}
+        type="button"
+      >
+        公 会
+      </button>
+      <button
+        className={`${styles.enchTab} ${mainTab === 'party' ? styles.enchTabOn : ''}`.trim()}
+        onClick={() => setMainTab('party')}
+        type="button"
+      >
+        组 队 大 厅
+      </button>
+    </div>
+  );
 
   const refreshAll = useCallback(async () => {
     setLoading(true);
@@ -210,6 +423,26 @@ export default function GuildPage() {
     setOperating(null);
   };
 
+  if (mainTab === 'party') {
+    return (
+      <div className={styles.mockPage}>
+        <div className={styles.appbar}>
+          <div className={styles.appbarRow}>
+            <div className={styles.appbarLoc}>
+              <span className={styles.appbarBook}>组 队 大 厅</span>
+              <span className={styles.appbarZone}>四海同行</span>
+            </div>
+            <div className={styles.appbarIcons}>
+              <button className={styles.appbarIcon} onClick={() => navigateTo('chat')} type="button" aria-label="聊天">聊</button>
+            </div>
+          </div>
+        </div>
+        {renderTabBar()}
+        <PartyHallPanel />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.mockPage}>
@@ -220,6 +453,7 @@ export default function GuildPage() {
             </div>
           </div>
         </div>
+        {renderTabBar()}
         <div className={styles.feedEmpty}>盟会信息载入中...</div>
       </div>
     );
@@ -239,6 +473,7 @@ export default function GuildPage() {
             </div>
           </div>
         </div>
+        {renderTabBar()}
 
         <div className={styles.guJoinBanner}>
           <div className={styles.guJoinTitle}>择 盟 而 聚</div>
@@ -313,6 +548,7 @@ export default function GuildPage() {
           </div>
         </div>
       </div>
+      {renderTabBar()}
 
       <div className={styles.scrollPlain}>
         <div className={styles.guBanner}>

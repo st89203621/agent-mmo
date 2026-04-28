@@ -2029,3 +2029,152 @@ export function resolveRealmEvent(eventId: string, choice: number): Promise<{
     body: JSON.stringify({ eventId, choice }),
   });
 }
+
+// === FANOUT BLOCK: flow-H ===
+export interface GachaResult {
+  itemId: string;
+  itemName: string;
+  quality: 'white' | 'green' | 'blue' | 'purple' | 'orange';
+  quantity: number;
+}
+
+export function rollGacha(gachaId: string, count: 1 | 10): Promise<GachaResult[]> {
+  return request<GachaResult[]>('/gacha/roll', {
+    method: 'POST',
+    body: JSON.stringify({ gachaId, count }),
+  });
+}
+
+export function fetchGachaHistory(gachaId: string): Promise<GachaResult[]> {
+  const qs = `?gachaId=${encodeURIComponent(gachaId)}`;
+  return request<GachaResult[]>(`/gacha/history${qs}`);
+}
+// === FANOUT END: flow-H ===
+
+// === FANOUT BLOCK: flow-D ===
+
+export interface MarriageState {
+  married: boolean;
+  spouseId?: number;
+  spouseName?: string;
+  marriedSince?: number;
+}
+
+export interface MatchmakingItem {
+  playerId: number;
+  name: string;
+  level: number;
+  fateScore: number;
+  reason: string;
+  portrait?: string;
+}
+
+export interface MarriageProposal {
+  proposalId: string;
+  fromId: number;
+  fromName: string;
+  toId: number;
+  toName: string;
+  createdAt: number;
+}
+
+export async function fetchMarriageState(): Promise<MarriageState> {
+  const data = await request<{
+    married?: boolean;
+    partner?: { partnerId?: number; partnerName?: string; createdAt?: number };
+    spouseId?: number;
+    spouseName?: string;
+    marriedSince?: number;
+  }>('/marriage/status');
+  return {
+    married: !!(data.married ?? (data.partner != null)),
+    spouseId: data.spouseId ?? data.partner?.partnerId,
+    spouseName: data.spouseName ?? data.partner?.partnerName,
+    marriedSince: data.marriedSince ?? data.partner?.createdAt,
+  };
+}
+
+const MATCH_REASONS = [
+  '与你性格互补，缘分深厚',
+  '同道中人，志趣相投',
+  '共历患难，情谊渐生',
+  '机缘巧合，星宿相连',
+  '名扬江湖，引你侧目',
+];
+
+export async function fetchMatchmaking(): Promise<{ candidates: MatchmakingItem[] }> {
+  const data = await request<{
+    candidates?: { playerId: number; name: string; level: number; intro?: string; portraitUrl?: string; portrait?: string; reason?: string; fateScore?: number }[];
+  }>('/marriage/matchmaking');
+  const list = data.candidates || [];
+  return {
+    candidates: list.map((item, index) => ({
+      playerId: item.playerId,
+      name: item.name,
+      level: item.level,
+      fateScore: typeof item.fateScore === 'number' ? item.fateScore : Math.max(55, 92 - index * 11),
+      reason: item.reason || item.intro || MATCH_REASONS[index % MATCH_REASONS.length],
+      portrait: item.portrait || item.portraitUrl,
+    })),
+  };
+}
+
+export async function acceptMarriage(proposalId: string): Promise<void> {
+  await request('/marriage/accept', {
+    method: 'POST',
+    body: JSON.stringify({ proposalId }),
+  });
+}
+
+export async function rejectMarriage(proposalId: string): Promise<void> {
+  await request('/marriage/reject', {
+    method: 'POST',
+    body: JSON.stringify({ proposalId }),
+  });
+}
+
+export async function fetchProposals(): Promise<{ incoming: MarriageProposal[]; outgoing: MarriageProposal[] }> {
+  const data = await request<{
+    incoming?: MarriageProposal[];
+    outgoing?: MarriageProposal[];
+  }>('/marriage/proposals');
+  return {
+    incoming: data.incoming || [],
+    outgoing: data.outgoing || [],
+  };
+}
+
+export interface PartyRecruitment {
+  partyId: string;
+  leaderId: number;
+  leaderName: string;
+  goal: string;
+  current: number;
+  max: number;
+  minLevel: number;
+}
+
+export async function fetchPartyList(): Promise<{ parties: PartyRecruitment[] }> {
+  const data = await request<{ parties?: PartyRecruitment[] }>('/party/list');
+  return { parties: data.parties || [] };
+}
+
+export async function createParty(goal: string, max: number, minLevel: number): Promise<{ partyId: string }> {
+  return request('/party/create', {
+    method: 'POST',
+    body: JSON.stringify({ goal, max, minLevel }),
+  });
+}
+
+export async function joinParty(partyId: string): Promise<void> {
+  await request('/party/join', {
+    method: 'POST',
+    body: JSON.stringify({ partyId }),
+  });
+}
+
+export async function leaveParty(): Promise<void> {
+  await request('/party/leave', { method: 'POST' });
+}
+
+// === FANOUT END: flow-D ===

@@ -3,6 +3,7 @@ package com.iohao.mmo.map.zone;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.iohao.mmo.map.proto.*;
+import com.iohao.mmo.map.repository.PlayerZoneRepository;
 import com.iohao.mmo.map.room.MapPlayer;
 import com.iohao.mmo.map.room.MapRoomService;
 import jakarta.annotation.PostConstruct;
@@ -12,6 +13,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -23,8 +25,11 @@ public class ZoneService {
     @Resource
     MapRoomService roomService;
 
+    @Resource
+    PlayerZoneRepository playerZoneRepository;
+
     private final Map<String, JSONObject> zoneMap = new LinkedHashMap<>();
-    /** playerId → zoneId */
+    /** playerId → zoneId（启动时从 MongoDB 加载，写入时双写） */
     private final ConcurrentHashMap<Long, String> playerZone = new ConcurrentHashMap<>();
 
     static final String DEFAULT_ZONE = "main_city";
@@ -41,6 +46,18 @@ public class ZoneService {
         } catch (Exception e) {
             log.error("Failed to load zones.json", e);
         }
+
+        try {
+            List<PlayerZoneRecord> records = playerZoneRepository.findAll();
+            for (PlayerZoneRecord r : records) {
+                if (zoneMap.containsKey(r.getZoneId())) {
+                    playerZone.put(r.getPlayerId(), r.getZoneId());
+                }
+            }
+            log.info("Restored {} player zone records from MongoDB", playerZone.size());
+        } catch (Exception e) {
+            log.error("Failed to load player zone records", e);
+        }
     }
 
     public String getPlayerZone(long playerId) {
@@ -49,6 +66,15 @@ public class ZoneService {
 
     public void setPlayerZone(long playerId, String zoneId) {
         playerZone.put(playerId, zoneId);
+        try {
+            PlayerZoneRecord record = new PlayerZoneRecord();
+            record.setPlayerId(playerId);
+            record.setZoneId(zoneId);
+            record.setUpdatedAt(Instant.now());
+            playerZoneRepository.save(record);
+        } catch (Exception e) {
+            log.warn("Failed to persist player zone playerId={} zoneId={}", playerId, zoneId, e);
+        }
     }
 
     public ZoneInfoProto getZoneInfo(long playerId) {

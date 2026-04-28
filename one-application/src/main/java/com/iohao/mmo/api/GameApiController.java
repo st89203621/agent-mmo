@@ -223,9 +223,6 @@ public class GameApiController {
     private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> friendMap = new ConcurrentHashMap<>();
     /** 邮件列表：playerId -> mails */
     private final ConcurrentHashMap<Long, CopyOnWriteArrayList<Map<String, Object>>> mailMap = new ConcurrentHashMap<>();
-    /** 集市挂单：listingId -> listing */
-    private final ConcurrentHashMap<String, Map<String, Object>> marketListings = new ConcurrentHashMap<>();
-
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
     /** 共探 SSE 推送：sessionId → (userId → emitter) */
@@ -683,13 +680,14 @@ public class GameApiController {
                 .body(data);
     }
 
-    /** 拼接带尺寸参数的图片 URL。1024x1024 视为原图，省略参数。 */
+    /**
+     * 拼接带尺寸参数的图片 URL。指定有效 width/height 时一律附参，由
+     * {@link com.iohao.mmo.common.ai.image.ImageScaler} 在读取阶段处理 ——
+     * 当请求尺寸与缓存原图尺寸一致时为零成本 no-op，不一致时按需缩放。
+     */
     private String buildScaledImageUrl(String imageId, int width, int height) {
         String base = "/api/story/scene-image/" + imageId;
-        if (width <= 0 || height <= 0
-                || (width == SceneImageService.CANONICAL_SIZE && height == SceneImageService.CANONICAL_SIZE)) {
-            return base;
-        }
+        if (width <= 0 || height <= 0) return base;
         return base + "?w=" + width + "&h=" + height;
     }
 
@@ -777,31 +775,41 @@ public class GameApiController {
     }
 
     private String buildLunhuiVisualPrompt(String type, String name, String description, String context) {
-        // 清新淡雅 + 色彩丰富 + 高清锐利的统一基调；
-        // 通用形态类负向词（文字、水印、UI、糊片 等）由 ComfyUI negative 通道接管，业务侧不再重复。
-        // 注意：旧版本含"水彩晕染质感"，与"主体清晰"自相冲突导致出图发糊，已移除。
-        String base = "8K超高清东方仙侠游戏插画，画质精致细腻，焦点清晰，主体锐利，细节丰富，"
-                + "清新淡雅，色彩丰富明亮，柔光通透，高饱和柔色调，"
-                + "粉青蓝绿白等多彩配色，云雾轻盈，仙气飘逸，"
-                + "唯美工笔国风，电影级构图，光影层次分明，"
-                + "禁止暗黑沉闷、禁止厚重金属感、禁止血腥、禁止柔焦糊片。";
-        String subject = "名称：" + name + "。设定：" + description + "。场景上下文：" + context + "。";
+        // 反向词（blurry / lowres / watermark / ui / 等）已由 ComfyUI negative 通道接管，
+        // 这里只保留正向描述，避免 FLUX 把 "禁止糊片" 当作正向语义反向理解。
+        // 质量词不堆叠，避免与 description / context 中的具体氛围冲突。
+        String base = "东方仙侠游戏插画，国风工笔，主体清晰锐利，色彩通透层次分明，电影级构图。";
+        String subject = "名称：" + name + "。"
+                + "设定：" + cleanSegment(description) + "。"
+                + "氛围：" + cleanSegment(context) + "。";
         return switch (type) {
             case "portrait" -> base + subject
-                    + "半身人物立绘，正面或三分之二侧身，人物占画面70%，古风轻盈服饰，"
-                    + "明亮柔光，五官精致清晰，发丝纤毫毕现，浅色虚化背景带细腻光斑，不要透明通道。";
+                    + "半身人物立绘，三分之二侧身，人物占画面 70%，古风轻盈服饰，"
+                    + "五官清晰、发丝细腻，浅色虚化背景带细腻光斑，不要透明通道。";
             case "monster" -> base + subject
-                    + "单体灵兽/生物全身立绘，主体占画面75%，神态灵动飘逸，轮廓锐利清楚，"
-                    + "鳞羽毛发纹理清晰，明亮虚化背景带柔光，禁止凶煞阴森。";
+                    + "单体灵兽/生物全身立绘，主体占画面 75%，神态灵动飘逸，轮廓清晰，"
+                    + "鳞羽毛发纹理细致，浅色虚化背景。";
             case "icon" -> base + subject
-                    + "单个游戏功能或物品图标，居中构图，圆形或方形徽章感，描边干净锐利，"
-                    + "浅米色或淡青底，光泽清透质感，高识别度，适合小尺寸缩放。";
+                    + "单个游戏功能或物品图标，居中构图，圆形或方形徽章感，描边干净，"
+                    + "浅米或淡青底，光泽清透，高识别度，适合小尺寸缩放。";
             case "banner" -> base + subject
-                    + "横幅活动插画，宽屏构图，中心视觉明确，左右留出安全空间，色彩缤纷，画面锐利清晰，不含文字。";
+                    + "横幅活动插画，宽屏构图，中心视觉明确，左右留安全空间，画面通透不含文字。";
             default -> base + subject
-                    + "纯场景背景图，无人物，前中远景层次分明，建筑山石纹理清晰可辨，"
-                    + "柔和光影富有空气感，明亮通透，适合H5页面顶部场景卡和战斗背景。";
+                    + "纯背景场景，无人物，前中远景层次分明，建筑/山石/草木纹理清晰，"
+                    + "光影柔和富有空气感，适合作为 H5 页面顶部背景。";
         };
+    }
+
+    /** 去除重复句号 / 空白，避免拼接出现 "。。" 等噪声片段。 */
+    private String cleanSegment(String s) {
+        if (s == null) return "";
+        String trimmed = s.trim();
+        // 去掉末尾的句号（外层会统一补 "。"）
+        while (trimmed.endsWith("。") || trimmed.endsWith(".")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1).trim();
+        }
+        // 内部 "。。" → "。"
+        return trimmed.replaceAll("。{2,}", "。");
     }
 
     private String buildScenePrompt(String npcName, String bookTitle, String personality, String role,
@@ -4508,10 +4516,25 @@ public class GameApiController {
         List<Map<String, Object>> list = players.stream().map(p -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("playerId", p.playerId);
-            m.put("name", p.name);
-            m.put("level", p.level);
             m.put("zoneId", p.zoneId);
-            m.put("portraitUrl", p.portraitUrl);
+
+            Person nearbyPerson = personService.getPersonById(p.playerId);
+            m.put("name", nearbyPerson != null && nearbyPerson.getName() != null
+                    ? nearbyPerson.getName() : "侠客" + p.playerId);
+
+            int realLevel = 1;
+            try {
+                Level lv = levelService.ofLevel(p.playerId);
+                if (lv != null) realLevel = lv.getLevel();
+            } catch (Exception ignore) { }
+            m.put("level", realLevel);
+
+            String portraitUrl = "";
+            if (nearbyPerson != null && nearbyPerson.getPortraitImageId() != null
+                    && !nearbyPerson.getPortraitImageId().isEmpty()) {
+                portraitUrl = "/api/story/scene-image/" + nearbyPerson.getPortraitImageId();
+            }
+            m.put("portraitUrl", portraitUrl);
             return m;
         }).toList();
         return ok(Map.of("players", list));
@@ -4834,21 +4857,9 @@ public class GameApiController {
             @RequestParam(defaultValue = "0") int page,
             HttpSession session) {
         requireLogin(session);
-        int pageSize = 30;
-        String catFilter = (category == null || category.isBlank()) ? null : category;
-        String kwFilter = (keyword == null || keyword.isBlank()) ? null : keyword.toLowerCase(java.util.Locale.ROOT);
-        var all = marketListings.values().stream()
-                .filter(l -> "ACTIVE".equals(l.get("status")))
-                .filter(l -> catFilter == null || catFilter.equals(l.get("itemCategory")))
-                .filter(l -> kwFilter == null || ((String) l.getOrDefault("itemName", ""))
-                        .toLowerCase(java.util.Locale.ROOT).contains(kwFilter))
-                .sorted((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")))
-                .toList();
-        int total = all.size();
-        int from = Math.min(page * pageSize, total);
-        int to = Math.min(from + pageSize, total);
-        var items = all.subList(from, to).stream().map(this::marketView).toList();
-        return ok(Map.of("items", items, "total", total));
+        var result = tradeService.listMarket(category, keyword, page, 30);
+        var items = result.getContent().stream().map(this::marketListingView).toList();
+        return ok(Map.of("items", items, "total", result.getTotalElements()));
     }
 
     @PostMapping("/market/sell")
@@ -4856,8 +4867,10 @@ public class GameApiController {
         long userId = requireLogin(session);
         String itemId = (String) body.get("itemId");
         if (itemId == null || itemId.isBlank()) return err("物品不能为空");
-        long price = ((Number) body.getOrDefault("price", 0)).longValue();
-        if (price <= 0) return err("价格需大于 0");
+        Object priceRaw = body.get("unitPrice") != null ? body.get("unitPrice") : body.get("price");
+        if (priceRaw == null) return err("价格不能为空");
+        long unitPrice = ((Number) priceRaw).longValue();
+        if (unitPrice <= 0) return err("价格需大于 0");
         int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
         if (quantity <= 0) return err("数量需大于 0");
 
@@ -4867,55 +4880,75 @@ public class GameApiController {
         String sellerName = (String) session.getAttribute("username");
         if (sellerName == null || sellerName.isBlank()) sellerName = "玩家" + userId;
 
-        String listingId = java.util.UUID.randomUUID().toString();
-        Map<String, Object> listing = new LinkedHashMap<>();
-        listing.put("listingId", listingId);
-        listing.put("sellerId", userId);
-        listing.put("sellerName", sellerName);
-        listing.put("itemId", itemId);
-        listing.put("itemName", itemName);
-        listing.put("itemCategory", itemCategory);
-        listing.put("itemQuality", itemQuality);
-        listing.put("unitPrice", price);
-        listing.put("quantity", quantity);
-        listing.put("sold", 0);
-        listing.put("createdAt", System.currentTimeMillis());
-        listing.put("status", "ACTIVE");
-        marketListings.put(listingId, listing);
-        return ok(Map.of("listingId", listingId));
+        // 从背包扣除物品（此处以 itemId 作为 BagItem.id 兜底，仅支持可堆叠物品）
+        // TODO: 唯一装备（equip）的 bagItemId 需由前端单独传入
+        try {
+            BagItem toRemove = new BagItem();
+            toRemove.setId(itemId);
+            toRemove.setItemTypeId(itemId);
+            toRemove.setQuantity(quantity);
+            bagService.decrementItem(toRemove, userId);
+        } catch (Exception e) {
+            return err("背包中没有足够的物品");
+        }
+
+        com.iohao.mmo.trade.entity.MarketListing listing = tradeService.createListing(
+                userId, sellerName, itemId, itemName, itemCategory, itemQuality, quantity, unitPrice);
+        return ok(Map.of("listingId", listing.getId()));
     }
 
     @PostMapping("/market/buy")
     public ResponseEntity<Map<String, Object>> marketBuy(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String listingId = (String) body.get("listingId");
+        if (listingId == null || listingId.isBlank()) return err("挂单ID不能为空");
         int quantity = ((Number) body.getOrDefault("quantity", 1)).intValue();
         if (quantity <= 0) return err("数量需大于 0");
 
-        Map<String, Object> listing = marketListings.get(listingId);
+        com.iohao.mmo.trade.entity.MarketListing listing = tradeService.findListing(listingId);
         if (listing == null) return err("挂单不存在");
-        if (!"ACTIVE".equals(listing.get("status"))) return err("挂单已结束");
-        Long sellerId = ((Number) listing.get("sellerId")).longValue();
-        if (sellerId != null && sellerId == userId) return err("不能购买自己的挂单");
-
-        int remain = ((Number) listing.get("quantity")).intValue() - ((Number) listing.get("sold")).intValue();
+        if (listing.getStatus() != com.iohao.mmo.trade.entity.MarketListing.ListingStatus.ACTIVE)
+            return err("挂单已结束");
+        if (listing.getSellerId() == userId) return err("不能购买自己的挂单");
+        int remain = listing.getQuantity() - listing.getSold();
         if (remain <= 0) return err("库存不足");
-        int buy = Math.min(quantity, remain);
-        int newSold = ((Number) listing.get("sold")).intValue() + buy;
-        listing.put("sold", newSold);
-        if (newSold >= ((Number) listing.get("quantity")).intValue()) {
-            listing.put("status", "SOLD_OUT");
+        int bought = Math.min(quantity, remain);
+        long totalCost = listing.getUnitPrice() * bought;
+        if (totalCost > Integer.MAX_VALUE) return err("交易金额超出上限");
+
+        PlayerCurrency buyerCurrency = shopService.getPlayerCurrency(userId);
+        if (buyerCurrency.getGold() < totalCost) return err("金币不足");
+
+        try {
+            tradeService.executeBuy(userId, listingId, bought);
+        } catch (IllegalArgumentException e) {
+            return err(e.getMessage());
         }
-        return ok(Map.of("success", true, "bought", buy, "remaining", remain - buy));
+
+        // 扣买家金币
+        buyerCurrency.deduct("gold", (int) totalCost);
+        shopService.saveCurrency(buyerCurrency);
+
+        // 卖家收款（扣 5% 手续费）
+        long fee = Math.max(1L, totalCost * 5 / 100);
+        shopService.addCurrency(listing.getSellerId(), (int) (totalCost - fee), 0);
+
+        // 物品加入买家背包（可堆叠物品；唯一装备需另行处理）
+        // TODO: 唯一装备的转移需创建新 BagItem 记录，不能直接叠加
+        BagItem toAdd = new BagItem();
+        toAdd.setId(listing.getItemId());
+        toAdd.setItemTypeId(listing.getItemId());
+        toAdd.setQuantity(bought);
+        bagService.incrementItem(toAdd, userId);
+
+        log.info("集市购买 buyer={} listing={} qty={} cost={}", userId, listingId, bought, totalCost);
+        return ok(Map.of("ok", true, "bought", bought));
     }
 
     @GetMapping("/market/my-listings")
     public ResponseEntity<Map<String, Object>> marketMyListings(HttpSession session) {
         long userId = requireLogin(session);
-        var mine = marketListings.values().stream()
-                .filter(l -> ((Number) l.get("sellerId")).longValue() == userId)
-                .sorted((a, b) -> Long.compare((Long) b.get("createdAt"), (Long) a.get("createdAt")))
-                .map(this::marketView).toList();
+        var mine = tradeService.myListings(userId).stream().map(this::marketListingView).toList();
         return ok(Map.of("items", mine));
     }
 
@@ -4923,27 +4956,43 @@ public class GameApiController {
     public ResponseEntity<Map<String, Object>> marketCancel(@RequestBody Map<String, Object> body, HttpSession session) {
         long userId = requireLogin(session);
         String listingId = (String) body.get("listingId");
-        Map<String, Object> listing = marketListings.get(listingId);
-        if (listing == null) return err("挂单不存在");
-        if (((Number) listing.get("sellerId")).longValue() != userId) return err("无权撤回");
-        if (!"ACTIVE".equals(listing.get("status"))) return err("挂单已结束");
-        listing.put("status", "CANCELLED");
-        return ok(Map.of("success", true));
+        if (listingId == null || listingId.isBlank()) return err("挂单ID不能为空");
+
+        com.iohao.mmo.trade.entity.MarketListing listing;
+        try {
+            listing = tradeService.cancelListing(userId, listingId);
+        } catch (IllegalArgumentException e) {
+            return err(e.getMessage());
+        }
+
+        // 退还未售物品到背包（可堆叠物品；唯一装备需另行处理）
+        // TODO: 唯一装备退还需按原 bagItemId 恢复
+        int remaining = listing.getQuantity() - listing.getSold();
+        if (remaining > 0) {
+            BagItem toReturn = new BagItem();
+            toReturn.setId(listing.getItemId());
+            toReturn.setItemTypeId(listing.getItemId());
+            toReturn.setQuantity(remaining);
+            bagService.incrementItem(toReturn, userId);
+        }
+
+        return ok(Map.of("ok", true));
     }
 
-    private Map<String, Object> marketView(Map<String, Object> listing) {
+    private Map<String, Object> marketListingView(com.iohao.mmo.trade.entity.MarketListing listing) {
         Map<String, Object> v = new LinkedHashMap<>();
-        v.put("listingId", listing.get("listingId"));
-        v.put("itemId", listing.get("itemId"));
-        v.put("itemName", listing.get("itemName"));
-        v.put("itemCategory", listing.get("itemCategory"));
-        v.put("itemQuality", listing.get("itemQuality"));
-        v.put("sellerId", listing.get("sellerId"));
-        v.put("sellerName", listing.get("sellerName"));
-        v.put("unitPrice", listing.get("unitPrice"));
-        v.put("quantity", listing.get("quantity"));
-        v.put("sold", listing.get("sold"));
-        v.put("createdAt", listing.get("createdAt"));
+        v.put("listingId", listing.getId());
+        v.put("itemId", listing.getItemId());
+        v.put("itemName", listing.getItemName());
+        v.put("itemCategory", listing.getItemCategory());
+        v.put("itemQuality", listing.getItemQuality());
+        v.put("sellerId", listing.getSellerId());
+        v.put("sellerName", listing.getSellerName());
+        v.put("unitPrice", listing.getUnitPrice());
+        v.put("quantity", listing.getQuantity());
+        v.put("sold", listing.getSold());
+        v.put("createdAt", listing.getCreatedAt());
+        v.put("status", listing.getStatus().name());
         return v;
     }
 

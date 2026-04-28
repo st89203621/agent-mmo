@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { usePlayerStore } from '../../store/playerStore';
 import {
   fetchAuctionList, placeBid, buyNow, listItemOnAuction, cancelAuctionListing,
+  fetchBagItems, fetchPlayerCurrency,
 } from '../../services/api';
+import type { BagItemData } from '../../services/api';
 import { toast } from '../../store/toastStore';
 import type { AuctionItem } from '../../types';
 import styles from './lunhui/LunhuiPages.module.css';
@@ -26,13 +28,23 @@ const QUALITY_CLASS: Record<string, string> = {
   orange: styles.aucIconO,
 };
 
-function formatTime(endMs: number): { label: string; safe: boolean } {
-  const diff = endMs - Date.now();
+const QUALITY_CELL_CLASS: Record<string, string> = {
+  white: '',
+  green: styles.aucBagCellG,
+  blue: styles.aucBagCellB,
+  purple: styles.aucBagCellP,
+  orange: styles.aucBagCellO,
+};
+
+function formatTime(endMs: number, now: number): { label: string; safe: boolean } {
+  const diff = endMs - now;
   if (diff <= 0) return { label: '已结束', safe: false };
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
   if (h > 0) return { label: `${h}时${m}分`, safe: h >= 1 };
-  return { label: `${m}分钟`, safe: m >= 10 };
+  if (m > 0) return { label: `${m}分${s.toString().padStart(2, '0')}秒`, safe: m >= 10 };
+  return { label: `${s}秒`, safe: false };
 }
 
 function qualityText(q: string) {
@@ -47,7 +59,8 @@ interface BidTarget { item: AuctionItem; minBid: number }
 
 export default function AuctionPage() {
   usePageBackground(PAGE_BG.AUCTION);
-  const { gold } = usePlayerStore();
+  const gold = usePlayerStore((s) => s.gold);
+  const setCurrency = usePlayerStore((s) => s.setCurrency);
   const [tab, setTab] = useState<Tab>('active');
   const [items, setItems] = useState<AuctionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +71,12 @@ export default function AuctionPage() {
   const [listStartPrice, setListStartPrice] = useState('');
   const [listBuyNow, setListBuyNow] = useState('');
   const [listDuration, setListDuration] = useState(24);
+  const [bagItems, setBagItems] = useState<BagItemData[]>([]);
+  const [bagLoading, setBagLoading] = useState(false);
+  const [bagFallback, setBagFallback] = useState(false);
+  const [selectedBagItem, setSelectedBagItem] = useState<BagItemData | null>(null);
+  const [manualItemId, setManualItemId] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -70,9 +89,60 @@ export default function AuctionPage() {
     setLoading(false);
   }, [tab]);
 
+  const refreshCurrency = useCallback(async () => {
+    try {
+      const c = await fetchPlayerCurrency();
+      setCurrency(c.gold, c.diamond);
+    } catch { /* noop */ }
+  }, [setCurrency]);
+
+  const loadBag = useCallback(async () => {
+    setBagLoading(true);
+    try {
+      const res = await fetchBagItems();
+      setBagItems(res.items || []);
+      setBagFallback(false);
+    } catch {
+      setBagItems([]);
+      setBagFallback(true);
+    }
+    setBagLoading(false);
+  }, []);
+
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (tab !== 'active') return undefined;
+    const id = window.setInterval(() => {
+      loadItems();
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [tab, loadItems]);
+
+  useEffect(() => {
+    if (!showList) return;
+    setSelectedBagItem(null);
+    setManualItemId('');
+    loadBag();
+  }, [showList, loadBag]);
+
+  useEffect(() => {
+    if (tab !== 'active' || items.length === 0) return undefined;
+    const expiresIn = items
+      .map((it) => it.endTime - Date.now())
+      .filter((d) => d > 0);
+    if (expiresIn.length === 0) return undefined;
+    const next = Math.min(...expiresIn) + 250;
+    const id = window.setTimeout(() => loadItems(), next);
+    return () => window.clearTimeout(id);
+  }, [items, tab, loadItems]);
 
   const handleBid = useCallback(async () => {
     if (!bidTarget) return;
@@ -87,12 +157,12 @@ export default function AuctionPage() {
       toast.success(`出价成功，当前最高 ${res.currentBid}`);
       setBidTarget(null);
       setBidInput('');
-      await loadItems();
+      await Promise.all([loadItems(), refreshCurrency()]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '出价失败');
     }
     setActing(null);
-  }, [bidInput, bidTarget, loadItems]);
+  }, [bidInput, bidTarget, loadItems, refreshCurrency]);
 
   const handleBuyNow = useCallback(async (item: AuctionItem) => {
     if (!item.buyNowPrice) return;
@@ -100,24 +170,24 @@ export default function AuctionPage() {
     try {
       await buyNow(item.auctionId);
       toast.reward(`已购得 ${item.itemName}`);
-      await loadItems();
+      await Promise.all([loadItems(), refreshCurrency()]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '购买失败');
     }
     setActing(null);
-  }, [loadItems]);
+  }, [loadItems, refreshCurrency]);
 
   const handleCancel = useCallback(async (auctionId: string) => {
     setActing(auctionId);
     try {
       await cancelAuctionListing(auctionId);
       toast.success('已撤回拍卖');
-      await loadItems();
+      await Promise.all([loadItems(), refreshCurrency()]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '撤回失败');
     }
     setActing(null);
-  }, [loadItems]);
+  }, [loadItems, refreshCurrency]);
 
   const handleListItem = useCallback(async () => {
     const start = parseInt(listStartPrice, 10);
@@ -125,10 +195,15 @@ export default function AuctionPage() {
       toast.error('请输入有效起拍价');
       return;
     }
+    const itemId = bagFallback ? manualItemId.trim() : selectedBagItem?.id;
+    if (!itemId) {
+      toast.error(bagFallback ? '请输入物品 ID' : '请选择上架物品');
+      return;
+    }
     const buyNowVal = listBuyNow ? parseInt(listBuyNow, 10) : undefined;
     try {
       await listItemOnAuction({
-        itemId: 'selected',
+        itemId,
         startPrice: start,
         buyNowPrice: buyNowVal,
         durationHours: listDuration,
@@ -137,11 +212,13 @@ export default function AuctionPage() {
       setShowList(false);
       setListStartPrice('');
       setListBuyNow('');
-      await loadItems();
+      setSelectedBagItem(null);
+      setManualItemId('');
+      await Promise.all([loadItems(), refreshCurrency()]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '上架失败');
     }
-  }, [listBuyNow, listDuration, listStartPrice, loadItems]);
+  }, [bagFallback, listBuyNow, listDuration, listStartPrice, loadItems, manualItemId, refreshCurrency, selectedBagItem]);
 
   return (
     <div className={styles.mockPage}>
@@ -182,8 +259,9 @@ export default function AuctionPage() {
         ) : items.length === 0 ? (
           <div className={styles.feedEmpty}>当前没有符合条件的拍品</div>
         ) : items.map((item) => {
-          const time = formatTime(item.endTime);
+          const time = formatTime(item.endTime, now);
           const actingNow = acting === item.auctionId;
+          const outbid = tab === 'mybids' && typeof item.myBid === 'number' && item.myBid < item.currentBid;
           return (
             <div key={item.auctionId} className={styles.aucCard}>
               <div className={`${styles.aucIcon} ${QUALITY_CLASS[item.itemQuality] || ''}`.trim()}>
@@ -193,6 +271,7 @@ export default function AuctionPage() {
                 <div className={styles.aucName}>
                   {item.itemName}
                   <span className={`${styles.aucQt} ${QUALITY_CLASS[item.itemQuality] || ''}`.trim()}>{qualityText(item.itemQuality)}</span>
+                  {outbid && <span className={styles.aucOutbid}>已被超过</span>}
                 </div>
                 <div className={styles.aucMeta}>{item.sellerName} · {item.bidCount} 次出价</div>
                 <div className={styles.aucPriceRow}>
@@ -252,6 +331,54 @@ export default function AuctionPage() {
         <div className={styles.overlayMask} onClick={() => setShowList(false)}>
           <div className={styles.overlayPanel} onClick={(e) => e.stopPropagation()}>
             <div className={styles.overlayTitle}>上 架 拍 卖</div>
+
+            <div className={styles.aucPickerToolbar}>
+              <span>{bagFallback ? '背包不可用 · 手动输入' : '选 择 物 品'}</span>
+              {!bagFallback && (
+                <button className={styles.aucPickerRefresh} onClick={loadBag} type="button" disabled={bagLoading}>
+                  {bagLoading ? '加载中' : '刷 新'}
+                </button>
+              )}
+            </div>
+
+            {bagFallback ? (
+              <input
+                className={styles.overlayInput}
+                value={manualItemId}
+                onChange={(e) => setManualItemId(e.target.value)}
+                placeholder="物品 ID"
+              />
+            ) : bagLoading ? (
+              <div className={styles.aucBagEmpty}>加载背包中...</div>
+            ) : bagItems.length === 0 ? (
+              <div className={styles.aucBagEmpty}>背包暂无可上架物品</div>
+            ) : (
+              <div className={styles.aucBagGrid}>
+                {bagItems.map((bi) => {
+                  const qClass = QUALITY_CELL_CLASS[bi.quality || 'white'] || '';
+                  const on = selectedBagItem?.id === bi.id;
+                  return (
+                    <button
+                      key={bi.id}
+                      className={`${styles.aucBagCell} ${qClass} ${on ? styles.aucBagCellOn : ''}`.trim()}
+                      onClick={() => setSelectedBagItem(bi)}
+                      type="button"
+                    >
+                      <span className={styles.aucBagIcon}>{(bi.name || bi.itemTypeId).slice(0, 1)}</span>
+                      <span className={styles.aucBagName}>{bi.name || bi.itemTypeId}</span>
+                      <span className={styles.aucBagQty}>×{bi.quantity}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedBagItem && !bagFallback && (
+              <div className={styles.aucBagSelected}>
+                已选：{selectedBagItem.name || selectedBagItem.itemTypeId} ×{selectedBagItem.quantity}
+              </div>
+            )}
+
             <input className={styles.overlayInput} type="number" value={listStartPrice} onChange={(e) => setListStartPrice(e.target.value)} placeholder="起拍价" />
             <input className={styles.overlayInput} type="number" value={listBuyNow} onChange={(e) => setListBuyNow(e.target.value)} placeholder="一口价(可选)" />
             <div className={styles.durationRow}>

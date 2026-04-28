@@ -33,9 +33,9 @@ export const LUNHUI_PLACES: Record<string, PlaceInfo> = {
     zoneId: 'main_city',
     region: '气盖山河区',
     title: '主城',
-    description: '商贾云集，传送枢纽与拍卖集市都在此处。',
+    description: '商贾云集，传送枢纽与拍卖集市汇聚之地',
     coord: [2, 2],
-    landscape: '灯火长街、旗幡招展、商铺与来往侠客交织成主城夜景',
+    landscape: '雕梁画栋的高楼牌坊林立，朱漆飞檐与悬挂的红灯笼相映，远处楼阁高耸云端，朝霞中云雾轻盈缭绕',
     notices: commonNotices,
     quickActions: funcMenu,
     exits: [

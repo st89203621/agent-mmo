@@ -25,7 +25,7 @@ public class SceneImageService {
     private final SceneImageRepository sceneImageRepository;
     private final AiImageProvider imageProvider;
 
-    /** 服务端统一生成的高清原图边长。所有缓存均为该尺寸，下游按需缩放。 */
+    /** 调用方未指定 width/height 时使用的兜底边长。 */
     public static final int CANONICAL_SIZE = 1024;
 
     public Optional<SceneImage> getOrGenerate(String cacheKey, String prompt) {
@@ -37,9 +37,9 @@ public class SceneImageService {
     }
 
     /**
-     * 始终以 1024x1024 生成并缓存高清原图（同一 cacheKey 仅一条记录）。
-     * width/height 仅用于通知调用方期望的展示尺寸，缓存与生成本身不再按尺寸分桶 ——
-     * 实际下发给客户端的尺寸由 Controller 在读取时缩放。
+     * 同一 cacheKey 只生成一次。生成时使用调用方指定的 width/height（前端已对齐 FLUX 训练桶
+     * 1344x768 / 832x1216 / 1024x1024 等），保留原图纵横比与质量；不同尺寸的展示请求由 Controller
+     * 在读取时统一缩放下发，缓存键不再按尺寸分桶。
      *
      * @param force true 表示重绘：先删除同 cacheKey 的旧记录，再生成。
      */
@@ -57,13 +57,15 @@ public class SceneImageService {
             cached.forEach(si -> sceneImageRepository.deleteById(si.getId()));
         }
 
-        log.info("【文生图】发起请求: cacheKey={}, displaySize={}x{}, force={}, provider={} (canonical {}x{})",
-                cacheKey, width, height, force, imageProvider.providerName(), CANONICAL_SIZE, CANONICAL_SIZE);
+        int genWidth = width > 0 ? width : CANONICAL_SIZE;
+        int genHeight = height > 0 ? height : CANONICAL_SIZE;
+        log.info("【文生图】发起请求: cacheKey={}, size={}x{}, force={}, provider={}",
+                cacheKey, genWidth, genHeight, force, imageProvider.providerName());
         try {
             byte[] imageBytes = generateBytes(AiImageRequest.builder()
                     .prompt(prompt)
-                    .width(CANONICAL_SIZE)
-                    .height(CANONICAL_SIZE)
+                    .width(genWidth)
+                    .height(genHeight)
                     .build());
             if (imageBytes == null || imageBytes.length == 0) {
                 return Optional.empty();

@@ -10,7 +10,7 @@ import {
   fetchRelations, fetchRelationDetail, fetchRankList, fetchAchievements, claimAchievementReward,
   type EquipData, type PersonData, type RankEntryData, type AchievementData,
 } from '../../services/api';
-import type { RelationDetail } from '../../types';
+import type { RelationDetail, PageId } from '../../types';
 import { QUALITY_NAMES, QUALITY_COLORS } from '../../constants/quality';
 import { POSITION_LABELS } from '../../constants/equipment';
 import FateBar from '../common/FateBar';
@@ -454,9 +454,9 @@ export default function CharacterPage() {
                   ['title', '称号'], ['guild', '盟会'], ['scene', '场景'],
                   ['treasure-mountain', '聚宝山'], ['flower', '情花'],
                   ['trade', '交易'], ['team-battle', '组队PvP'],
-                ] as [string, string, Record<string, unknown>?][]).map(([page, label, params]) => (
+                ] as [PageId, string, Record<string, unknown>?][]).map(([page, label, params]) => (
                   <button key={label} className={styles.quickLink}
-                    onClick={() => navigateTo(page as any, params)}>{label}</button>
+                    onClick={() => navigateTo(page, params)}>{label}</button>
                 ))}
                 <button className={`${styles.quickLink} ${styles.quickLinkDanger}`}
                   onClick={async () => {

@@ -12,6 +12,7 @@ import { placeSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
 import { BarBlock, BarRow } from '../common/fusion';
 import { usePageBackground } from '../common/PageShell';
+import TeleportMenu from '../scene/TeleportMenu';
 import type { NearbyPlayer, QuickAction, ZoneInfo } from '../../types';
 import styles from './ScenePage.module.css';
 
@@ -61,6 +62,7 @@ export default function ScenePage() {
   const [person, setPerson] = useState<PersonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [moving, setMoving] = useState(false);
+  const [teleportOpen, setTeleportOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,7 +169,7 @@ export default function ScenePage() {
           <div className={styles.icons}>
             <button className={styles.icon} onClick={load} type="button" aria-label="刷新">⟳</button>
             <button className={`${styles.icon} ${styles.dot}`} onClick={() => navigateTo('messages')} type="button">信</button>
-            <button className={styles.icon} onClick={() => navigateTo('teleport')} type="button">传</button>
+            <button className={styles.icon} onClick={() => setTeleportOpen(true)} type="button" aria-label="传送">传</button>
           </div>
         </div>
       </div>
@@ -301,6 +303,8 @@ export default function ScenePage() {
           </div>
         </div>
       </div>
+
+      {teleportOpen && <TeleportMenu onClose={() => setTeleportOpen(false)} />}
     </>
   );
 }

@@ -1,7 +1,21 @@
 import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
-import { fetchRelations } from '../../services/api';
+import {
+  fetchRelations,
+  fetchMarriageState,
+  fetchMatchmaking,
+  fetchProposals,
+  acceptMarriage,
+  rejectMarriage,
+  proposeMarriage,
+  divorce,
+  type MarriageState,
+  type MatchmakingItem,
+  type MarriageProposal,
+} from '../../services/api';
+import { toast } from '../../store/toastStore';
+import { confirmDialog } from '../../store/confirmStore';
 import type { Relation } from '../../types';
 import styles from './FateMapPage.module.css';
 import { usePageBackground } from '../common/PageShell';
@@ -116,12 +130,230 @@ function DetailPanel({ rel, onClose, onChat }: {
   );
 }
 
+type TabKey = 'map' | 'matchmaking';
+
+function MarriagePanel() {
+  const playerId = usePlayerStore((s) => s.playerId);
+  const [state, setState] = useState<MarriageState | null>(null);
+  const [candidates, setCandidates] = useState<MatchmakingItem[]>([]);
+  const [incoming, setIncoming] = useState<MarriageProposal[]>([]);
+  const [outgoing, setOutgoing] = useState<MarriageProposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    const [s, m, p] = await Promise.all([
+      fetchMarriageState().catch(() => null),
+      fetchMatchmaking().catch(() => ({ candidates: [] as MatchmakingItem[] })),
+      fetchProposals().catch(() => ({ incoming: [] as MarriageProposal[], outgoing: [] as MarriageProposal[] })),
+    ]);
+    setState(s ?? { married: false });
+    setCandidates(m.candidates);
+    setIncoming(p.incoming);
+    setOutgoing(p.outgoing);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const marriedDays = useMemo(() => {
+    if (!state?.married || !state.marriedSince) return 0;
+    return Math.max(0, Math.floor((Date.now() - state.marriedSince) / 86_400_000));
+  }, [state]);
+
+  const handlePropose = useCallback(async (target: MatchmakingItem) => {
+    if (state?.married) { toast.warning('你已婚配，无法再提亲'); return; }
+    if (String(target.playerId) === playerId) { toast.warning('不能向自己求婚'); return; }
+    const ok = await confirmDialog({
+      title: '提 亲',
+      message: `向「${target.name}」递送红笺，确定要提亲吗？`,
+      confirmText: '提 亲',
+    });
+    if (!ok) return;
+    setBusy(`propose-${target.playerId}`);
+    try {
+      await proposeMarriage(target.playerId);
+      toast.success('提亲红笺已送达');
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  }, [state, playerId, reload]);
+
+  const handleAccept = useCallback(async (p: MarriageProposal) => {
+    setBusy(`accept-${p.proposalId}`);
+    try {
+      await acceptMarriage(p.proposalId);
+      toast.success('已应允此姻缘');
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  }, [reload]);
+
+  const handleReject = useCallback(async (p: MarriageProposal) => {
+    setBusy(`reject-${p.proposalId}`);
+    try {
+      await rejectMarriage(p.proposalId);
+      toast.info('已婉拒此姻缘');
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  }, [reload]);
+
+  const handleDivorce = useCallback(async () => {
+    const ok = await confirmDialog({
+      title: '和 离',
+      message: '此举将解除当前婚姻，是否继续？',
+      confirmText: '和 离',
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy('divorce');
+    try {
+      await divorce();
+      toast.success('已和离');
+      await reload();
+    } catch {
+      toast.error('系统繁忙，请稍后再试');
+    }
+    setBusy(null);
+  }, [reload]);
+
+  if (loading) {
+    return (
+      <div className={styles.marriageWrap}>
+        <div className={styles.mEmpty}>姻缘簿载入中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.marriageWrap}>
+      <div className={styles.mStatusCard}>
+        <div className={styles.mStatusIcon}>囍</div>
+        <div className={styles.mStatusBody}>
+          {state?.married ? (
+            <>
+              <div className={styles.mStatusTitle}>已 婚 · {state.spouseName || '佳偶'}</div>
+              <div className={styles.mStatusSub}>结发同心 {marriedDays} 日</div>
+            </>
+          ) : (
+            <>
+              <div className={styles.mStatusTitle}>尚 待 良 缘</div>
+              <div className={styles.mStatusSub}>静候良人，或主动出击</div>
+            </>
+          )}
+        </div>
+        {state?.married && (
+          <button
+            className={styles.mDivorceBtn}
+            onClick={handleDivorce}
+            disabled={busy === 'divorce'}
+            type="button"
+          >
+            {busy === 'divorce' ? '...' : '和 离'}
+          </button>
+        )}
+      </div>
+
+      <div className={styles.mSect}>
+        <span>红 娘 推 荐</span>
+        <span className={styles.mSectCount}>{candidates.length} 位</span>
+      </div>
+      <div className={styles.mList}>
+        {candidates.length === 0 ? (
+          <div className={styles.mEmpty}>暂无推荐人选</div>
+        ) : (
+          candidates.map((c) => (
+            <div key={c.playerId} className={styles.mCard}>
+              <div className={styles.mAvatar}>
+                {c.portrait && (
+                  <img src={c.portrait} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
+                <span>{(c.name || '?').charAt(0)}</span>
+              </div>
+              <div className={styles.mCardBody}>
+                <div className={styles.mCardName}>
+                  {c.name}
+                  <span className={styles.mCardLevel}>Lv {c.level}</span>
+                  <span className={styles.mCardScore}>缘 {c.fateScore}</span>
+                </div>
+                <div className={styles.mCardReason}>{c.reason}</div>
+              </div>
+              <div className={styles.mCardActs}>
+                <button
+                  className={styles.mCardBtn}
+                  onClick={() => handlePropose(c)}
+                  disabled={busy === `propose-${c.playerId}` || !!state?.married}
+                  type="button"
+                >
+                  {busy === `propose-${c.playerId}` ? '...' : '求 婚'}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className={styles.mSect}>
+        <span>红 笺 往 来</span>
+        <span className={styles.mSectCount}>收 {incoming.length} · 寄 {outgoing.length}</span>
+      </div>
+      <div className={styles.mList}>
+        {incoming.length === 0 && outgoing.length === 0 ? (
+          <div className={styles.mEmpty}>暂无进行中的求婚</div>
+        ) : (
+          <>
+            {incoming.map((p) => (
+              <div key={`in-${p.proposalId}`} className={styles.mPropItem}>
+                <span className={styles.mPropDir}>收</span>
+                <span>{p.fromName} 向你提亲</span>
+                <span className={styles.mPropMeta}>
+                  <button
+                    className={styles.mPropAccept}
+                    onClick={() => handleAccept(p)}
+                    disabled={busy === `accept-${p.proposalId}`}
+                    type="button"
+                  >
+                    {busy === `accept-${p.proposalId}` ? '...' : '应 允'}
+                  </button>
+                  <button
+                    className={styles.mPropReject}
+                    onClick={() => handleReject(p)}
+                    disabled={busy === `reject-${p.proposalId}`}
+                    type="button"
+                  >
+                    {busy === `reject-${p.proposalId}` ? '...' : '婉 拒'}
+                  </button>
+                </span>
+              </div>
+            ))}
+            {outgoing.map((p) => (
+              <div key={`out-${p.proposalId}`} className={styles.mPropItem}>
+                <span className={styles.mPropDir}>寄</span>
+                <span>已向 {p.toName} 提亲，待其回应</span>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function FateMapPage() {
   usePageBackground(PAGE_BG.FATE_MAP);
   const { navigateTo } = useGameStore();
   const { relations, setRelations } = usePlayerStore();
   const [loading, setLoading] = useState(relations.length === 0);
   const [selected, setSelected] = useState<Relation | null>(null);
+  const [tab, setTab] = useState<TabKey>('map');
 
   useEffect(() => {
     if (relations.length > 0) { setLoading(false); return; }
@@ -135,9 +367,39 @@ export default function FateMapPage() {
   const handleChat = useCallback((npcId: string) => navigateTo('story', { autoNpcId: npcId }), [navigateTo]);
   const dismiss = useCallback(() => setSelected(null), []);
 
+  const tabBar = (
+    <div className={styles.tabBar}>
+      <button
+        className={`${styles.tabBtn} ${tab === 'map' ? styles.tabBtnOn : ''}`.trim()}
+        onClick={() => setTab('map')}
+        type="button"
+      >
+        缘 分 地 图
+      </button>
+      <button
+        className={`${styles.tabBtn} ${tab === 'matchmaking' ? styles.tabBtnOn : ''}`.trim()}
+        onClick={() => setTab('matchmaking')}
+        type="button"
+      >
+        婚 介
+      </button>
+    </div>
+  );
+
+  if (tab === 'matchmaking') {
+    return (
+      <div className={styles.page}>
+        <StarField />
+        {tabBar}
+        <MarriagePanel />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.page}>
+        {tabBar}
         <div className={styles.loading}>
           <div className={styles.loadingOrb} />
           <span>解读命运星图...</span>
@@ -149,6 +411,7 @@ export default function FateMapPage() {
   return (
     <div className={styles.page} onClick={dismiss}>
       <StarField />
+      {tabBar}
 
       <div className={styles.subHeader}>
         <span className={styles.subCount}>{relations.length} 道牵绊</span>

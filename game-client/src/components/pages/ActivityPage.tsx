@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { toast } from '../../store/toastStore';
+import type { PageId } from '../../types';
 import {
   fetchCheckinStatus, doCheckin, fetchOnlineRewards, claimOnlineReward,
   fetchRankList, type RankEntryData, type OnlineRewardData,
@@ -22,7 +23,7 @@ interface ActivityDef {
   glowColor: string;
   wide?: boolean;
   countdown?: boolean;
-  navigateTo?: string;
+  navigateTo?: PageId;
 }
 
 const ACTIVITIES: ActivityDef[] = [
@@ -170,7 +171,7 @@ export default function ActivityPage() {
   const normalActivities = ACTIVITIES.filter(a => !a.wide);
 
   const handleClick = (act: ActivityDef) => {
-    if (act.navigateTo) navigateTo(act.navigateTo as any);
+    if (act.navigateTo) navigateTo(act.navigateTo);
     else toast.info(`${act.name} 即将开放，敬请期待！`);
   };
 
