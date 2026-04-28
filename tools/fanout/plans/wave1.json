@@ -1,0 +1,9 @@
+{
+  "wave": 1,
+  "tasks": [
+    { "account": 2, "task": "tasks/flow-H-frontend.md" },
+    { "account": 3, "task": "tasks/flow-G-backend.md" },
+    { "account": 4, "task": "tasks/flow-D-frontend.md" },
+    { "account": 5, "task": "tasks/flow-B-frontend.md" }
+  ]
+}
