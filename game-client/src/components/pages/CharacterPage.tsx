@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import VisualAssetImage from '../common/VisualAssetImage';
 import { characterSceneAsset } from '../../data/visualAssets';
 import { toast } from '../../store/toastStore';
+import { confirmDialog } from '../../store/confirmStore';
 import {
   fetchEquipList, fetchRebirthStatus, fetchPersonInfo, allotPersonPoints, resetPersonPoints, logout,
   fetchRelations, fetchRelationDetail, fetchRankList, fetchAchievements, claimAchievementReward,
@@ -195,7 +196,13 @@ export default function CharacterPage() {
   }, [pending]);
 
   const handleReset = useCallback(async () => {
-    if (!confirm('重置所有已分配的属性点？')) return;
+    const ok = await confirmDialog({
+      title: '重 置 属 性',
+      message: '将清空所有已分配的属性点，是否继续？',
+      confirmText: '重 置',
+      danger: true,
+    });
+    if (!ok) return;
     setAllocating(true);
     try {
       await resetPersonPoints();
@@ -308,7 +315,7 @@ export default function CharacterPage() {
                   <h3 className={styles.sectionTitle}>
                     {person.name || '无名侠客'}
                     {person.profession && (
-                      <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>
+                      <span className={styles.professionInline}>
                         {({ ATTACK: '无坚不摧', DEFENSE: '金刚护体', AGILITY: '行动敏捷' } as Record<string, string>)[person.profession] || person.profession}
                       </span>
                     )}
@@ -335,15 +342,15 @@ export default function CharacterPage() {
                     <div className={styles.statItem}><span>法攻</span><span className={styles.statVal}>{bp.magicAttack + eb.magicAttack}</span></div>
                     <div className={styles.statItem}><span>速度</span><span className={styles.statVal}>{bp.speed + eb.speed}</span></div>
                   </div>
-                  <div className={styles.statsGrid} style={{ marginTop: 8 }}>
-                    <div className={styles.statItem}><span>附攻</span><span className={styles.statVal} style={{ color: '#e8a642' }}>{bp.bonusAttack}</span></div>
-                    <div className={styles.statItem}><span>附防</span><span className={styles.statVal} style={{ color: '#5ca0d3' }}>{bp.bonusDefense}</span></div>
-                    <div className={styles.statItem}><span>敏捷</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{bp.agility}</span></div>
-                    <div className={styles.statItem}><span>暴击</span><span className={styles.statVal} style={{ color: '#d35c8a' }}>{bp.critRate}%</span></div>
+                  <div className={`${styles.statsGrid} ${styles.statsGridGap}`}>
+                    <div className={styles.statItem}><span>附攻</span><span className={`${styles.statVal} ${styles.statValOrange}`}>{bp.bonusAttack}</span></div>
+                    <div className={styles.statItem}><span>附防</span><span className={`${styles.statVal} ${styles.statValBlue}`}>{bp.bonusDefense}</span></div>
+                    <div className={styles.statItem}><span>敏捷</span><span className={`${styles.statVal} ${styles.statValPink}`}>{bp.agility}</span></div>
+                    <div className={styles.statItem}><span>暴击</span><span className={`${styles.statVal} ${styles.statValPink}`}>{bp.critRate}%</span></div>
                   </div>
-                  <div className={styles.statsGrid} style={{ marginTop: 8 }}>
-                    <div className={styles.statItem}><span>金币</span><span className={styles.statVal} style={{ color: '#d4a84c' }}>{gold}</span></div>
-                    <div className={styles.statItem}><span>钻石</span><span className={styles.statVal} style={{ color: '#7ec8e3' }}>{diamond}</span></div>
+                  <div className={`${styles.statsGrid} ${styles.statsGridGap}`}>
+                    <div className={styles.statItem}><span>金币</span><span className={`${styles.statVal} ${styles.statValGold}`}>{gold}</span></div>
+                    <div className={styles.statItem}><span>钻石</span><span className={`${styles.statVal} ${styles.statValDiamond}`}>{diamond}</span></div>
                   </div>
                 </section>
               );
@@ -377,15 +384,14 @@ export default function CharacterPage() {
                       );
                     })}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <div className={styles.allotActionRow}>
                     {used > 0 && (
-                      <button className={styles.allotConfirmBtn} style={{ flex: 1 }} disabled={allocating} onClick={handleAllot}>
+                      <button className={`${styles.allotConfirmBtn} ${styles.allotConfirmFull}`} disabled={allocating} onClick={handleAllot}>
                         {allocating ? '...' : `确认分配 (${used}点)`}
                       </button>
                     )}
                     <button
-                      className={styles.allotConfirmBtn}
-                      style={{ flex: used > 0 ? '0 0 80px' : 1, background: 'var(--paper-darker)', color: 'var(--ink)' }}
+                      className={`${styles.allotConfirmBtn} ${styles.allotResetSec} ${used > 0 ? styles.allotResetNarrow : styles.allotResetWide}`}
                       disabled={allocating}
                       onClick={handleReset}
                     >
@@ -422,7 +428,7 @@ export default function CharacterPage() {
                           {equip.name || `Lv.${equip.level}`}
                         </span>
                       ) : (
-                        <span className={styles.equipLabel}>{meta.label}<span style={{ fontSize: 10, opacity: 0.5 }}>（去获取）</span></span>
+                        <span className={styles.equipLabel}>{meta.label}<span className={styles.equipLabelHint}>（去获取）</span></span>
                       )}
                       {equip && (
                         <span className={styles.qualityDot} style={{ background: QUALITY_COLORS[equip.quality] || QUALITY_COLORS[0] }}>
@@ -452,8 +458,18 @@ export default function CharacterPage() {
                   <button key={label} className={styles.quickLink}
                     onClick={() => navigateTo(page as any, params)}>{label}</button>
                 ))}
-                <button className={styles.quickLink} style={{ color: '#c44e52', borderColor: 'rgba(196,78,82,0.3)' }}
-                  onClick={() => { if (confirm('确认退出登录？')) { logout().catch(() => {}); location.reload(); } }}
+                <button className={`${styles.quickLink} ${styles.quickLinkDanger}`}
+                  onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: '退 出 登 录',
+                      message: '确定要退出当前账号吗？',
+                      confirmText: '退 出',
+                      danger: true,
+                    });
+                    if (!ok) return;
+                    logout().catch(() => {});
+                    location.reload();
+                  }}
                 >退出账号</button>
               </div>
             </section>

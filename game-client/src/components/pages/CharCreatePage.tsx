@@ -75,17 +75,16 @@ export default function CharCreatePage() {
 
         <div className={styles.ccSection}>
           <div className={styles.ccLabel}>职 业 路 线</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className={styles.ccProList}>
             {PROFESSIONS.map((p) => (
               <button
                 key={p.id}
-                className={`${styles.ccOption} ${profession === p.id ? styles.ccOptionOn : ''}`.trim()}
+                className={`${styles.ccProItem} ${profession === p.id ? styles.ccProItemOn : ''}`.trim()}
                 onClick={() => setProfession(p.id)}
                 type="button"
-                style={{ textAlign: 'left', padding: 12 }}
               >
-                <div style={{ fontSize: 14, letterSpacing: 3 }}>{p.name}</div>
-                <div style={{ fontSize: 10, marginTop: 4, color: 'var(--text-dim)', letterSpacing: 1 }}>{p.desc}</div>
+                <div className={styles.ccProName}>{p.name}</div>
+                <div className={styles.ccProDesc}>{p.desc}</div>
               </button>
             ))}
           </div>
@@ -135,11 +134,7 @@ export default function CharCreatePage() {
           </div>
         </div>
 
-        {error && (
-          <div style={{ margin: '10px 14px 0', color: 'var(--accent-red)', fontSize: 12, textAlign: 'center', letterSpacing: 2 }}>
-            {error}
-          </div>
-        )}
+        {error && <div className={styles.ccErrorTip}>{error}</div>}
 
         <button
           className={styles.ccSubmit}

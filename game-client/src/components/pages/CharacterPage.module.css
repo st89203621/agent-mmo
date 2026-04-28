@@ -386,6 +386,60 @@
   transform: scale(0.96);
 }
 
+.quickLinkDanger {
+  color: var(--accent-red-bright);
+  border-color: rgba(232, 88, 96, 0.35);
+}
+.quickLinkDanger:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red-bright);
+}
+
+/* 角色属性 — 二级行间距 + 取色变体 */
+.statsGridGap { margin-top: 8px; }
+
+.statValOrange { color: var(--accent-orange-bright); }
+.statValBlue { color: var(--accent-azure); }
+.statValPink { color: var(--accent-red-mid); }
+.statValGold { color: var(--accent-gold-bright); }
+.statValDiamond { color: #7ec8e3; }
+
+/* 角色头标内嵌职业说明 */
+.professionInline {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+/* 装备槽 · 未拥有附注 */
+.equipLabelHint {
+  font-size: 10px;
+  opacity: 0.55;
+}
+
+/* 属性分配确认行 */
+.allotActionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.allotConfirmBtn.allotConfirmFull { flex: 1; }
+.allotConfirmBtn.allotResetWide { flex: 1; }
+.allotConfirmBtn.allotResetNarrow {
+  flex: 0 0 80px;
+}
+.allotConfirmBtn.allotResetSec {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  box-shadow: none;
+}
+.allotConfirmBtn.allotResetSec:hover {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
 /* 2026-04 lunhui overhaul: character shell aligned to fusion mockup */
 .page {
   background: transparent;

@@ -18,9 +18,9 @@ const COVER_ASSET = {
   assetKey: 'login_cover_qigai',
   type: 'banner' as const,
   name: '气盖山河 · 登录封面',
-  description: '清丽仙侠少女半身立绘，飘逸长发轻纱古风衣，手持灵剑，云海花瓣飞舞，浅粉浅青柔光，水彩晕染质感，唯美工笔，正面构图，色彩明亮柔和。',
-  width: 420,
-  height: 520,
+  description: '清丽仙侠少女半身立绘，飘逸长发轻纱古风衣，手持灵剑，云海花瓣飞舞，浅粉浅青柔光，唯美工笔，正面构图，色彩明亮柔和，焦点清晰，高清精细。',
+  width: 832,
+  height: 1216,
 };
 const COVER_CACHE_KEY = `lunhui.asset.${COVER_ASSET.width}x${COVER_ASSET.height}.${COVER_ASSET.assetKey}`;
 
@@ -33,6 +33,7 @@ export default function LoginPage() {
   const [serverPickerOpen, setServerPickerOpen] = useState(false);
   const [coverUrl, setCoverUrl] = useState('');
   const [coverGenerating, setCoverGenerating] = useState(false);
+  const [serverCount, setServerCount] = useState(0);
 
   const setPlayer = usePlayerStore((s) => s.setPlayer);
   const navigateTo = useGameStore((s) => s.navigateTo);
@@ -41,9 +42,10 @@ export default function LoginPage() {
 
   // 初始化默认分区（从后端获取 current）
   useEffect(() => {
-    if (currentServer) return;
     fetchServerList()
       .then((res) => {
+        setServerCount(res.servers?.length ?? 0);
+        if (currentServer) return;
         const def = res.servers.find((s) => s.id === res.current) ?? res.servers[0];
         if (def) setCurrentServer(def);
       })
@@ -142,7 +144,7 @@ export default function LoginPage() {
           </span>
         </div>
         <button type="button" className={styles.lgServerSwitch} onClick={() => setServerPickerOpen(true)}>
-          ↔ 切换分区（共 99 区）
+          ↔ 切 换 分 区{serverCount > 0 ? `（共 ${serverCount} 区）` : ''}
         </button>
       </div>
 

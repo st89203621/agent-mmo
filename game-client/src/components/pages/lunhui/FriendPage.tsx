@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addFriend, fetchFriends, removeFriend } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
+import { toast } from '../../../store/toastStore';
 import type { FriendProfile } from '../../../types';
 import styles from './LunhuiPages.module.css';
 import { usePageBackground } from '../../common/PageShell';
@@ -20,6 +21,27 @@ export default function FriendPage() {
     load();
   }, [load]);
 
+  const handleAdd = useCallback(async () => {
+    const value = keyword.trim();
+    const targetId = Number(value);
+    if (!value || !Number.isFinite(targetId) || targetId <= 0) {
+      toast.error('请输入玩家 ID');
+      return;
+    }
+    try {
+      const res = await addFriend(targetId);
+      if (res.success) {
+        toast.success(res.msg || '已发送好友申请');
+        setKeyword('');
+        load();
+      } else {
+        toast.error(res.msg || '添加失败');
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : '网络异常');
+    }
+  }, [keyword, load]);
+
   const visibleFriends = useMemo(() => {
     const value = keyword.trim().toLowerCase();
     if (!value) return friends;
@@ -36,7 +58,7 @@ export default function FriendPage() {
           </div>
           <div className={styles.appbarIcons}>
             <div className={`${styles.appbarIconPlain} ${styles.appbarIconDot}`}>申</div>
-            <button className={styles.appbarIcon} onClick={() => addFriend(10001).then(load)} type="button">＋</button>
+            <button className={styles.appbarIcon} onClick={handleAdd} type="button" aria-label="添加好友">＋</button>
           </div>
         </div>
       </div>
@@ -45,11 +67,11 @@ export default function FriendPage() {
         <div className={styles.friendSearch}>
           <input
             className={styles.friendSearchInput}
-            placeholder="搜索玩家名"
+            placeholder="搜索玩家名 / 输入ID添加"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
-          <button className={styles.friendSearchBtn} onClick={() => addFriend(10001).then(load)} type="button">
+          <button className={styles.friendSearchBtn} onClick={handleAdd} type="button">
             添 加
           </button>
         </div>

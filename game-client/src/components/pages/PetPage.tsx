@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { fetchPets, deletePet, type PetData } from '../../services/api';
 import { toast } from '../../store/toastStore';
+import { confirmDialog } from '../../store/confirmStore';
 import { BarBlock, BarRow } from '../common/fusion';
 import VisualAssetImage from '../common/VisualAssetImage';
 import { petPortraitAsset } from '../../data/visualAssets';
@@ -61,7 +62,13 @@ export default function PetPage() {
   const handleAction = useCallback(async (key: string) => {
     if (!selected) return;
     if (key === 'release') {
-      if (!window.confirm(`确认放生「${selected.nickname || selected.petTemplateId}」？`)) return;
+      const ok = await confirmDialog({
+        title: '放 生 灵 宠',
+        message: `「${selected.nickname || selected.petTemplateId}」将被放生回山林，是否继续？`,
+        confirmText: '放 生',
+        danger: true,
+      });
+      if (!ok) return;
       setOperating(true);
       try {
         await deletePet(selected.id);

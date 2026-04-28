@@ -59,7 +59,7 @@ export default function ServerSelectPanel({ onClose, onPick, selectedId }: Props
       <header className={styles.header}>
         <button type="button" className={styles.back} onClick={onClose}>← 返 回</button>
         <div className={styles.title}>选 择 分 区</div>
-        <div className={styles.tip}>共 {servers.length || '99'} 区</div>
+        <div className={styles.tip}>共 {servers.length || '—'} 区</div>
       </header>
 
       <div className={styles.searchRow}>

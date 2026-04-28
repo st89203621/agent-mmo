@@ -15,6 +15,7 @@ import {
 import { useGameStore } from '../../store/gameStore';
 import { usePlayerStore } from '../../store/playerStore';
 import { toast } from '../../store/toastStore';
+import { confirmDialog } from '../../store/confirmStore';
 import styles from './lunhui/LunhuiPages.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
@@ -123,7 +124,13 @@ export default function GuildPage() {
   };
 
   const handleLeave = async () => {
-    if (!window.confirm('确认退出盟会？')) return;
+    const ok = await confirmDialog({
+      title: '退 出 盟 会',
+      message: '退出后将失去当前盟会成员身份，是否继续？',
+      confirmText: '退 出',
+      danger: true,
+    });
+    if (!ok) return;
     setOperating('leave');
     try {
       const res = await leaveGuild();
@@ -140,7 +147,13 @@ export default function GuildPage() {
   };
 
   const handleDissolve = async () => {
-    if (!window.confirm('确认解散盟会？此操作无法撤销')) return;
+    const ok = await confirmDialog({
+      title: '解 散 盟 会',
+      message: '此操作无法撤销，盟会及所有成员关系将被解除。',
+      confirmText: '解 散',
+      danger: true,
+    });
+    if (!ok) return;
     setOperating('dissolve');
     try {
       const res = await dissolveGuild();
@@ -175,7 +188,13 @@ export default function GuildPage() {
   };
 
   const handleKick = async (target: GuildMemberData) => {
-    if (!window.confirm(`确认将「${target.playerName}」踢出盟会？`)) return;
+    const ok = await confirmDialog({
+      title: '踢 出 成 员',
+      message: `确认将「${target.playerName}」踢出盟会？`,
+      confirmText: '踢 出',
+      danger: true,
+    });
+    if (!ok) return;
     setOperating(`kick-${target.playerId}`);
     try {
       const res = await kickGuildMember(target.playerId);

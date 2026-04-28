@@ -5,6 +5,9 @@ import { useGameStore } from './store/gameStore';
 import { usePlayerStore } from './store/playerStore';
 import Toast from './components/common/Toast';
 import PageShell from './components/common/PageShell';
+import AppLoader from './components/common/AppLoader';
+import PageErrorBoundary from './components/common/PageError';
+import ConfirmDialog from './components/common/ConfirmDialog';
 import GameLayout from './components/layout/GameLayout';
 import LoginPage from './components/pages/LoginPage';
 import CharCreatePage from './components/pages/CharCreatePage';
@@ -86,18 +89,6 @@ import VipPage from './components/pages/lunhui/VipPage';
 import RankingPage from './components/pages/lunhui/RankingPage';
 import HousingPage from './components/pages/lunhui/HousingPage';
 import StatusPage from './components/pages/lunhui/StatusPage';
-
-class PageErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: unknown) { console.error('[PageError]', error); }
-  render() {
-    if (this.state.hasError) {
-      return <div style={{ padding: 24, color: '#EDE5D3', textAlign: 'center' }}>页面加载异常，请刷新重试。</div>;
-    }
-    return this.props.children;
-  }
-}
 
 const PAGE_MAP: Record<PageId, React.FC> = {
   login: LoginPage,
@@ -218,9 +209,8 @@ export default function App() {
     return (
       <>
         <Toast />
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EDE5D3' }}>
-          正在连接气盖山河区…
-        </div>
+        <ConfirmDialog />
+        <AppLoader />
       </>
     );
   }
@@ -229,6 +219,7 @@ export default function App() {
     return (
       <>
         <Toast />
+        <ConfirmDialog />
         <LoginPage />
       </>
     );
@@ -238,16 +229,18 @@ export default function App() {
     return (
       <>
         <Toast />
+        <ConfirmDialog />
         <CharSelectPage />
       </>
     );
   }
 
-  if (currentPage === 'char-select' || SHELL_LESS_PAGES.includes(currentPage)) {
+  if (SHELL_LESS_PAGES.includes(currentPage)) {
     return (
       <>
         <Toast />
-        <PageErrorBoundary key={currentPage}>
+        <ConfirmDialog />
+        <PageErrorBoundary key={currentPage} resetKey={currentPage}>
           <Page />
         </PageErrorBoundary>
       </>
@@ -257,9 +250,10 @@ export default function App() {
   return (
     <>
       <Toast />
+      <ConfirmDialog />
       <GameLayout>
-        <PageShell>
-          <PageErrorBoundary key={currentPage}>
+        <PageShell key={currentPage}>
+          <PageErrorBoundary resetKey={currentPage}>
             <Page />
           </PageErrorBoundary>
         </PageShell>

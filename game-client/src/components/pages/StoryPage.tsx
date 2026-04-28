@@ -236,17 +236,14 @@ export default function StoryPage() {
     dialogue.setSceneImageLoading(true);
     generateSceneImage(npcId, player.currentWorldIndex, artStyle || undefined)
       .then((res) => {
-        console.log('[立绘] 生成成功:', npcId, res.imageUrl);
         dialogue.pushSceneImage(res.imageUrl);
-        // 刷新NPC列表以获取portraitUrl
         if (selectedBook?.title) {
           fetchNpcs(player.currentWorldIndex, selectedBook.title)
-            .then((r) => { console.log('[立绘] NPC列表已刷新'); game.setNpcsInScene(r.npcs); })
+            .then((r) => game.setNpcsInScene(r.npcs))
             .catch(() => {});
         }
       })
-      .catch((e) => {
-        console.warn('[立绘] 生成失败:', npcId, e);
+      .catch(() => {
         dialogue.setSceneImageLoading(false);
       });
 

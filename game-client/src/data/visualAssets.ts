@@ -36,11 +36,11 @@ export function clearAllAssetCache(): void {
 }
 
 export function getVisualContext(): string {
-  return `画面风格：${getVisualStyle().desc} 总体清新淡雅，色彩丰富明亮，柔光通透，水彩晕染质感，唯美国风，画面干净，禁止暗沉厚重。`;
+  return `画面风格：${getVisualStyle().desc} 总体清新淡雅，色彩丰富明亮，柔光通透，唯美工笔国风，焦点清晰，主体锐利，细节丰富，画面干净，禁止暗沉厚重，禁止柔焦糊片。`;
 }
 
 // 保留向后兼容
-export const LUNHUI_VISUAL_CONTEXT = '清新淡雅东方仙侠游戏画面，色彩丰富明亮，柔光通透，水彩晕染，唯美国风，移动端H5 MMO界面。';
+export const LUNHUI_VISUAL_CONTEXT = '清新淡雅东方仙侠游戏画面，色彩丰富明亮，柔光通透，唯美工笔国风，焦点清晰，移动端H5 MMO界面。';
 
 // ── 资产类型 ─────────────────────────────────────
 export interface VisualAssetSpec {
@@ -57,6 +57,13 @@ function slug(input: string) {
   return input.toLowerCase().replace(/[^a-z0-9_\-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'asset';
 }
 
+// ── Flux 训练分桶常量 · 偏离这些尺寸出图会软糊 ────────
+const FLUX_SCENE_W = 1344;     // 16:9 横屏场景
+const FLUX_SCENE_H = 768;
+const FLUX_PORTRAIT_W = 832;   // 2:3 立绘
+const FLUX_PORTRAIT_H = 1216;
+const FLUX_ICON_SIZE = 1024;   // 1:1 图标
+
 export function placeSceneAsset(place: PlaceInfo): VisualAssetSpec {
   return {
     assetKey: `place_${slug(place.zoneId)}`,
@@ -64,8 +71,8 @@ export function placeSceneAsset(place: PlaceInfo): VisualAssetSpec {
     name: `${place.region}·${place.title}`,
     description: `${place.description}。${place.landscape}`,
     context: getVisualContext(),
-    width: 832,
-    height: 512,
+    width: FLUX_SCENE_W,
+    height: FLUX_SCENE_H,
   };
 }
 
@@ -76,8 +83,8 @@ export function npcPortraitAsset(place: PlaceInfo, npc: NpcCard): VisualAssetSpe
     name: npc.name,
     description: `${npc.role}。${npc.line}`,
     context: `${place.region}·${place.title}。${getVisualContext()}`,
-    width: 512,
-    height: 640,
+    width: FLUX_PORTRAIT_W,
+    height: FLUX_PORTRAIT_H,
   };
 }
 
@@ -88,8 +95,8 @@ export function monsterPortraitAsset(place: PlaceInfo, monster: MonsterCard): Vi
     name: monster.name,
     description: `等级 ${monster.level}，${monster.reward}`,
     context: `${place.region}·${place.title}。${getVisualContext()}`,
-    width: 512,
-    height: 640,
+    width: FLUX_PORTRAIT_W,
+    height: FLUX_PORTRAIT_H,
   };
 }
 
@@ -100,8 +107,8 @@ export function actionIconAsset(place: PlaceInfo, action: QuickAction): VisualAs
     name: action.label,
     description: `游戏功能入口图标：${action.label}`,
     context: `${place.region}·${place.title}。${getVisualContext()}`,
-    width: 512,
-    height: 512,
+    width: FLUX_ICON_SIZE,
+    height: FLUX_ICON_SIZE,
   };
 }
 
@@ -117,8 +124,8 @@ export function battleSceneAsset(params: {
     name: params.monsterName ? `${params.zoneName || '野外'}·${params.monsterName}` : params.zoneName || '遭遇战',
     description: `回合制战斗背景，地点 ${params.zoneName || params.zoneId || '猎场宝山'}，敌人 ${params.monsterName || '妖兽'}`,
     context: getVisualContext(),
-    width: 832,
-    height: 512,
+    width: FLUX_SCENE_W,
+    height: FLUX_SCENE_H,
   };
 }
 
@@ -135,8 +142,8 @@ export function petPortraitAsset(params: {
     name,
     description: `灵兽立绘，血统：${params.petType || '神兽'}，属性：${params.element || ''}，神态灵动，仙气飘逸`,
     context: getVisualContext(),
-    width: 512,
-    height: 640,
+    width: FLUX_PORTRAIT_W,
+    height: FLUX_PORTRAIT_H,
   };
 }
 
@@ -152,8 +159,8 @@ export function dungeonSceneAsset(params: {
     name: params.dungeonName,
     description: `副本场景背景，${params.type || ''}风格，${params.description || params.dungeonName}，险峻壮阔`,
     context: getVisualContext(),
-    width: 832,
-    height: 400,
+    width: FLUX_SCENE_W,
+    height: FLUX_SCENE_H,
   };
 }
 
@@ -168,7 +175,7 @@ export function characterSceneAsset(params: {
     name: `${prof}·角色`,
     description: `角色背景场景，${prof}职业气质，仙气浓郁，宏大壮阔`,
     context: getVisualContext(),
-    width: 832,
-    height: 400,
+    width: FLUX_SCENE_W,
+    height: FLUX_SCENE_H,
   };
 }

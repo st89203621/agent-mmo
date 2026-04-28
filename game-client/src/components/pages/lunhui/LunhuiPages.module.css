@@ -618,7 +618,7 @@
 
 .placeCardImg {
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 2/3;   /* 与立绘原始 832×1216 同比，避免出现底色边带 */
   display: block;
 }
 
@@ -4893,11 +4893,65 @@
   letter-spacing: 8px;
   cursor: pointer;
   font-family: var(--font-serif);
+  transition: transform 0.08s ease, filter 0.2s ease;
 }
+
+.ccSubmit:hover { filter: brightness(1.08); }
+.ccSubmit:active { transform: scale(0.98); }
 
 .ccSubmit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.ccProList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ccProItem {
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--bg-ink);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-serif);
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.ccProItem:hover {
+  border-color: var(--accent-gold-dim);
+  color: var(--text);
+}
+
+.ccProItemOn {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  background: rgba(200, 169, 104, 0.1);
+  box-shadow: 0 0 0 1px rgba(200, 169, 104, 0.2);
+}
+
+.ccProName {
+  font-size: 14px;
+  letter-spacing: 3px;
+  font-weight: 700;
+}
+
+.ccProDesc {
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+
+.ccErrorTip {
+  margin: 10px 14px 0;
+  color: var(--accent-red);
+  font-size: 12px;
+  text-align: center;
+  letter-spacing: 2px;
 }
 
 /* ═══ 幸 运 转 盘 ═══ */

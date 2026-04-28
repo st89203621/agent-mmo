@@ -93,6 +93,8 @@ export default function GameLayout({ children }: Props) {
                 className={`${styles.tab} ${active ? styles.active : ''}`.trim()}
                 onClick={() => navigateTo(item.pageId)}
                 type="button"
+                aria-current={active ? 'page' : undefined}
+                aria-label={item.label}
               >
                 <span className={styles.ti}>{item.icon}</span>
                 <span className={styles.label}>{item.label}</span>

@@ -300,7 +300,12 @@ export default function HomePage() {
     return (
       <div className={styles.page}>
         <div ref={phaserRef} className={styles.phaserLayer} />
-        <div className={styles.loadingCenter}>七世轮回书</div>
+        <div className={styles.loadingCenter}>
+          <div className={styles.loadingTitle}>七 世 轮 回 书</div>
+          <div className={styles.loadingDots}>
+            <span /><span /><span />
+          </div>
+        </div>
       </div>
     );
   }

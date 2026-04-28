@@ -3,6 +3,7 @@ import { logout } from '../../../services/api';
 import { useGameStore } from '../../../store/gameStore';
 import { usePlayerStore } from '../../../store/playerStore';
 import { toast } from '../../../store/toastStore';
+import { confirmDialog } from '../../../store/confirmStore';
 import {
   VISUAL_STYLES,
   type VisualStyleId,
@@ -88,7 +89,13 @@ export default function SettingsPage() {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    if (!window.confirm('确认退出当前账号？')) return;
+    const ok = await confirmDialog({
+      title: '退 出 登 录',
+      message: '确定要退出当前账号吗？',
+      confirmText: '退 出',
+      danger: true,
+    });
+    if (!ok) return;
     setLoggingOut(true);
     try {
       await logout().catch(() => {});

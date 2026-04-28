@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { useGameStore } from '../../../store/gameStore';
 import { toast } from '../../../store/toastStore';
 import type { PageId } from '../../../types';
@@ -51,13 +51,8 @@ export default function HousingPage() {
   usePageBackground(PAGE_BG.HOUSING);
   const navigateTo = useGameStore((s) => s.navigateTo);
   const back = useGameStore((s) => s.back);
-  const [pendingGold, setPendingGold] = useState(8460);
+  const [pendingGold, setPendingGold] = useState(0);
   const [collecting, setCollecting] = useState(false);
-
-  useEffect(() => {
-    const t = setInterval(() => setPendingGold((g) => g + 21), 60000);
-    return () => clearInterval(t);
-  }, []);
 
   const handleCollect = () => {
     if (pendingGold === 0 || collecting) return;

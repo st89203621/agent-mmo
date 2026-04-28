@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { randomPet, type PetData } from '../../services/api';
-import styles from './lunhui/LunhuiPages.module.css';
+import shell from './lunhui/LunhuiPages.module.css';
+import styles from './PetSummonPage.module.css';
 import { usePageBackground } from '../common/PageShell';
 import { PAGE_BG } from '../../data/pageBackgrounds';
 
@@ -34,28 +35,7 @@ const TIER_LABELS = ['普通 35%', '优秀 28%', '精良 20%', '稀有 11%', '�
 
 type Phase = 'idle' | 'cracking' | 'reveal' | 'result';
 
-const GOLD_BTN: React.CSSProperties = {
-  padding: '14px 40px',
-  background: 'linear-gradient(90deg, var(--accent-red), var(--accent-gold))',
-  border: 0,
-  color: 'var(--text)',
-  fontSize: 15,
-  fontWeight: 700,
-  letterSpacing: 6,
-  cursor: 'pointer',
-  fontFamily: 'var(--font-serif)',
-};
-
-const GHOST_BTN: React.CSSProperties = {
-  padding: '10px 24px',
-  background: 'transparent',
-  border: '1px solid var(--border-gold)',
-  color: 'var(--accent-gold)',
-  fontSize: 12,
-  letterSpacing: 3,
-  cursor: 'pointer',
-  fontFamily: 'var(--font-serif)',
-};
+const pickPhrase = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
 export default function PetSummonPage() {
   usePageBackground(PAGE_BG.PET_SUMMON);
@@ -67,8 +47,6 @@ export default function PetSummonPage() {
   const [shakeIntensity, setShakeIntensity] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const resultRef = useRef<PetData | null>(null);
-
-  const pickPhrase = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
 
   const cleanup = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -121,152 +99,127 @@ export default function PetSummonPage() {
     setPhrase('');
   };
 
-  const tierColor = result ? TIER_COLORS[result.tier] || TIER_COLORS[1] : '#aaa';
+  const tierColor = result ? TIER_COLORS[result.tier] || TIER_COLORS[1] : TIER_COLORS[1];
   const tierGlow = result ? TIER_GLOW[result.tier] || TIER_GLOW[1] : 'transparent';
+  const tierIsHigh = (result?.tier ?? 0) >= 4;
+  const tierIsRare = (result?.tier ?? 0) >= 5;
+
+  const tierVars = useMemo<CSSProperties>(() => ({
+    ['--tier-color' as string]: tierColor,
+    ['--tier-glow' as string]: tierGlow,
+    ['--tier-border' as string]: `${tierColor}60`,
+  }), [tierColor, tierGlow]);
+
+  const eggIconStyle: CSSProperties = {
+    animation: `petEggShake ${Math.max(0.08, 0.4 - crackStage * 0.06)}s infinite alternate`,
+    filter: crackStage >= 3 ? `brightness(1.${crackStage * 2})` : undefined,
+    transform: `scale(${1 + crackStage * 0.05})`,
+  };
+
+  const eggRingStyle: CSSProperties = {
+    opacity: 0.3 + crackStage * 0.15,
+    animationDuration: `${Math.max(0.3, 1 - crackStage * 0.15)}s`,
+  };
 
   return (
-    <div className={styles.mockPage}>
-      <div className={styles.appbar}>
-        <div className={styles.appbarRow}>
-          <div className={styles.appbarLoc}>
-            <span className={styles.appbarBook}>砸 蛋</span>
-            <span className={styles.appbarZone}>命运之蛋 · 邂逅伙伴</span>
+    <div className={shell.mockPage}>
+      <div className={shell.appbar}>
+        <div className={shell.appbarRow}>
+          <div className={shell.appbarLoc}>
+            <span className={shell.appbarBook}>砸 蛋</span>
+            <span className={shell.appbarZone}>命运之蛋 · 邂逅伙伴</span>
           </div>
-          <div className={styles.appbarIcons}>
-            <button className={styles.appbarIcon} onClick={() => navigateTo('pet')} type="button" aria-label="宠物">宠</button>
-            <button className={styles.appbarIcon} onClick={() => navigateTo('wheel')} type="button" aria-label="轮盘">盘</button>
+          <div className={shell.appbarIcons}>
+            <button className={shell.appbarIcon} onClick={() => navigateTo('pet')} type="button" aria-label="宠物">宠</button>
+            <button className={shell.appbarIcon} onClick={() => navigateTo('wheel')} type="button" aria-label="轮盘">盘</button>
           </div>
         </div>
       </div>
 
-      <div className={styles.scrollPlain}>
+      <div className={shell.scrollPlain}>
         {phase === 'idle' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0', gap: 20 }}>
-            <div style={{
-              width: 140, height: 140, borderRadius: '50%',
-              border: '3px dashed var(--border-gold)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 64, animation: 'petEggPulse 2s infinite',
-            }}>
-              🥚
-            </div>
-            <button style={GOLD_BTN} onClick={handleCrack} type="button">✦ 砸 蛋</button>
-            <p style={{ fontSize: 11, color: 'var(--text-dim)', letterSpacing: 2 }}>消耗宠物蛋 · 随机获得一只伙伴</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 8, padding: '0 14px' }}>
-              {TIER_LABELS.map((t, i) => (
-                <span key={i} style={{
-                  fontSize: 10, padding: '2px 8px',
-                  background: `${TIER_COLORS[i + 1]}20`, color: TIER_COLORS[i + 1],
-                  border: `1px solid ${TIER_COLORS[i + 1]}40`, letterSpacing: 1, fontFamily: 'var(--font-mono)',
-                }}>
-                  {t}
-                </span>
-              ))}
+          <div className={styles.idle}>
+            <div className={styles.eggIdle}>🥚</div>
+            <button className={styles.goldBtn} onClick={handleCrack} type="button">✦ 砸 蛋</button>
+            <p className={styles.idleHint}>消耗宠物蛋 · 随机获得一只伙伴</p>
+            <div className={styles.tierLegend}>
+              {TIER_LABELS.map((t, i) => {
+                const c = TIER_COLORS[i + 1];
+                const tierStyle: CSSProperties = {
+                  ['--tier-color' as string]: c,
+                  ['--tier-bg' as string]: `${c}20`,
+                  ['--tier-border' as string]: `${c}40`,
+                };
+                return (
+                  <span key={t} className={styles.tierBadge} style={tierStyle}>{t}</span>
+                );
+              })}
             </div>
           </div>
         )}
 
         {phase === 'cracking' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0', gap: 16 }}>
-            <div style={{ position: 'relative', width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{
-                position: 'absolute', inset: -20, borderRadius: '50%',
-                border: `3px solid ${crackStage >= 3 ? 'var(--accent-gold)' : 'var(--border-gold)'}`,
-                opacity: 0.3 + crackStage * 0.15,
-                animation: `petEggPulse ${Math.max(0.3, 1 - crackStage * 0.15)}s infinite`,
-              }} />
-              {crackStage >= 2 && Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} style={{
-                  position: 'absolute', width: 4, height: 4, borderRadius: '50%',
-                  background: crackStage >= 4 ? 'var(--accent-gold)' : 'var(--border-gold)',
-                  animation: `petEggParticle ${1.5 + i * 0.2}s infinite`,
-                  animationDelay: `${i * 0.2}s`,
+          <div className={styles.cracking}>
+            <div className={styles.eggStage}>
+              <div
+                className={`${styles.eggRing} ${crackStage >= 3 ? styles.eggRingHot : ''}`.trim()}
+                style={eggRingStyle}
+              />
+              {crackStage >= 2 && Array.from({ length: 8 }).map((_, i) => {
+                const particleStyle: CSSProperties = {
                   top: `${50 + 45 * Math.sin((i / 8) * Math.PI * 2)}%`,
                   left: `${50 + 45 * Math.cos((i / 8) * Math.PI * 2)}%`,
-                }} />
-              ))}
-              <span style={{
-                fontSize: 72,
-                animation: `petEggShake ${Math.max(0.08, 0.4 - crackStage * 0.06)}s infinite alternate`,
-                filter: crackStage >= 3 ? `brightness(1.${crackStage * 2})` : undefined,
-                transform: `scale(${1 + crackStage * 0.05})`,
-                transition: 'transform 0.3s',
-              }}>
+                  animation: `petEggParticle ${1.5 + i * 0.2}s infinite`,
+                  animationDelay: `${i * 0.2}s`,
+                };
+                return (
+                  <div
+                    key={i}
+                    className={`${styles.eggParticle} ${crackStage >= 4 ? styles.eggParticleHot : ''}`.trim()}
+                    style={particleStyle}
+                  />
+                );
+              })}
+              <span className={styles.eggIcon} style={eggIconStyle}>
                 {crackStage < 4 ? '🥚' : '💥'}
               </span>
               {crackStage >= 1 && (
-                <div style={{ position: 'absolute', bottom: -4, right: 20, fontSize: 20, opacity: 0.7 }}>
+                <div className={styles.eggSparks}>
                   {'💫'.repeat(Math.min(crackStage, 3))}
                 </div>
               )}
             </div>
-            <p style={{
-              fontSize: crackStage >= 3 ? 18 : 15,
-              fontWeight: crackStage >= 3 ? 700 : 500,
-              color: crackStage >= 3 ? 'var(--accent-gold)' : 'var(--text)',
-              fontFamily: 'var(--font-serif)', letterSpacing: 2,
-              transition: 'all 0.3s',
-              animation: crackStage >= 3 ? 'petPhraseGlow 0.5s infinite alternate' : undefined,
-            }}>
+            <p className={`${styles.crackPhrase} ${crackStage >= 3 ? styles.crackPhraseHot : ''}`.trim()}>
               {phrase}
             </p>
-            <div style={{ width: '60%', height: 6, background: 'var(--bg-ink)', border: '1px solid var(--border)' }}>
-              <div style={{
-                width: `${(crackStage + 1) * 20}%`, height: '100%',
-                background: 'linear-gradient(90deg, var(--accent-orange), var(--accent-gold))',
-                transition: 'width 0.5s ease-out',
-              }} />
+            <div className={styles.crackBar}>
+              <div className={styles.crackBarFill} style={{ width: `${(crackStage + 1) * 20}%` }} />
             </div>
           </div>
         )}
 
         {phase === 'reveal' && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, animation: 'petRevealFlash 1.2s ease-out' }}>
-            <span style={{ fontSize: 80, animation: 'petRevealSpin 1s ease-out' }}>✨</span>
+          <div className={styles.reveal}>
+            <span className={styles.revealStar}>✨</span>
           </div>
         )}
 
         {phase === 'result' && result && (
-          <div style={{ textAlign: 'center', padding: '16px 0', animation: 'petResultSlide 0.6s ease-out' }}>
-            <div style={{
-              padding: '8px 0', marginBottom: 16,
-              fontSize: 13, fontWeight: 700, letterSpacing: 3,
-              color: tierColor,
-              animation: result.tier >= 4 ? 'petTierPulse 1.5s infinite' : undefined,
-            }}>
+          <div className={styles.result} style={tierVars}>
+            <div className={`${styles.tierBanner} ${tierIsHigh ? styles.tierBannerHigh : ''}`.trim()}>
               {'★'.repeat(result.tier)} {result.tierName} {'★'.repeat(result.tier)}
             </div>
-            <div style={{
-              width: 120, height: 120, margin: '0 auto 12px', borderRadius: '50%',
-              border: `3px solid ${tierColor}`,
-              background: `radial-gradient(circle, ${tierGlow}, transparent)`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 56,
-              boxShadow: result.tier >= 4 ? `0 0 30px ${tierGlow}` : undefined,
-            }}>
+            <div className={`${styles.resultIcon} ${tierIsHigh ? styles.resultIconHigh : ''}`.trim()}>
               {result.icon || '🐾'}
             </div>
-            <p style={{
-              fontSize: result.tier >= 5 ? 18 : 15,
-              fontWeight: 700, color: tierColor,
-              fontFamily: 'var(--font-serif)', letterSpacing: 2, marginBottom: 4,
-            }}>
+            <p className={`${styles.cheer} ${tierIsRare ? styles.cheerHigh : ''}`.trim()}>
               {pickPhrase(TIER_CHEERS[result.tier] || TIER_CHEERS[1])}
             </p>
-            <h3 style={{
-              fontSize: 22, color: tierColor,
-              fontFamily: 'var(--font-serif)', marginBottom: 4, letterSpacing: 3,
-            }}>
-              {result.nickname}
-            </h3>
-            <p style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 16, fontFamily: 'var(--font-mono)' }}>
+            <h3 className={styles.resultName}>{result.nickname}</h3>
+            <p className={styles.resultMeta}>
               {result.petType} · {result.element || '无属性'} · 可分配 {result.propertyPointNum} 点
             </p>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: 8, padding: 16, margin: '0 14px', background: 'var(--bg-panel)',
-              border: `1px solid ${tierColor}60`,
-            }}>
+            <div className={styles.statsBox}>
               {([
                 ['体质', result.constitution],
                 ['魔力', result.magicPower],
@@ -274,54 +227,24 @@ export default function PetSummonPage() {
                 ['耐力', result.endurance],
                 ['敏捷', result.agile],
               ] as const).map(([label, val]) => (
-                <div key={label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-dim)', letterSpacing: 1 }}>{label}</div>
-                  <div style={{ fontSize: 18, color: tierColor, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{val}</div>
+                <div key={label} className={styles.statCell}>
+                  <div className={styles.statCellLabel}>{label}</div>
+                  <div className={styles.statCellValue}>{val}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
-              <button style={GOLD_BTN} onClick={handleReset} type="button">继 续</button>
-              <button style={GHOST_BTN} onClick={() => navigateTo('pet')} type="button">查 看 宠 物</button>
+            <div className={styles.actionRow}>
+              <button className={styles.goldBtn} onClick={handleReset} type="button">继 续</button>
+              <button className={styles.ghostBtn} onClick={() => navigateTo('pet')} type="button">查 看 宠 物</button>
             </div>
           </div>
         )}
       </div>
 
       <style>{`
-        @keyframes petEggPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.05); }
-        }
         @keyframes petEggShake {
           0% { transform: rotate(-${shakeIntensity}deg) translateX(-${shakeIntensity}px); }
           100% { transform: rotate(${shakeIntensity}deg) translateX(${shakeIntensity}px); }
-        }
-        @keyframes petEggParticle {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.5); }
-        }
-        @keyframes petPhraseGlow {
-          from { text-shadow: 0 0 8px var(--border-gold); }
-          to { text-shadow: 0 0 20px var(--accent-gold); }
-        }
-        @keyframes petRevealFlash {
-          0% { opacity: 1; background: rgba(255,255,255,0.6); }
-          40% { opacity: 0.9; }
-          100% { opacity: 1; background: transparent; }
-        }
-        @keyframes petRevealSpin {
-          0% { transform: scale(0) rotate(0deg); opacity: 0; }
-          60% { transform: scale(1.3) rotate(360deg); opacity: 1; }
-          100% { transform: scale(1) rotate(360deg); opacity: 1; }
-        }
-        @keyframes petResultSlide {
-          from { transform: translateY(30px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes petTierPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; text-shadow: 0 0 12px currentColor; }
         }
       `}</style>
     </div>

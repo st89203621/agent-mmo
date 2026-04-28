@@ -71,6 +71,12 @@
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.65),
     0 0 6px rgba(0, 0, 0, 0.35);
+  animation: shellFade 0.28s ease both;
+}
+
+@keyframes shellFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ═══ 顶部右上角浮动操作位（风格切换 + 重绘）
