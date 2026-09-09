@@ -100,7 +100,7 @@ namespace Lunhui.Prototype
         private static void Click(string name){var button=Find(name);if(!button.interactable)throw new Exception("Button disabled: "+name);button.onClick.Invoke();Canvas.ForceUpdateCanvases();}
         private static void Require(bool condition,string message,List<string> checks){if(!condition)throw new Exception("Interaction check failed: "+message);checks.Add(message);}
 
-        private static void RunCustomizationChecks(PrototypeApp app,List<string> checks)
+        internal static void RunCustomizationChecks(PrototypeApp app,List<string> checks)
         {
             app.ShowPage("home");
             CharacterAppearance original=app.State.Appearance.Copy();

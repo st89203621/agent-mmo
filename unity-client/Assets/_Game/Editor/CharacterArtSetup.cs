@@ -17,6 +17,49 @@ namespace Lunhui.Prototype
         private static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
         private static readonly Dictionary<int,Texture2D> SilkTextures = new Dictionary<int,Texture2D>();
 
+        [Serializable]
+        internal sealed class HeadPart
+        {
+            public string name;
+            public Vector3[] vertices;
+            public Vector3[] normals;
+            public Vector2[] uv;
+            public int[] triangles;
+        }
+
+        [Serializable]
+        internal sealed class HeadSource { public List<HeadPart> parts = new List<HeadPart>(); }
+
+        [MenuItem("Lunhui/Rebuild Character Heads Only")]
+        public static void RebuildHeads()
+        {
+            Materials.Clear();
+            string texturePath = Generated + "/Textures/FemaleFace.png";
+            if (File.Exists(texturePath))
+            {
+                AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(texturePath);
+                importer.maxTextureSize = 1024;
+                importer.mipmapEnabled = true;
+                var android = importer.GetPlatformTextureSettings("Android");
+                android.overridden = true;
+                android.maxTextureSize = 1024;
+                android.format = TextureImporterFormat.ASTC_6x6;
+                importer.SetPlatformTextureSettings(android);
+                importer.SaveAndReimport();
+            }
+            foreach (string path in Directory.GetFiles(Prefabs, "*.prefab"))
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                bool female = prefab.GetComponentsInChildren<MeshFilter>().Any(m => m.name == "Superhero_Female");
+                var holder = new GameObject("Head rebuild");
+                try { AddFace(holder.transform, female, prefab.name); }
+                finally { UnityEngine.Object.DestroyImmediate(holder); }
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log("CHARACTER_HEADS_COMPLETE: existing prefab rigs and outfits preserved.");
+        }
+
         [MenuItem("Lunhui/Build Character Art")]
         public static void BuildAssets()
         {
@@ -236,6 +279,9 @@ namespace Lunhui.Prototype
 
         private static void AddFace(Transform targetHead, bool female, string character)
         {
+            const string refinedPath = "ArtSource/FemaleHead/head.json";
+            var refined = female && File.Exists(refinedPath)
+                ? JsonUtility.FromJson<HeadSource>(File.ReadAllText(refinedPath)) : null;
             var source = UnityEngine.Object.Instantiate(LoadModel(female ? "Superhero_Female_FullBody" : "Superhero_Male_FullBody"));
             try
             {
@@ -265,9 +311,28 @@ namespace Lunhui.Prototype
                             { keep.Add(indices[i]); keep.Add(indices[i + 1]); keep.Add(indices[i + 2]); }
                         submeshes[sub] = keep.ToArray();
                     }
-                    baked.vertices = vertices;
-                    for (int sub = 0; sub < submeshes.Length; sub++) baked.SetTriangles(submeshes[sub], sub);
-                    baked.RecalculateNormals();
+                    var replacement = refined?.parts.SingleOrDefault(p => p.name == renderer.name);
+                    if (replacement != null)
+                    {
+                        baked.Clear();
+                        baked.vertices = replacement.vertices;
+                        baked.uv = replacement.uv;
+                        baked.triangles = replacement.triangles;
+                        baked.normals = replacement.normals;
+                    }
+                    else
+                    {
+                        int[] used = submeshes.SelectMany(indices => indices).Distinct().OrderBy(i => i).ToArray();
+                        var remap = used.Select((index, value) => new { index, value }).ToDictionary(p => p.index, p => p.value);
+                        Vector2[] uv = baked.uv;
+                        baked.Clear();
+                        baked.vertices = used.Select(i => vertices[i]).ToArray();
+                        baked.uv = used.Select(i => uv[i]).ToArray();
+                        baked.subMeshCount = submeshes.Length;
+                        for (int sub = 0; sub < submeshes.Length; sub++)
+                            baked.SetTriangles(submeshes[sub].Select(i => remap[i]).ToArray(), sub);
+                        baked.RecalculateNormals();
+                    }
                     baked.RecalculateTangents();
                     baked.RecalculateBounds();
                     var mesh = PersistMesh(baked, character + "_" + renderer.name);
@@ -337,9 +402,24 @@ namespace Lunhui.Prototype
                     material.renderQueue = (int)RenderQueue.AlphaTest;
                     return material;
                 }
-                if (name.Contains("eye")) return Material("Eyes", "T_Eye_Brown", "GL_T_Eye_Normal", Color.white, 0, 0.75f);
+                if (name.Contains("eye"))
+                {
+                    var eyes = Material("Eyes", "T_Eye_Brown", "GL_T_Eye_Normal", Color.white, 0, 0.75f);
+                    eyes.shader = Shader.Find("Lunhui/CharacterEyes");
+                    eyes.SetFloat("_BumpScale", .25f);
+                    eyes.SetColor("_IrisColor", CharacterAppearance.EyeColors[0]);
+                    return eyes;
+                }
                 if (name.Contains("regular")) return Material("OutfitSkin" + female, "T_Regular_" + (female ? "Female" : "Male") + "_Dark_BaseColor", "T_Regular_" + (female ? "Female" : "Male") + "_Normal", Color.white, 0, 0.24f);
-                return Material("Face" + female, female ? "T_Superhero_Female_Light_BaseColor" : "T_Superhero_Male_Ligh", "GL_T_Superhero_" + (female ? "Female" : "Male") + "_Normal", Color.white, 0, 0.28f);
+                var face = Material("Face" + female, female ? "T_Superhero_Female_Light_BaseColor" : "T_Superhero_Male_Ligh", "GL_T_Superhero_" + (female ? "Female" : "Male") + "_Normal", Color.white, 0, 0.28f);
+                var refinedTexture = female ? AssetDatabase.LoadAssetAtPath<Texture2D>(Generated + "/Textures/FemaleFace.png") : null;
+                if (refinedTexture != null)
+                {
+                    face.mainTexture = refinedTexture;
+                    face.SetFloat("_BumpScale", .16f);
+                    face.SetFloat("_Glossiness", .24f);
+                }
+                return face;
             }).ToArray();
         }
 

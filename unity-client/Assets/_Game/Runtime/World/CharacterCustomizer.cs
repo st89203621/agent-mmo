@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Lunhui
@@ -10,17 +11,18 @@ namespace Lunhui
         {
             public Mesh Mesh;
             public Vector3[] Source;
+            public Vector3[] Vertices;
+            public int[][] NormalGroups;
             public bool Eyes;
             public bool Brows;
-            public Renderer Renderer;
         }
         private readonly List<FacePart> parts=new List<FacePart>();
         private readonly List<Renderer> skin=new List<Renderer>(),eyes=new List<Renderer>(),brows=new List<Renderer>(),cloth=new List<Renderer>();
-        private readonly List<Material> materials=new List<Material>();
         private Transform head;
         private GameObject hair;
         private int hairIndex=-1;
         private Bounds faceBounds;
+        private Bounds eyeBounds;
         private Vector3 initialScale;
         private bool initialized;
         public int DeformedVertexCount {get;private set;}
@@ -44,40 +46,60 @@ namespace Lunhui
             }
             foreach(var part in parts)
             {
-                var vertices=new Vector3[part.Source.Length];
+                var vertices=part.Vertices;
                 for(int i=0;i<vertices.Length;i++)
                 {
-                    Vector3 p=part.Source[i];float height=Mathf.InverseLerp(faceBounds.min.y,faceBounds.max.y,p.y);
-                    float jaw=1-Mathf.SmoothStep(.18f,.63f,height);
-                    p.x*=1+(appearance.FaceWidth-.5f)*.3f+(appearance.JawWidth-.5f)*.35f*jaw;
-                    p.y-=(appearance.ChinLength-.5f)*faceBounds.size.y*.15f*jaw;
-                    float eyeLine=faceBounds.center.y+faceBounds.size.y*.12f;
-                    float eyeWeight=part.Eyes||part.Brows?1:Mathf.Exp(-Mathf.Pow((p.y-eyeLine)/(faceBounds.size.y*.11f),2))*Mathf.Clamp01(-p.z/Mathf.Max(.01f,faceBounds.extents.z));
-                    p.x+=Mathf.Sign(p.x)*(appearance.EyeSpacing-.5f)*faceBounds.size.x*.1f*eyeWeight;
-                    float eyeCenter=Mathf.Sign(p.x)*faceBounds.size.x*.21f;
-                    p.x+=(p.x-eyeCenter)*(appearance.EyeSize-.5f)*.32f*eyeWeight;
-                    p.y+=(p.y-eyeLine)*(appearance.EyeSize-.5f)*.4f*eyeWeight;
-                    if (part.Eyes || part.Brows)
-                    {
-                        p.y += (appearance.EyeHeight - .5f) * faceBounds.size.y * .12f;
-                        if (part.Brows) p.y += (appearance.BrowHeight - .5f) * faceBounds.size.y * .10f;
-                    }
+                    Vector3 original=part.Source[i],p=original;
+                    float height=Mathf.InverseLerp(faceBounds.min.y,faceBounds.max.y,p.y);
+                    float jaw=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.2f,.62f,height));
+                    float neck=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.22f,height));
+                    float front=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,eyeBounds.min.z,p.z));
+                    float eyeLine=eyeBounds.center.y;
+                    float eyeCenter=Mathf.Sign(p.x)*(eyeBounds.extents.x-eyeBounds.extents.y);
+                    // Eye geometry and the surrounding sockets share the same local deformation.
+                    float eyeWeight=part.Eyes||part.Brows?1:front*(1-Mathf.SmoothStep(0,1,
+                        Mathf.Max(Mathf.Abs(p.y-eyeLine)/(eyeBounds.size.y*1.8f),
+                            Mathf.Abs(p.x-eyeCenter)/(eyeBounds.size.y*1.6f))-.65f));
+                    if(!part.Eyes&&!part.Brows)
+                        eyeWeight*=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,eyeBounds.extents.y,Mathf.Abs(p.x)));
+                    p.x+=(p.x-eyeCenter)*(appearance.EyeSize-.5f)*.24f*eyeWeight;
+                    p.y+=(p.y-eyeLine)*(appearance.EyeSize-.5f)*.24f*eyeWeight;
+                    p.z+=(p.z-eyeBounds.center.z)*(appearance.EyeSize-.5f)*.24f*eyeWeight;
+                    p.x+=Mathf.Sign(p.x)*(appearance.EyeSpacing-.5f)*eyeBounds.size.x*.08f*eyeWeight;
+                    p.y+=(appearance.EyeHeight-.5f)*eyeBounds.size.y*.24f*eyeWeight;
+                    if(part.Brows && original.y>eyeBounds.max.y)
+                        p.y+=(appearance.BrowHeight-.5f)*eyeBounds.size.y*.3f;
+                    p.x*=1+((appearance.FaceWidth-.5f)*.18f+(appearance.JawWidth-.5f)*.22f*jaw)*neck;
+                    p.y-=(appearance.ChinLength-.5f)*faceBounds.size.y*.07f*jaw*neck;
                     if(!part.Eyes&&!part.Brows)
                     {
-                        float nose=Mathf.Exp(-Mathf.Pow(p.x/(faceBounds.size.x*.11f),2)-Mathf.Pow((height-.47f)/.15f,2));
-                        p.z-=(appearance.NoseSize-.5f)*faceBounds.size.z*.22f*nose;
-                        float cheek=Mathf.Exp(-Mathf.Pow((Mathf.Abs(p.x)-faceBounds.size.x*.23f)/(faceBounds.size.x*.18f),2)-Mathf.Pow((height-.53f)/.23f,2));
-                        p.x += Mathf.Sign(p.x) * (appearance.CheekFullness - .5f) * faceBounds.size.x * .07f * cheek;
-                        p.z -= (appearance.CheekFullness - .5f) * faceBounds.size.z * .08f * cheek;
-                        float lowerFace=Mathf.Exp(-Mathf.Pow(p.x/(faceBounds.size.x*.22f),2)-Mathf.Pow((height-.30f)/.20f,2));
-                        p.z -= (appearance.LipFullness - .5f) * faceBounds.size.z * .08f * lowerFace;
+                        float nose=front*Mathf.Exp(-Mathf.Pow(original.x/(faceBounds.size.x*.10f),2)-Mathf.Pow((original.y-eyeLine+faceBounds.size.y*.15f)/(faceBounds.size.y*.10f),2));
+                        p.z+=(appearance.NoseSize-.5f)*faceBounds.size.z*.08f*nose;
+                        float cheek=front*Mathf.Exp(-Mathf.Pow((Mathf.Abs(original.x)-faceBounds.size.x*.24f)/(faceBounds.size.x*.15f),2)-Mathf.Pow((original.y-eyeLine+faceBounds.size.y*.12f)/(faceBounds.size.y*.13f),2));
+                        p.x+=Mathf.Clamp(original.x/(faceBounds.size.x*.1f),-1,1)
+                            *(appearance.CheekFullness-.5f)*faceBounds.size.x*.04f*cheek;
+                        p.z+=(appearance.CheekFullness-.5f)*faceBounds.size.z*.03f*cheek;
+                        float lips=front*Mathf.Exp(-Mathf.Pow(original.x/(faceBounds.size.x*.15f),2)-Mathf.Pow((original.y-eyeLine+faceBounds.size.y*.31f)/(faceBounds.size.y*.045f),2));
+                        p.z+=(appearance.LipFullness-.5f)*faceBounds.size.z*.04f*lips;
                     }
                     vertices[i]=p;
                 }
                 part.Mesh.vertices=vertices;part.Mesh.RecalculateBounds();part.Mesh.RecalculateNormals();
+                var normals=part.Mesh.normals;
+                foreach(var group in part.NormalGroups)
+                {
+                    Vector3 normal=Vector3.zero;
+                    foreach(int index in group)normal+=normals[index];
+                    normal.Normalize();
+                    foreach(int index in group)normals[index]=normal;
+                }
+                part.Mesh.normals=normals;part.Mesh.RecalculateTangents();
             }
             Tint(skin,CharacterAppearance.SkinColors[appearance.SkinColor]);
-            Tint(eyes,CharacterAppearance.EyeColors[appearance.EyeColor]*1.7f);
+            var eyeProperties=new MaterialPropertyBlock();
+            eyeProperties.SetColor("_Color",Color.white);
+            eyeProperties.SetColor("_IrisColor",CharacterAppearance.EyeColors[appearance.EyeColor]);
+            foreach(var renderer in eyes)renderer.SetPropertyBlock(eyeProperties);
             Tint(brows,CharacterAppearance.HairColors[appearance.HairColor]*1.8f);
             Tint(cloth,CharacterAppearance.OutfitColors[appearance.OutfitColor]);
             if(hair)Tint(hair.GetComponentsInChildren<Renderer>(),CharacterAppearance.HairColors[appearance.HairColor]*1.55f);
@@ -93,6 +115,9 @@ namespace Lunhui
             foreach(var skinned in head.GetComponentsInChildren<SkinnedMeshRenderer>())
                 RegisterPart(skinned.name, skinned.sharedMesh, mesh => skinned.sharedMesh = mesh, skinned);
             if(faceBounds.size.sqrMagnitude < .001f && parts.Count > 0) faceBounds=parts[0].Mesh.bounds;
+            if(eyeBounds.size.sqrMagnitude < .00001f)
+                eyeBounds=new Bounds(faceBounds.center+Vector3.up*faceBounds.size.y*.12f,
+                    new Vector3(faceBounds.size.x*.58f,faceBounds.size.y*.12f,faceBounds.size.z*.15f));
             foreach(var renderer in GetComponentsInChildren<Renderer>())
             {
                 string name=renderer.name.ToLowerInvariant();
@@ -110,9 +135,12 @@ namespace Lunhui
             var mesh=Instantiate(sourceMesh);
             mesh.name=sourceMesh.name+" (Runtime Face)";
             assign(mesh);
-            var part=new FacePart{Mesh=mesh,Source=mesh.vertices,Eyes=isEyes,Brows=isBrows,Renderer=renderer};
+            var source=mesh.vertices;
+            var groups=Enumerable.Range(0,source.Length).GroupBy(i=>source[i]).Where(g=>g.Count()>1).Select(g=>g.ToArray()).ToArray();
+            var part=new FacePart{Mesh=mesh,Source=source,Vertices=new Vector3[source.Length],NormalGroups=groups,Eyes=isEyes,Brows=isBrows};
             parts.Add(part); DeformedVertexCount+=mesh.vertexCount;
             if(isFace && (faceBounds.size.sqrMagnitude < .001f || name.Contains("superhero"))) faceBounds=mesh.bounds;
+            if(isEyes)eyeBounds=mesh.bounds;
             if(isEyes) eyes.Add(renderer); else if(isBrows) brows.Add(renderer); else skin.Add(renderer);
         }
         private static void Tint(IEnumerable<Renderer> renderers,Color color)
@@ -120,9 +148,8 @@ namespace Lunhui
             var properties=new MaterialPropertyBlock();
             properties.SetColor("_Color",color);
             properties.SetColor("_BaseColor",color);
-            properties.SetFloat("_Smoothness", .42f);
             foreach(var renderer in renderers)if(renderer)renderer.SetPropertyBlock(properties);
         }
-        private void OnDestroy(){foreach(var part in parts)if(part.Mesh)Destroy(part.Mesh);foreach(var material in materials)if(material)Destroy(material);}
+        private void OnDestroy(){foreach(var part in parts)if(part.Mesh)Destroy(part.Mesh);}
     }
 }
