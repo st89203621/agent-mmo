@@ -18,12 +18,7 @@ namespace Lunhui
             int quality = Mathf.Clamp(state.EquipmentQuality, 1, MaxQuality);
             int enchant = Mathf.Clamp(state.EnchantLevel, 0, MaxEnchant);
             int attack = AdventureCombat.BaseAttack(state);
-            var content = UiKit.Panel(root, "EquipmentContent", 0, 108, 1280, 516, Color.clear);
-
-            UiKit.Label(content, "装备养成", 48, 12, 380, 48, 32, TextColor);
-            UiKit.Label(content, "银两 " + state.Coins.ToString("N0"), 810, 18, 420, 38,
-                24, UiKit.Gold, TextAnchor.MiddleRight);
-            UiKit.Panel(content, "HeadingRule", 48, 72, 1184, 1, UiKit.Muted);
+            var content = UiKit.PageContent(root, "EquipmentContent", "武器与灵纹", "矿石 " + state.Ore + "    灵魄 " + state.Essence);
 
             UiKit.Label(content, "当前装备", 48, 92, 300, 36, 23, UiKit.Muted);
             var selected = UiKit.Button(content, "CurrentWeapon", "", 48, 144, 320, 106,

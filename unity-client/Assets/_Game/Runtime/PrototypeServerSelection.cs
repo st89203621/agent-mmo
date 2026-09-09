@@ -23,6 +23,7 @@ namespace Lunhui
             endpointInput = UiKit.Input(parent, serverSettingsOpen ? "ServerConfigEndpoint" : "GameEndpoint", serverDraft.Endpoint, "ws://电脑的局域网IP:端口", x, y + 64, width, 54, 240);
             endpointInput.keyboardType = TouchScreenKeyboardType.URL;
             endpointInput.textComponent.fontSize = 22;
+            endpointInput.textComponent.resizeTextMinSize = 18;
             endpointInput.textComponent.resizeTextMaxSize = 22;
         }
 

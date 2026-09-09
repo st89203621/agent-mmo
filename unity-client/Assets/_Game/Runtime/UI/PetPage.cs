@@ -41,12 +41,7 @@ namespace Lunhui
             selectedPet = Mathf.Clamp(selectedPet, 0, Pets.Length - 1);
             int level = Mathf.Clamp(state.PetLevel, 1, MaxPetLevel);
             bool permanent = state.Level >= TrainingUnlockLevel;
-            var content = UiKit.Panel(root, "PetContent", 0, 108, 1280, 516, Color.clear);
-
-            UiKit.Label(content, "宝宝契约", 48, 12, 380, 48, 32, TextColor);
-            UiKit.Label(content, "银两 " + state.Coins.ToString("N0") + "    灵魄 " + state.Essence,
-                714, 18, 516, 38, 23, UiKit.Gold, TextAnchor.MiddleRight);
-            UiKit.Panel(content, "HeadingRule", 48, 72, 1184, 1, UiKit.Muted);
+            var content = UiKit.PageContent(root, "PetContent", "契约与共鸣", "灵魄 " + state.Essence);
 
             for (int i = 0; i < Pets.Length; i++)
             {

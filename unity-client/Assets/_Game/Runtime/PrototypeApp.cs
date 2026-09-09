@@ -21,7 +21,7 @@ namespace Lunhui
         public AdventureCombat Combat { get; private set; }
         public IGameNetworkSession Network { get; private set; }
         public RectTransform PageRoot => page;
-        private RectTransform safe, stage, page, modal, toastRoot;
+        private RectTransform safe, stage, page, modal, toastRoot, screenVeil, hintRoot;
         private string settingsReturn = "login";
         private Text toastText, hintText;
         private float toastUntil;
@@ -64,11 +64,17 @@ namespace Lunhui
             var canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10;
+            screenVeil = UiKit.Panel(canvas.transform, "ScreenVeil", 0, 0, 0, 0, UiKit.Ink);
+            screenVeil.anchorMin = Vector2.zero; screenVeil.anchorMax = Vector2.one;
+            screenVeil.offsetMin = screenVeil.offsetMax = Vector2.zero;
             safe = UiKit.Rect(canvas.transform, "SafeArea", 0, 0, 0, 0);
             safe.pivot = new Vector2(.5f, .5f);
             stage = UiKit.Rect(safe, "MobileStage_1280x720", 0, 0, 1280, 720);
             stage.anchorMin = stage.anchorMax = new Vector2(.5f,.5f);
             stage.pivot = new Vector2(.5f,.5f);
+            hintRoot = UiKit.Panel(stage, "Tooltip", 0, 0, 224, 36, UiKit.Ink);
+            hintText = UiKit.Label(hintRoot, "", 8, 0, 208, 36, 18, UiKit.Paper, TextAnchor.MiddleCenter);
+            hintRoot.gameObject.SetActive(false);
             FitScreen();
         }
 
@@ -90,12 +96,12 @@ namespace Lunhui
             if (!ready) return;
             if (name == "mountain") name = "mountains";
             if (name == "pet") name = "pets";
-            string[] allowed = { "login", "character", "home", "mountains", "equipment", "inventory", "pets", "guild", "community", "titles", "settings" };
-            if (Array.IndexOf(allowed, name) < 0) throw new ArgumentException("Unknown page: " + name);
+            if (!PageDirectory.ContainsKey(name)) throw new ArgumentException("Unknown page: " + name);
             CloseDialog();
             if (page) { page.gameObject.SetActive(false); Destroy(page.gameObject); }
             if (toastRoot) { toastRoot.gameObject.SetActive(false); Destroy(toastRoot.gameObject); }
             CurrentPage = name;
+            Hint("");
             World.SetMove(Vector2.zero);
             World.SetMode(name, name == "character" ? draftCareer : State.Career);
             World.SetFemale(!(name == "character" ? draftMale : State.UseMaleModel));
@@ -104,42 +110,42 @@ namespace Lunhui
             Combat.SetRealm(World.RealmIndex);
             Combat.SetRunning(name == "home");
             page = UiKit.Rect(stage, "Page_" + name, 0, 0, 1280, 720);
-            if (name != "login" && name != "character" && name != "home")
-                UiKit.Panel(page, "PageVeil", 0, 0, 1280, 720, new Color32(12,23,25,239));
+            bool systemPage = name != "login" && name != "character" && name != "home";
+            screenVeil.gameObject.SetActive(systemPage);
+            if (systemPage) Shell(PageDirectory[name].Title);
             switch (name)
             {
                 case "login": Login(); break;
                 case "character": Character(); break;
                 case "home": Home(); break;
-                case "mountains": Shell("六大宝山"); if (OnlineMode) NativeSocialPages.BuildMountains(page, this); else MountainPage.Build(page, this); break;
-                case "equipment": Shell("行囊 · 装备"); if (OnlineMode) NativeGrowthPages.BuildEquipment(page, this); else EquipmentPage.Build(page, this); break;
-                case "inventory": Shell("行囊"); NativeGrowthPages.BuildInventory(page, this); break;
-                case "pets": Shell("宝宝"); if (OnlineMode) NativeGrowthPages.BuildPets(page, this); else PetPage.Build(page, this); break;
-                case "guild": Shell("盟会"); if (OnlineMode) NativeSocialPages.BuildGuild(page, this); else Guild(); break;
-                case "community": Shell("同游"); if (OnlineMode) NativeCommunityPages.Build(page, this); else Toast("请先连接账号"); break;
-                case "titles": Shell("称号"); if (OnlineMode) NativeGrowthPages.BuildTitles(page, this); else Toast("请先连接账号"); break;
-                case "settings": Shell("设置"); Settings(); break;
+                case "journey": Journey(); break;
+                case "mountains": if (OnlineMode) NativeSocialPages.BuildMountains(page, this); else MountainPage.Build(page, this); break;
+                case "equipment": if (OnlineMode) NativeGrowthPages.BuildEquipment(page, this); else EquipmentPage.Build(page, this); break;
+                case "inventory": if (OnlineMode) NativeGrowthPages.BuildInventory(page, this); else ConnectionRequired(); break;
+                case "pets": if (OnlineMode) NativeGrowthPages.BuildPets(page, this); else PetPage.Build(page, this); break;
+                case "guild": if (OnlineMode) NativeSocialPages.BuildGuild(page, this); else Guild(); break;
+                case "community": if (OnlineMode) NativeCommunityPages.Build(page, this); else ConnectionRequired(); break;
+                case "titles": if (OnlineMode) NativeGrowthPages.BuildTitles(page, this); else ConnectionRequired(); break;
+                case "settings": Settings(); break;
             }
-            if (name != "login" && name != "character") Navigation();
-            toastRoot = UiKit.Panel(stage, "Toast", name=="home"?400:360, name=="home"?182:575, name=="home"?480:560, 48, new Color32(10,25,23,248));
+            if (systemPage) Navigation();
+            toastRoot = UiKit.Panel(stage, "Toast", name=="home"?400:360, name=="home"?182:96, name=="home"?480:560, 48, UiKit.Ink);
             toastText = UiKit.Label(toastRoot, "", 18, 0, name=="home"?444:524, 48, 22, UiKit.Gold, TextAnchor.MiddleCenter);
             toastRoot.gameObject.SetActive(false);
         }
 
         private void Login()
         {
-            UiKit.Panel(page, "LoginShade", 0, 0, 570, 720, new Color32(10,27,26,175));
-            UiKit.Label(page, "轮回", 76, 72, 440, 144, 76, UiKit.Paper);
-            UiKit.Label(page, "在线", 84, 202, 360, 58, 44, UiKit.Gold);
-            UiKit.Panel(page,"BrandRule",84,281,76,3,UiKit.Gold);
-            UiKit.Label(page, "踏上穿越七界的全新旅程", 84, 308, 520, 46, 29, UiKit.Paper);
+            UiKit.Panel(page, "LoginShade", 0, 0, 540, 720, new Color32(20,24,27,180));
+            UiKit.Label(page, "轮回", 72, 86, 410, 124, 72, UiKit.Paper);
+            UiKit.Label(page, "山海相逢 · 同赴轮回", 80, 214, 390, 42, 24, UiKit.Gold);
+            UiKit.Panel(page,"BrandRule",80,278,64,2,UiKit.Gold);
             UiKit.Label(page, "隔世小镇", 1010, 60, 210, 42, 26, UiKit.Paper, TextAnchor.MiddleRight);
-            UiKit.Label(page, "七界之约", 950, 103, 270, 30, 20, UiKit.Paper, TextAnchor.MiddleRight);
-            UiKit.Button(page, "OnlineLogin", "账号登录", 84, 396, 402, 66, OpenOnlineLogin, true);
-            UiKit.Button(page, "EnterGame", string.IsNullOrEmpty(State.Nickname) ? "本地启程" : "本地继续 · " + State.Nickname, 84, 484, 402, 58, () => Enter(false));
-            UiKit.Button(page, "EnterDemo", "系统试玩 · 65 级", 84, 564, 402, 54, () => Enter(true));
-            UiKit.Button(page, "SelectServer", "区服 · " + GameServerSettings.Load().Name, 84, 628, 402, 40, OpenServerSettings);
-            UiKit.Label(page, "原型 " + Application.version, 84, 676, 300, 26, 18, UiKit.Muted);
+            UiKit.Button(page, "SelectServer", "区服 · " + GameServerSettings.Load().Name, 80, 354, 390, 48, OpenServerSettings);
+            UiKit.Button(page, "OnlineLogin", "进入轮回", 80, 420, 390, 64, OpenOnlineLogin, true);
+            UiKit.Button(page, "EnterGame", string.IsNullOrEmpty(State.Nickname) ? "本地启程" : "继续 · " + State.Nickname, 80, 502, 390, 54, () => Enter(false));
+            UiKit.Button(page, "EnterDemo", "系统试玩", 80, 574, 390, 48, () => Enter(true));
+            UiKit.Label(page, Application.version, 80, 656, 300, 26, 17, UiKit.Muted);
             UiKit.IconButton(page, "LoginSettings", "settings", "设置", 1170, 630, () => {settingsReturn="login";ShowPage("settings");});
         }
 
@@ -160,15 +166,15 @@ namespace Lunhui
 
         private void Character()
         {
-            var orbit = UiKit.Panel(page,"CharacterOrbit",100,118,642,470,new Color(0,0,0,0));
+            var orbit = UiKit.Panel(page,"CharacterOrbit",100,108,642,420,Color.clear);
             orbit.GetComponent<Image>().raycastTarget=true;
             orbit.gameObject.AddComponent<CharacterOrbit>().World=World;
             UiKit.IconButton(page, "BackToLogin", "back", "返回", 40, 30, () => ShowPage("login"));
             UiKit.Label(page, "选择你的道路", 116, 30, 460, 56, 33, UiKit.Paper);
             UiKit.Label(page, DemoMode ? "系统试玩 · 独立存档" : "初入轮回", 924, 38, 308, 42, 23, UiKit.Gold, TextAnchor.MiddleRight);
-            UiKit.Panel(page, "CharacterShade", 792, 118, 440, 488, new Color32(11,25,24,227));
+            UiKit.Panel(page, "CharacterShade", 792, 108, 488, 612, new Color32(23,26,29,235));
             UiKit.Label(page, CareerRoles[draftCareer], 824, 146, 380, 34, 22, UiKit.Gold);
-            UiKit.Label(page, Careers[draftCareer], 824, 196, 380, 66, 42, UiKit.Paper);
+            UiKit.Label(page, Careers[draftCareer], 824, 196, 380, 66, 36, UiKit.Paper);
             UiKit.Label(page, CareerLore[draftCareer], 824, 277, 376, 44, 25, UiKit.Muted);
             string[] attrs = { "攻击", "守御", "敏捷" };
             float[][] strengths = { new[]{.94f,.45f,.65f}, new[]{.52f,.96f,.38f}, new[]{.67f,.48f,.96f} };
@@ -187,9 +193,9 @@ namespace Lunhui
                     () => { draftCareer=career; ShowPage("character"); }, draftCareer==i);
             }
             UiKit.Button(page,"CreateCharacter","踏入轮回",824,622,376,62,CreateCharacter,true);
-            UiKit.Button(page,"FemaleAppearance","女侠",210,554,144,44,()=>{draftMale=false;ShowPage("character");},!draftMale);
-            UiKit.Button(page,"MaleAppearance","侠客",370,554,144,44,()=>{draftMale=true;ShowPage("character");},draftMale);
-            UiKit.Button(page,"CustomizeCharacter","容貌",40,554,144,44,OpenCustomization);
+            UiKit.Button(page,"FemaleAppearance","女侠",252,548,132,48,()=>{draftMale=false;ShowPage("character");},!draftMale);
+            UiKit.Button(page,"MaleAppearance","侠客",396,548,132,48,()=>{draftMale=true;ShowPage("character");},draftMale);
+            UiKit.IconButton(page,"CustomizeCharacter","guild","容貌",40,548,OpenCustomization,null,48);
         }
 
         private void CreateCharacter()
@@ -221,6 +227,7 @@ namespace Lunhui
             CloseDialog();appearanceReturn=CurrentPage;appearanceDraft=State.Appearance.Copy();appearanceEditing=true;appearanceTab=0;
             World.SetMode("character",CurrentPage=="character"?draftCareer:State.Career);World.SetPortraitCloseup(true);
             World.SetInputBlocked(true);Combat.SetRunning(false);page.gameObject.SetActive(false);BuildCustomization();
+            screenVeil.gameObject.SetActive(false);
         }
         public void ApplyAppearancePreset(int index){appearanceDraft=CharacterAppearance.Preset(index);World.SetAppearance(appearanceDraft);BuildCustomization();}
         private void BuildCustomization()
@@ -280,47 +287,6 @@ namespace Lunhui
                     UiKit.Label(tile.transform,"尚未开启",220,14,144,30,18,UiKit.Muted,TextAnchor.MiddleRight);
                 }
             }
-        }
-
-        private void AddWorldLabel(string text,Func<Vector3> position,Color color)
-        {
-            var label=UiKit.Label(page,text,0,0,150,32,20,color,TextAnchor.MiddleCenter);
-            var anchor=label.gameObject.AddComponent<WorldLabelAnchor>();
-            anchor.Position=position;anchor.Camera=World.WorldCamera;anchor.Parent=page;
-        }
-
-        private void Shell(string title)
-        {
-            UiKit.IconButton(page,"Back","back","返回",32,26,()=>ShowPage(CurrentPage=="settings"?settingsReturn:"home"));
-            UiKit.Label(page,title,110,27,360,56,32,UiKit.Paper);
-            UiKit.Label(page,string.IsNullOrEmpty(State.Nickname)?"尚未启程":State.Nickname+"  "+State.Level+" 级",518,33,310,40,23,UiKit.Muted,TextAnchor.MiddleRight);
-            UiKit.Label(page,"银两  "+State.Coins.ToString("N0"),862,33,342,40,24,UiKit.Gold,TextAnchor.MiddleRight);
-            UiKit.Panel(page,"HeaderLine",32,103,1216,1,new Color32(74,96,87,150));
-        }
-
-        private void Navigation()
-        {
-            UiKit.Panel(page,"NavigationShade",0,632,1280,88,new Color32(8,22,22,244));
-            string[] ids={"home","mountains","equipment","pets","guild","community","titles"};
-            string[] names={"小镇","宝山","装备","宝宝","盟会","同游","称号"};
-            string[] icons={"home","mountain","sword","pet","guild","chat","star"};
-            for(int i=0;i<ids.Length;i++)
-            {
-                string key=ids[i];
-                var button=UiKit.Button(page,"Nav_"+key,"",220+i*140,643,130,60,()=>ShowPage(key),CurrentPage==key);
-                var symbol=UiKit.Rect(button.transform,"Icon",18,16,28,28).gameObject.AddComponent<SymbolGraphic>();
-                symbol.Symbol=icons[i];symbol.color=CurrentPage==key?UiKit.Gold:UiKit.Muted;symbol.raycastTarget=false;
-                UiKit.Label(button.transform,names[i],56,0,78,60,23,CurrentPage==key?UiKit.Paper:UiKit.Muted);
-                if (key == "community" && OnlineMode && Native != null && Native.TotalUnreadChatCount > 0)
-                {
-                    string unread = Native.TotalUnreadChatCount > 99 ? "99+" : Native.TotalUnreadChatCount.ToString();
-                    var badge = UiKit.Panel(button.transform, "UnreadBadge", 102, 3, 26, 26, UiKit.Red);
-                    UiKit.Label(badge, unread, 0, 0, 26, 26, 13, UiKit.Paper, TextAnchor.MiddleCenter);
-                }
-            }
-            UiKit.Label(page,"轮回在线",32,645,192,34,25,UiKit.Gold);
-            UiKit.Label(page,OnlineMode ? "七界同游" : "本地原型",32,679,192,22,17,UiKit.Muted);
-            hintText=UiKit.Label(page,"",1090,652,164,42,19,UiKit.Muted,TextAnchor.MiddleCenter);
         }
 
         private void Guild()
@@ -393,12 +359,22 @@ namespace Lunhui
             {
                 appearanceEditing=false;World.SetPortraitCloseup(false);World.SetAppearance(State.Appearance);page.gameObject.SetActive(true);
                 World.SetMode(appearanceReturn,appearanceReturn=="character"?draftCareer:State.Career);
+                screenVeil.gameObject.SetActive(CurrentPage != "login" && CurrentPage != "character" && CurrentPage != "home");
             }
             if(photoMode&&page){page.gameObject.SetActive(true);photoMode=false;}
             World?.SetInputBlocked(false);Combat?.SetRunning(CurrentPage=="home");
         }
         public void Toast(string message) { if(!toastRoot)return; toastText.text=message;toastUntil=Time.unscaledTime+2.6f;toastRoot.SetAsLastSibling();toastRoot.gameObject.SetActive(true); }
-        public void Hint(string message) { if(hintText)hintText.text=message; }
+        public void Hint(string message)
+        {
+            if (!hintRoot) return;
+            hintText.text = message;
+            hintRoot.gameObject.SetActive(!string.IsNullOrEmpty(message));
+            if (string.IsNullOrEmpty(message)) return;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(stage, Input.mousePosition, null, out var point);
+            hintRoot.anchoredPosition = new Vector2(Mathf.Clamp(point.x + 652, 8, 1048), -Mathf.Clamp(380 - point.y, 8, 676));
+            hintRoot.SetAsLastSibling();
+        }
         public void Save() { if(State==null||SuppressPersistence||OnlineMode)return;State.Sanitize();PlayerPrefs.SetString(CurrentSaveKey,JsonUtility.ToJson(State));PlayerPrefs.Save(); }
         private PrototypeState Load(bool demo)
         {
@@ -423,24 +399,6 @@ namespace Lunhui
     {
         public PrototypeWorld World;
         public void OnDrag(PointerEventData data) { World.RotateHero(-data.delta.x*.35f); }
-    }
-
-    public sealed class WorldLabelAnchor : MonoBehaviour
-    {
-        public Func<Vector3> Position;
-        public Camera Camera;
-        public RectTransform Parent;
-        private void LateUpdate()
-        {
-            if(Camera==null||Position==null||Parent==null)return;
-            Vector3 screen=Camera.WorldToScreenPoint(Position());
-            var label=GetComponent<Text>();
-            label.enabled=screen.z>0;
-            if(!label.enabled)return;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(Parent,screen,null,out Vector2 point);
-            var rect=(RectTransform)transform;
-            rect.anchoredPosition=new Vector2(point.x-75,point.y+16);
-        }
     }
 
     public sealed class MobileJoystick : MonoBehaviour,IPointerDownHandler,IDragHandler,IPointerUpHandler

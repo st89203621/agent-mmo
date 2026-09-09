@@ -13,54 +13,53 @@ namespace Lunhui
     {
         private static long owner;
         private static string selectedEquipment, selectedPet, selectedItem;
-        private static int equipmentPage, petPage, inventoryPage, inventoryFilter;
+        private static int equipmentPage, petPage, inventoryPage, inventoryFilter, titlePage;
         private static readonly Color Rule = new Color32(73, 99, 92, 180);
 
         public static void BuildTitles(RectTransform root, PrototypeApp app)
         {
-            if (!Begin(root, app, "称号收藏", out var content)) return;
+            if (!Begin(root, app, "旅途成就", out var content, () => app.Native.RefreshTitles())) return;
             var owned = app.Native.Titles ?? new List<TitleMessage>();
             var available = app.Native.AvailableTitles ?? new List<TitleMessage>();
             UiKit.Label(content, "已拥有 " + owned.Count + " 枚", 48, 78, 420, 36, 23, UiKit.Jade);
-            UiKit.Label(content, "称号会提供持久属性加成，达到等级后自动解锁。", 48, 120, 650, 32, 19, UiKit.Muted);
             var source = available.Count > 0 ? available : owned;
-            for (int i = 0; i < Mathf.Min(7, source.Count); i++)
+            titlePage = ClampPage(titlePage, source.Count, 4);
+            for (int i = 0; i < 4 && titlePage * 4 + i < source.Count; i++)
             {
-                var title = source[i]; bool have = owned.Any(item => item.TitleId == title.TitleId);
-                float y = 176 + i * 58;
-                UiKit.Label(content, title.Name + "  ·  " + title.TitleType, 48, y, 410, 30, 22, have ? UiKit.Gold : UiKit.Muted);
-                UiKit.Label(content, "等级 " + title.RequiredLevel + "  /  " + title.Description, 464, y, 690, 30, 19, UiKit.Paper);
-                UiKit.Label(content, have ? (title.Equipped ? "已装备" : "已拥有") : "未解锁", 1000, y, 108, 30, 18, have ? UiKit.Jade : UiKit.Muted, TextAnchor.MiddleRight);
+                var title = source[titlePage * 4 + i]; bool have = owned.Any(item => item.TitleId == title.TitleId);
+                float y = 136 + i * 74;
+                UiKit.Label(content, title.Name, 48, y, 350, 54, 23, have ? UiKit.Gold : UiKit.Muted);
+                UiKit.Label(content, "等级 " + title.RequiredLevel + "  /  " + title.Description, 430, y, 510, 58, 19, UiKit.Paper);
+                UiKit.Label(content, have ? (title.Equipped ? "已装备" : "已拥有") : "未解锁", 966, y, 142, 54, 19, have ? UiKit.Jade : UiKit.Muted, TextAnchor.MiddleRight);
                 if (have)
                 {
                     var captured = title;
-                    var action = UiKit.IconButton(content, "TitleAction" + i, title.Equipped ? "close" : "star",
-                        title.Equipped ? "卸下称号" : "装备称号", 1120, y - 5,
+                    UiKit.IconButton(content, "TitleAction" + i, title.Equipped ? "close" : "star",
+                        title.Equipped ? "卸下称号" : "装备称号", 1158, y,
                         () =>
                         {
                             if (title.Equipped)
                                 app.RunOnline(async () => { await app.Native.UnequipTitle(); }, "称号已卸下");
                             else
                                 app.RunOnline(async () => { await app.Native.EquipTitle(captured.TitleId); }, "称号已装备");
-                        }, size: 40);
-                    action.GetComponent<Image>().color = title.Equipped ? UiKit.Muted : UiKit.Gold;
+                        }, size: 54);
                 }
                 else if (Level(app) >= title.RequiredLevel)
                 {
                     var captured = title;
-                    UiKit.IconButton(content, "ClaimTitle" + i, "gift", "领取称号", 1120, y - 5,
-                        () => app.RunOnline(() => app.Native.ClaimTitle(captured.TitleId), "称号已领取"), size: 40);
+                    UiKit.IconButton(content, "ClaimTitle" + i, "gift", "领取称号", 1158, y,
+                        () => app.RunOnline(() => app.Native.ClaimTitle(captured.TitleId), "称号已领取"), size: 54);
                 }
             }
             if (source.Count == 0) UiKit.Label(content, "暂无可用称号", 48, 210, 1176, 60, 27, UiKit.Muted, TextAnchor.MiddleCenter);
-            UiKit.IconButton(content, "RefreshNativeTitles", "reset", "刷新称号", 1178, 4, () => app.RunOnline(app.Native.RefreshTitles), size: 48);
+            Pager(content, titlePage, source.Count, 4, 1000, 450, next => { titlePage = next; app.ShowPage("titles"); });
             if (owned.Count == 0 && available.Count == 0)
                 app.RunOnline(app.Native.RefreshTitles);
         }
 
         public static void BuildEquipment(RectTransform root, PrototypeApp app)
         {
-            if (!Begin(root, app, "装备养成", out var content)) return;
+            if (!Begin(root, app, "武器与灵纹", out var content)) return;
             var equipment = app.Native.Equipment.OrderByDescending(e => e.Equipped).ThenBy(e => e.Position).ThenBy(e => e.Id).ToList();
             if (!equipment.Any()) { Empty(content, "行囊中暂无装备"); return; }
             var selected = equipment.FirstOrDefault(e => e.Id == selectedEquipment) ?? equipment[0];
@@ -125,7 +124,7 @@ namespace Lunhui
 
         public static void BuildPets(RectTransform root, PrototypeApp app)
         {
-            if (!Begin(root, app, "宝宝契约", out var content)) return;
+            if (!Begin(root, app, "契约与共鸣", out var content)) return;
             var pets = app.Native.Pets.OrderByDescending(p => p.Active).ThenBy(p => p.Id).ToList();
             if (!pets.Any()) { Empty(content, "尚未结下灵宠契约"); return; }
             var selected = pets.FirstOrDefault(p => p.Id == selectedPet) ?? pets[0]; selectedPet = selected.Id;
@@ -256,19 +255,18 @@ namespace Lunhui
             button.interactable = app.Native.Person.AttributePoints > 0;
         }
 
-        private static bool Begin(RectTransform root, PrototypeApp app, string title, out RectTransform content)
+        private static bool Begin(RectTransform root, PrototypeApp app, string title, out RectTransform content, Func<Task> refresh = null)
         {
-            content = UiKit.Rect(root, "NativeGrowthContent", 0, 108, 1280, 516);
-            UiKit.Label(content, title, 48, 4, 410, 50, 32, UiKit.Paper);
+            content = UiKit.PageContent(root, "NativeGrowthContent", title);
+            UiKit.IconButton(content, "RefreshNativeGrowth", "reset", "刷新", 1178, 4,
+                () => { if (app.Native != null) app.RunOnline(refresh ?? app.Native.RefreshGrowth); }, size: 48);
             if (app.Native == null || app.Native.Person == null) { Empty(content, "正在读取角色数据"); return false; }
             if (owner != app.Native.Person.UserId)
             {
                 owner = app.Native.Person.UserId; selectedEquipment = selectedPet = selectedItem = null;
-                equipmentPage = petPage = inventoryPage = inventoryFilter = 0;
+                equipmentPage = petPage = inventoryPage = inventoryFilter = titlePage = 0;
             }
-            UiKit.Label(content, "银两 " + Money(app.Native.Currency.Gold) + "  钻石 " + Money(app.Native.Currency.Diamond), 658, 14, 500, 34, 23, UiKit.Gold, TextAnchor.MiddleRight);
-            UiKit.IconButton(content, "RefreshNativeGrowth", "reset", "刷新", 1178, 4, () => app.RunOnline(app.Native.RefreshGrowth), size: 48);
-            UiKit.Panel(content, "NativeHeadingRule", 48, 68, 1178, 1, Rule);
+            UiKit.Label(content, "钻石 " + Money(app.Native.Currency.Diamond), 820, 14, 320, 34, 21, UiKit.Gold, TextAnchor.MiddleRight);
             return true;
         }
 

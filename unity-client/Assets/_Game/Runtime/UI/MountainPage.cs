@@ -65,9 +65,7 @@ namespace Lunhui
                 return;
             }
 
-            UiKit.Label(content, "宝山寻踪", 48, 12, 370, 48, 32, TextColor);
-            UiKit.Label(content, "六宝山 · 本地路线预览", 802, 18, 430, 38, 22,
-                UiKit.Muted, TextAnchor.MiddleRight);
+            UiKit.Label(content, "本地路线预览", 48, 12, 690, 40, 22, UiKit.Muted);
             UiKit.Panel(content, "HeadingRule", 48, 72, 1184, 1, UiKit.Muted);
 
             int favorites = PlayerPrefs.GetInt(FavoriteKey, 0);

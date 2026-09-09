@@ -53,7 +53,7 @@ namespace Lunhui
         }
         private void Build()
         {
-            var cameraArea=UiKit.Panel(page,"CameraGesture",0,0,1280,632,Color.clear);
+            var cameraArea=UiKit.Panel(page,"CameraGesture",0,0,1280,720,Color.clear);
             cameraArea.GetComponent<Image>().raycastTarget=true;cameraArea.gameObject.AddComponent<WorldCameraGesture>().World=App.World;
             UiKit.Panel(page,"PlayerHud",24,22,304,92,new Color32(14,29,37,210));
             player=UiKit.Label(page,"",42,27,275,32,23,UiKit.Paper);
@@ -68,31 +68,21 @@ namespace Lunhui
             realm=UiKit.Label(page,"",392,23,484,42,27,Color.white,TextAnchor.MiddleCenter);
             var connection = UiKit.Label(page,App.ConnectionCaption,442,65,390,27,18,new Color(1,.9f,.9f),TextAnchor.MiddleCenter);
             connection.gameObject.AddComponent<NetworkCaption>().App = App;
-            if (App.OnlineMode) UiKit.Button(page,"OnlineAccountProfile","账号角色",844,23,168,44,App.OpenOnlineProfile);
-            if (App.OnlineMode) UiKit.IconButton(page,"Inventory","book","行囊",1086,251,App.OpenInventory,null,48);
-            UiKit.Panel(page,"QuestShade",24,132,314,117,new Color32(14,29,37,193));
+            var quest = UiKit.Button(page,"Quest","",24,132,314,117,()=>App.ShowPage("journey"));
+            quest.GetComponent<Image>().color = new Color32(23,26,29,205);
             questTitle=UiKit.Label(page,"",40,141,283,29,21,UiKit.Gold);
             questDetail=UiKit.Label(page,"",40,177,280,59,19,UiKit.Paper,TextAnchor.UpperLeft);
-            UiKit.Button(page,"Quest",App.World.RealmIndex==0?"出发 · 晚照枫林":"继续任务",24,257,214,44,()=>
-            {
-                // The large quest card is the mobile-friendly one-tap route
-                // entry.  The book icon beside it remains the explicit album.
-                if(App.World.RealmIndex==0 && !App.OnlineMode) App.EnterRealm(1,true);
-                else App.Combat.StartAutoQuest();
-            });
-            var autoButton=UiKit.Button(page,"AutoQuest","自动任务",24,307,214,38,()=>App.Combat.ToggleAutoQuest(),true);
-            autoQuestLabel=UiKit.Label(page,"",248,307,88,38,16,UiKit.Jade,TextAnchor.MiddleLeft);
-            UiKit.IconButton(page,"Album","book","回忆册",254,257,App.OpenMemories,UiKit.Paper,44);
+            UiKit.Button(page,"AutoQuest","自动任务",24,262,160,44,()=>App.Combat.ToggleAutoQuest());
+            autoQuestLabel=UiKit.Label(page,"",196,262,142,44,17,UiKit.Jade);
             var mapButton=UiKit.Button(page,"WorldMap","",1032,22,218,157,App.OpenWorldMap);
             minimap=UiKit.Rect(mapButton.transform,"TrailMap",9,9,200,117).gameObject.AddComponent<MiniMapGraphic>();
             minimap.World=App.World;minimap.Combat=App.Combat;minimap.raycastTarget=false;
             positionText=UiKit.Label(mapButton.transform,"",8,124,202,27,17,UiKit.Paper,TextAnchor.MiddleCenter);
-            UiKit.IconButton(page,"ZoomIn","zoomIn","拉近镜头",1198,192,()=>App.World.ZoomCamera(-1.5f),null,48);
-            UiKit.IconButton(page,"ZoomOut","zoomOut","拉远镜头",1142,192,()=>App.World.ZoomCamera(1.5f),null,48);
-            UiKit.IconButton(page,"ResetCamera","reset","镜头归位",1086,192,App.World.ResetCamera,null,48);
-            UiKit.IconButton(page,"PhotoMode","camera","观景",1030,192,App.OpenPhotoMode,null,48);
-            UiKit.IconButton(page,"HomeSettings","settings","设置",1198,251,App.OpenSettings,null,48);
-            UiKit.IconButton(page,"CustomizeInWorld","guild","容貌",1142,251,App.OpenCustomization,null,48);
+            UiKit.Button(page,"OpenJourney","旅途",1032,192,218,52,()=>App.ShowPage("journey"),true);
+            UiKit.IconButton(page,"PhotoMode","camera","观景",1032,260,App.OpenPhotoMode,null,48);
+            UiKit.IconButton(page,"ResetCamera","reset","镜头归位",1088,260,App.World.ResetCamera,null,48);
+            UiKit.IconButton(page,"CustomizeInWorld","guild","容貌",1144,260,App.OpenCustomization,null,48);
+            UiKit.IconButton(page,"HomeSettings","settings","设置",1200,260,App.OpenSettings,null,48);
             BuildChatShortcut();
             targetPanel=UiKit.Panel(page,"TargetHud",478,108,324,62,new Color32(24,31,40,200));
             targetName=UiKit.Label(targetPanel,"",14,1,296,33,20,UiKit.Paper,TextAnchor.MiddleCenter);
@@ -105,7 +95,7 @@ namespace Lunhui
             // Keep the physical target generous, but make both the visual and
             // raycast area a disc so the lower-left control reads as a mobile
             // joystick rather than a square panel.
-            var stick=UiKit.Panel(page,"Joystick",54,422,164,164,Color.clear);
+            var stick=UiKit.Panel(page,"Joystick",70,490,164,164,Color.clear);
             var stickImage=stick.GetComponent<Image>();
             stickImage.enabled=false;stickImage.raycastTarget=false;
             // Image and MaskableGraphic cannot coexist on one GameObject. The
@@ -124,24 +114,24 @@ namespace Lunhui
             knobDisc.color=new Color32(186,225,219,225);knobDisc.InnerColor=new Color32(235,250,242,215);knobDisc.RingColor=new Color32(255,255,255,170);
             knobDisc.raycastTarget=false;
             var joystick=stick.gameObject.AddComponent<MobileJoystick>();joystick.World=App.World;joystick.Thumb=knob;
-            AddAction("Attack","attack","sword","普攻",1134,483,86);
-            AddAction("Skill1","skill","diamond",App.State.Career==1?"守势":"花落",1030,420,66);
-            AddAction("Skill2","ultimate","sword","流光",1120,367,66);
-            AddAction("Dodge","dodge","dodge","闪避",1030,518,66);
-            AddAction("PetCommand","pet","pet","同心",939,491,66);
-            AddAction("Heal","heal","heal","回春",842,518,58);
-            UiKit.IconButton(page,"SwitchTarget","target","切换目标",1206,402,App.Combat.CycleTarget,UiKit.Gold,44);
-            contextButton=UiKit.Button(page,"Interact","",488,526,298,55,()=>{App.Combat.Interact();},true);
+            AddAction("Attack","attack","sword","普攻",1134,548,94);
+            AddAction("Skill1","skill","diamond",App.State.Career==1?"守势":"花落",1030,478,68);
+            AddAction("Skill2","ultimate","sword","流光",1122,428,68);
+            AddAction("Dodge","dodge","dodge","闪避",1030,592,68);
+            AddAction("PetCommand","pet","pet","同心",934,558,68);
+            AddAction("Heal","heal","heal","回春",844,608,56);
+            UiKit.IconButton(page,"SwitchTarget","target","切换目标",1204,484,App.Combat.CycleTarget,UiKit.Gold,44);
+            contextButton=UiKit.Button(page,"Interact","",488,600,298,55,()=>{App.Combat.Interact();},true);
             contextText=UiKit.Label(contextButton.transform,"",8,0,282,55,22,UiKit.Paper,TextAnchor.MiddleCenter);
             App.Combat.FloatingText+=ShowFloating;
         }
 
         private void BuildChatShortcut()
         {
-            var button = UiKit.Button(page, "ChatShortcut", "", 24, 365, 314, 48, () => App.ShowPage("community"));
+            var button = UiKit.Button(page, "ChatShortcut", "", 24, 338, 314, 48, () => App.ShowPage("community"));
             button.GetComponent<Image>().color = new Color32(13, 30, 30, 226);
             UiKit.Rect(button.transform, "ChatMark", 14, 13, 22, 22).gameObject.AddComponent<SymbolGraphic>().Symbol = "chat";
-            chatPreview = UiKit.Label(button.transform, "世界频道 · 暂无消息", 48, 0, 222, 48, 17, UiKit.Paper, TextAnchor.MiddleLeft);
+            chatPreview = UiKit.Label(button.transform, App.OnlineMode ? "世界频道 · 暂无消息" : "同游 · 尚未登录", 48, 0, 222, 48, 17, UiKit.Paper, TextAnchor.MiddleLeft);
             chatUnread = UiKit.Label(button.transform, "", 272, 4, 30, 24, 15, UiKit.Gold, TextAnchor.MiddleCenter);
             if (App.Native != null) App.Native.Changed += RefreshChatShortcut;
             RefreshChatShortcut();

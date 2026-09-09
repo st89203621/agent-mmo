@@ -208,15 +208,15 @@ namespace Lunhui
             {
                 World.SetAppearance(State.Appearance); World.SetPet(State.ActivePet);
                 World.SetFemale(!State.UseMaleModel);
-                // Refresh lightweight social pages after background chat/title polls.
-                if (ready && !onlineOperationBusy && (CurrentPage == "community" || CurrentPage == "titles"))
+                // Chat owns its message refresh; rebuilding it would discard the active composer.
+                if (ready && !onlineOperationBusy && CurrentPage == "titles")
                     ShowPage(CurrentPage);
             }
         }
 
         public int ItemQuantity(string itemId) => Native != null && Native.Bag.ItemMap.TryGetValue(itemId, out var item) ? item.Quantity : 0;
 
-        public async void RunOnline(Func<Task> operation, string success = null)
+        public async void RunOnline(Func<Task> operation, string success = null, bool refreshPage = true)
         {
             if (onlineOperationBusy) { Toast("正在处理，请稍候"); return; }
             if (!OnlineMode || Native == null || !Native.Ready || !Network.Authenticated) { Toast("连接正在恢复，请稍候"); return; }
@@ -229,7 +229,7 @@ namespace Lunhui
                 if (Native != native || !OnlineMode) return;
                 ApplyNativeGrowth();
                 if (onlineProfileOpen) OpenOnlineProfile();
-                else if (CurrentPage == originalPage) ShowPage(CurrentPage);
+                else if (refreshPage && CurrentPage == originalPage) ShowPage(CurrentPage);
                 if (!string.IsNullOrEmpty(success)) Toast(success);
             }
             catch (Exception exception) { if (Native == native) Toast(exception.Message); }

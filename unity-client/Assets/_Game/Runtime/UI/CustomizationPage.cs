@@ -9,16 +9,8 @@ namespace Lunhui
     /// </summary>
     public static class CustomizationPage
     {
-        private static readonly Color PanelColor = new Color32(18, 30, 39, 239);
-        private static readonly Color FrameColor = new Color32(225, 188, 112, 210);
-        private static readonly Color DimFrameColor = new Color32(118, 155, 143, 170);
-
         // Keep Chinese text ASCII-safe for Windows Unity batch imports.
         private const string MirrorTitle = "\u955c\u4e2d\u4eba";
-        private const string PortraitTitle = "\u9762\u90e8\u9884\u89c8";
-        private const string PortraitHint = "\u5728\u4eba\u7269\u533a\u57df\u6ed1\u52a8\uff0c\u65cb\u8f6c\u67e5\u770b\u4e94\u5b98";
-        private const string AppearanceTitle = "\u5bb9\u8c8c\u7f16\u8f91";
-        private const string EditHint = "\u62d6\u52a8\u6ed1\u6746\uff0c\u5b9e\u65f6\u67e5\u770b\u8138\u90e8\u53d8\u5316";
         private const string FeaturesTab = "\u4e94\u5b98";
         private const string HairTab = "\u53d1\u578b";
         private const string ColorsTab = "\u8272\u5f69";
@@ -48,11 +40,7 @@ namespace Lunhui
             BuildPortraitZone(root, app);
 
             UiKit.Label(root, MirrorTitle, 42, 24, 340, 50, 34, UiKit.Paper);
-            UiKit.Label(root, PortraitTitle, 42, 76, 260, 28, 21, UiKit.Gold);
-            UiKit.Label(root, PortraitHint, 42, 564, 568, 30, 19, UiKit.Muted);
-            UiKit.Label(root, AppearanceTitle, 730, 24, 400, 42, 30, UiKit.Paper);
-            UiKit.Label(root, EditHint, 730, 62, 450, 25, 18, UiKit.Muted);
-            UiKit.Panel(root, "AppearancePanel", 704, 96, 534, 494, PanelColor);
+            UiKit.Panel(root, "AppearancePanel", 704, 0, 576, 720, new Color32(23,26,29,245));
 
             string[] tabs = { FeaturesTab, HairTab, ColorsTab };
             for (int i = 0; i < tabs.Length; i++)
@@ -64,17 +52,16 @@ namespace Lunhui
 
             if (tab == 0)
             {
-                CompactSlider(root, "FaceWidth", FaceWidth, draft.FaceWidth, 155, 734, value => draft.FaceWidth = value, app, draft);
-                CompactSlider(root, "JawWidth", JawWidth, draft.JawWidth, 155, 986, value => draft.JawWidth = value, app, draft);
-                CompactSlider(root, "CheekFullness", "面颊饱满", draft.CheekFullness, 220, 734, value => draft.CheekFullness = value, app, draft);
-                CompactSlider(root, "ChinLength", ChinLength, draft.ChinLength, 220, 986, value => draft.ChinLength = value, app, draft);
-                CompactSlider(root, "EyeSize", EyeSize, draft.EyeSize, 285, 734, value => draft.EyeSize = value, app, draft);
-                CompactSlider(root, "EyeSpacing", EyeSpacing, draft.EyeSpacing, 285, 986, value => draft.EyeSpacing = value, app, draft);
-                CompactSlider(root, "EyeHeight", "眼睛高度", draft.EyeHeight, 350, 734, value => draft.EyeHeight = value, app, draft);
-                CompactSlider(root, "BrowHeight", "眉眼距离", draft.BrowHeight, 350, 986, value => draft.BrowHeight = value, app, draft);
-                CompactSlider(root, "NoseSize", NoseSize, draft.NoseSize, 415, 734, value => draft.NoseSize = value, app, draft);
-                CompactSlider(root, "LipFullness", "唇形饱满", draft.LipFullness, 415, 986, value => draft.LipFullness = value, app, draft);
-                BuildPresets(root, app);
+                CompactSlider(root, "FaceWidth", FaceWidth, draft.FaceWidth, 182, 734, value => draft.FaceWidth = value, app, draft);
+                CompactSlider(root, "JawWidth", JawWidth, draft.JawWidth, 182, 986, value => draft.JawWidth = value, app, draft);
+                CompactSlider(root, "CheekFullness", "面颊饱满", draft.CheekFullness, 260, 734, value => draft.CheekFullness = value, app, draft);
+                CompactSlider(root, "ChinLength", ChinLength, draft.ChinLength, 260, 986, value => draft.ChinLength = value, app, draft);
+                CompactSlider(root, "EyeSize", EyeSize, draft.EyeSize, 338, 734, value => draft.EyeSize = value, app, draft);
+                CompactSlider(root, "EyeSpacing", EyeSpacing, draft.EyeSpacing, 338, 986, value => draft.EyeSpacing = value, app, draft);
+                CompactSlider(root, "EyeHeight", "眼睛高度", draft.EyeHeight, 416, 734, value => draft.EyeHeight = value, app, draft);
+                CompactSlider(root, "BrowHeight", "眉眼距离", draft.BrowHeight, 416, 986, value => draft.BrowHeight = value, app, draft);
+                CompactSlider(root, "NoseSize", NoseSize, draft.NoseSize, 494, 734, value => draft.NoseSize = value, app, draft);
+                CompactSlider(root, "LipFullness", "唇形饱满", draft.LipFullness, 494, 986, value => draft.LipFullness = value, app, draft);
             }
             else if (tab == 1)
             {
@@ -99,6 +86,7 @@ namespace Lunhui
                     value => { draft.OutfitColor = value; app.PreviewAppearance(draft); changeTab(2); });
             }
 
+            BuildPresets(root, app);
             UiKit.IconButton(root, "ResetAppearance", "reset", ResetAppearance, 44, 622, reset);
             UiKit.Button(root, "CancelAppearance", Cancel, 728, 622, 183, 62, cancel);
             UiKit.Button(root, "SaveAppearance", SaveAppearance, 929, 622, 288, 62, save, true);
@@ -108,31 +96,21 @@ namespace Lunhui
         private static void BuildPortraitZone(Transform root, PrototypeApp app)
         {
             // It receives every unobstructed drag while keeping the live 3D face visible.
-            var orbit = UiKit.Panel(root, "FaceOrbit", 20, 104, 650, 452, Color.clear);
+            var orbit = UiKit.Panel(root, "FaceOrbit", 20, 104, 650, 408, Color.clear);
             orbit.GetComponent<Image>().raycastTarget = true;
             orbit.gameObject.AddComponent<CharacterOrbit>().World = app.World;
 
-            UiKit.Panel(root, "PortraitFrameTop", 20, 104, 650, 2, FrameColor);
-            UiKit.Panel(root, "PortraitFrameLeft", 20, 104, 2, 452, FrameColor);
-            UiKit.Panel(root, "PortraitFrameRight", 668, 104, 2, 452, DimFrameColor);
-            UiKit.Panel(root, "PortraitFrameBottom", 20, 554, 650, 2, DimFrameColor);
-
-            // Tappable arrows complement the drag gesture for a direct mobile affordance.
-            UiKit.Button(root, "TurnPortraitLeft", "<", 42, 442, 48, 44, () => app.World.RotateHero(-18));
-            UiKit.Button(root, "TurnPortraitRight", ">", 94, 442, 48, 44, () => app.World.RotateHero(18));
-            var leftTip = root.Find("TurnPortraitLeft")?.gameObject.AddComponent<UiTooltip>();
-            if (leftTip != null) leftTip.Caption = TurnLeft;
-            var rightTip = root.Find("TurnPortraitRight")?.gameObject.AddComponent<UiTooltip>();
-            if (rightTip != null) rightTip.Caption = TurnRight;
+            UiKit.IconButton(root, "TurnPortraitLeft", "back", TurnLeft, 126, 622, () => app.World.RotateHero(-18));
+            UiKit.IconButton(root, "TurnPortraitRight", "dodge", TurnRight, 202, 622, () => app.World.RotateHero(18));
         }
 
         private static void BuildPresets(Transform parent, PrototypeApp app)
         {
-            UiKit.Label(parent, FirstImpression, 42, 489, 108, 31, 22, UiKit.Paper);
+            UiKit.Label(parent, FirstImpression, 42, 524, 240, 31, 21, UiKit.Paper);
             for (int i = 0; i < FacePresets.Length; i++)
             {
                 int preset = i;
-                UiKit.Button(parent, "FacePreset" + i, FacePresets[i], 150 + i * 128, 493, 116, 42,
+                UiKit.Button(parent, "FacePreset" + i, FacePresets[i], 42 + i * 154, 564, 138, 46,
                     () => app.ApplyAppearancePreset(preset));
             }
         }
@@ -167,11 +145,11 @@ namespace Lunhui
         private static void CompactSlider(Transform parent, string name, string caption, float value, float y, float x,
             Action<float> set, PrototypeApp app, CharacterAppearance draft)
         {
-            UiKit.Label(parent, caption, x, y, 78, 30, 16, UiKit.Paper);
-            var valueLabel = UiKit.Label(parent, Percent(value), x + 199, y, 32, 30, 14, UiKit.Gold, TextAnchor.MiddleRight);
-            var rect = UiKit.Rect(parent, name, x + 78, y - 1, 116, 36);
-            UiKit.Panel(rect, "Track", 0, 15, 116, 6, new Color32(67, 82, 90, 255));
-            var handle = UiKit.Panel(rect, "Handle", 0, 3, 18, 30, UiKit.Gold);
+            UiKit.Label(parent, caption, x, y, 170, 28, 20, UiKit.Paper);
+            var valueLabel = UiKit.Label(parent, Percent(value), x + 184, y, 40, 28, 18, UiKit.Gold, TextAnchor.MiddleRight);
+            var rect = UiKit.Rect(parent, name, x + 4, y + 30, 212, 42);
+            UiKit.Panel(rect, "Track", 0, 18, 212, 5, new Color32(67, 82, 90, 255));
+            var handle = UiKit.Panel(rect, "Handle", 0, 6, 18, 30, UiKit.Gold);
             handle.GetComponent<Image>().raycastTarget = true;
             var hit = rect.gameObject.AddComponent<Image>();
             hit.color = Color.clear;

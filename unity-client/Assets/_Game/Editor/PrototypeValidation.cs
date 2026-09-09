@@ -20,13 +20,17 @@ namespace Lunhui.Prototype
         const string OutputArgument = "-lunhuiValidationOutput";
         static readonly bool LoginOnly = Array.IndexOf(Environment.GetCommandLineArgs(), "-lunhuiLoginOnly") >= 0;
         static readonly bool ServersOnly = Array.IndexOf(Environment.GetCommandLineArgs(), "-lunhuiServersOnly") >= 0;
-        static readonly string[] Pages = ServersOnly ? new[] { "login", "onlineLogin", "settings", "serverSettings" }
+        static readonly bool LayoutOnly = Array.IndexOf(Environment.GetCommandLineArgs(), "-lunhuiLayoutOnly") >= 0;
+        static readonly string[] Pages = LayoutOnly ? new[] { "login", "onlineLogin", "character", "home", "journey", "mountains", "equipment", "pets", "guild", "community", "titles", "settings", "appearance", "appearanceHair", "appearanceColors", "worldMap", "dialog", "nativeChat", "nativeTeam", "nativeTrade", "nativeTitles" }
+            : ServersOnly ? new[] { "login", "onlineLogin", "settings", "serverSettings" }
             : LoginOnly ? new[] { "login", "onlineLogin" } : Array.IndexOf(Environment.GetCommandLineArgs(), "-lunhuiPetsOnly") >= 0
             ? new[] { "pet0", "pet1" }
             : new[] { "login", "onlineLogin", "character", "home", "mountains", "equipment", "pets", "guild", "settings",
                 "realm0", "realm1", "realm2", "realm3", "realm4", "realm5", "realm6", "pet0", "pet1",
                 "journey0", "journey1", "journey2", "combat", "zoom", "photo", "appearance", "boss" };
-        static readonly Vector2Int[] Sizes = { new Vector2Int(1280, 720), new Vector2Int(1920, 864) };
+        static readonly Vector2Int[] Sizes = LayoutOnly
+            ? new[] { new Vector2Int(1280, 720), new Vector2Int(1920, 864), new Vector2Int(960, 720), new Vector2Int(2340, 1080) }
+            : new[] { new Vector2Int(1280, 720), new Vector2Int(1920, 864) };
         static readonly BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         static ValidationReport report;
         static int captureIndex;
@@ -83,7 +87,7 @@ namespace Lunhui.Prototype
                 throw new InvalidOperationException("Stop the current Play Mode or validation run first.");
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
-            PrototypeSetup.CreateProject();
+            if (!LayoutOnly) PrototypeSetup.CreateProject();
             EditorSceneManager.OpenScene(PrototypeSetup.BootScenePath, OpenSceneMode.Single);
             report = null;
             SessionState.SetBool(QuitKey, quitWhenDone);
@@ -143,11 +147,16 @@ namespace Lunhui.Prototype
                     if(captureIndex == 0 && !LoginOnly && !ServersOnly)
                     {
                         report.interactionChecks = PrototypeInteractionChecks.Run(app);
-                        ArtReviewSetup.CaptureRuntime(app);
+                        if (!LayoutOnly) ArtReviewSetup.CaptureRuntime(app);
                     }
                     SetGameViewSize(size.x, size.y);
+                    if (LayoutOnly) PrototypeLayoutChecks.RestoreFixture(app);
                     string capturePage = Pages[captureIndex % Pages.Length];
-                    if (capturePage.StartsWith("journey",StringComparison.Ordinal) || capturePage=="combat" || capturePage=="zoom" || capturePage=="photo")
+                    if (capturePage.StartsWith("native", StringComparison.Ordinal))
+                    {
+                        PrototypeLayoutChecks.PrepareFixture(app, capturePage, report.interactionChecks, report.errors);
+                    }
+                    else if ((capturePage.StartsWith("journey",StringComparison.Ordinal) && capturePage != "journey") || capturePage=="combat" || capturePage=="zoom" || capturePage=="photo")
                     {
                         int realm=capturePage.StartsWith("journey",StringComparison.Ordinal)?int.Parse(capturePage.Substring(7)):capturePage=="combat"?1:capturePage=="photo"?2:0;
                         app.World.SetRealm(realm);app.ShowPage("home");app.World.ResetCamera();
@@ -170,9 +179,25 @@ namespace Lunhui.Prototype
                         app.ShowPage("settings");app.OpenServerSettings();
                         UnityEngine.Object.FindObjectsOfType<Button>().Single(button => button.name == "ServerPreset1").onClick.Invoke();
                     }
-                    else if (capturePage == "appearance")
+                    else if (capturePage.StartsWith("appearance", StringComparison.Ordinal))
                     {
                         app.World.SetRealm(0);app.ShowPage("home");app.OpenCustomization();
+                        int tab = capturePage == "appearanceHair" ? 1 : capturePage == "appearanceColors" ? 2 : 0;
+                        UnityEngine.Object.FindObjectsOfType<Button>().Single(b => b.name == "AppearanceTab" + tab).onClick.Invoke();
+                    }
+                    else if (capturePage == "worldMap")
+                    {
+                        app.ShowPage("home");app.OpenWorldMap();
+                    }
+                    else if (capturePage == "dialog")
+                    {
+                        app.ShowPage("equipment");app.ShowDialog("装备养成", "霜华 +4\n银两 9,000 · 矿石 25", () => { }, "确认养成");
+                    }
+                    else if (capturePage == "journey")
+                    {
+                        var button = UnityEngine.Object.FindObjectsOfType<Button>().FirstOrDefault(b => b.name == "OpenJourney");
+                        if (button != null) button.onClick.Invoke();
+                        else report.errors.Add("Journey: unified progression hub is missing");
                     }
                     else if (capturePage == "boss")
                     {
@@ -212,6 +237,8 @@ namespace Lunhui.Prototype
                         throw new InvalidOperationException("No active Canvas was found.");
                     Vector2Int size = Sizes[captureIndex / Pages.Length];
                     string page = Pages[captureIndex % Pages.Length];
+                    if (LayoutOnly) PrototypeLayoutChecks.Validate(UnityEngine.Object.FindObjectOfType<PrototypeApp>(),
+                        page, size, report.interactionChecks, report.errors);
                     pendingImage = Path.Combine(outputDirectory, size.x + "x" + size.y + "-" + page + ".png");
                     if (File.Exists(pendingImage)) File.Delete(pendingImage);
                     ScreenCapture.CaptureScreenshot(pendingImage);
@@ -374,6 +401,11 @@ namespace Lunhui.Prototype
 
         static void Finish()
         {
+            if (LayoutOnly)
+            {
+                var app = UnityEngine.Object.FindObjectOfType<PrototypeApp>();
+                if (app != null) PrototypeLayoutChecks.RestoreFixture(app);
+            }
             SessionState.SetBool(RunningKey, false);
             Application.logMessageReceived -= OnLog;
             report.passed = report.errors.Count == 0 && report.captures.Count == Pages.Length * Sizes.Length;

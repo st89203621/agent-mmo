@@ -187,6 +187,10 @@ namespace Lunhui
             switch (currentMode)
             {
                 case "character":
+                    cameraGoal = new Vector3(1.15f, 1.9f, -3.3f);
+                    focusGoal = new Vector3(0.1f, .93f, 0);
+                    lensGoal = 42;
+                    break;
                 case "equipment":
                     cameraGoal = new Vector3(1.15f, 1.9f, -3.3f);
                     focusGoal = new Vector3(0.1f, 1.22f, 0);
@@ -990,7 +994,7 @@ namespace Lunhui
                 cameraFocus = Vector3.Lerp(cameraFocus, focus, 1 - Mathf.Exp(-16 * dt));
                 sceneCamera.transform.LookAt(cameraFocus);
                 sceneCamera.nearClipPlane = .03f;
-                sceneCamera.fieldOfView = 29;
+                sceneCamera.fieldOfView = PresentationFieldOfView(29);
                 return;
             }
             if (currentMode == "home")
@@ -1009,9 +1013,16 @@ namespace Lunhui
             sceneCamera.transform.position = Vector3.SmoothDamp(sceneCamera.transform.position, cameraGoal + follow * 0.72f, ref cameraVelocity, 0.55f, 60, dt);
             cameraFocus = Vector3.Lerp(cameraFocus, focusGoal + follow * 0.84f, 1 - Mathf.Exp(-6 * dt));
             sceneCamera.transform.LookAt(cameraFocus);
-            float targetFov = lensGoal;
-            if (sceneCamera.aspect < 0.55f) targetFov += 3;
+            float targetFov = currentMode == "character" ? PresentationFieldOfView(lensGoal) : lensGoal;
             sceneCamera.fieldOfView = Mathf.Lerp(sceneCamera.fieldOfView, targetFov, 1 - Mathf.Exp(-5 * dt));
+        }
+
+        private static float PresentationFieldOfView(float fieldOfView)
+        {
+            // The world is full bleed, while character controls fit a safe 16:9 canvas.
+            float contentHeight = Mathf.Min(Screen.safeArea.height, Screen.safeArea.width * 720f / 1280f);
+            float ratio = Screen.height / Mathf.Max(1, contentHeight);
+            return 2 * Mathf.Atan(Mathf.Tan(fieldOfView * Mathf.Deg2Rad * .5f) * ratio) * Mathf.Rad2Deg;
         }
 
         private Vector3 MoveDirection()

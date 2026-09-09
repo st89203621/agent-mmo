@@ -80,6 +80,7 @@ namespace Lunhui.Prototype
                 Require(app.CurrentPage=="home"&&app.State.Nickname=="云归客"&&app.State.Career==2,"Nickname and career choices create a playable local character",checks);
                 Require(app.State.Level==1,"New character remains separate from level 65 demo",checks);
                 RunCustomizationChecks(app, checks);
+                RunJourneyChecks(app, checks);
                 checks.AddRange(AdventureInteractionChecks.Run(app));
                 RunBossChecks(app, checks);
                 // Leave screenshots populated, but restore every user save before the editor quits.
@@ -99,6 +100,30 @@ namespace Lunhui.Prototype
         private static Button Find(string name)=>UnityEngine.Object.FindObjectsOfType<Button>().Single(button=>button.name==name);
         private static void Click(string name){var button=Find(name);if(!button.interactable)throw new Exception("Button disabled: "+name);button.onClick.Invoke();Canvas.ForceUpdateCanvases();}
         private static void Require(bool condition,string message,List<string> checks){if(!condition)throw new Exception("Interaction check failed: "+message);checks.Add(message);}
+
+        private static void RunJourneyChecks(PrototypeApp app, List<string> checks)
+        {
+            app.World.SetRealm(1); app.ShowPage("home");
+            app.World.Teleport(new Vector3(0, .16f, 12));
+            Vector3 position = app.World.HeroGroundPosition;
+            int coins = app.State.Coins;
+            Click("OpenJourney");
+            Require(app.CurrentPage == "journey" && !app.World.IsExploring, "Journey suspends world controls", checks);
+            Click("JourneyAppearance"); Click("CancelAppearance");
+            Require(app.CurrentPage == "journey" && !app.World.IsExploring, "Appearance returns to its source system", checks);
+            Click("JourneySettings"); Click("Back");
+            Require(app.CurrentPage == "journey", "Settings returns to the journey hub", checks);
+            Click("ContinueJourney");
+            Require(app.CurrentPage == "home" && app.World.IsExploring && Vector3.Distance(position, app.World.HeroGroundPosition) < .01f,
+                "Journey round trip preserves exploration location", checks);
+            Require(app.State.Coins == coins && !app.Combat.IsAutoQuestRunning, "Opening journey cannot spend or start automatic play", checks);
+            Click("Quest");
+            Require(app.CurrentPage == "journey" && app.World.RealmIndex == 1, "Quest opens current objective without changing maps", checks);
+            Click("Nav_equipment"); Click("Back");
+            Require(app.CurrentPage == "journey", "System back navigation returns to the hub", checks);
+            Click("Nav_community"); Click("ConnectForContent"); Click("CloseOnlineLogin");
+            Require(app.CurrentPage == "community", "Cancelling login preserves the offline source page", checks);
+        }
 
         internal static void RunCustomizationChecks(PrototypeApp app,List<string> checks)
         {

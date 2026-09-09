@@ -7,10 +7,10 @@ namespace Lunhui
 {
     public static class UiKit
     {
-        public static readonly Color Ink = new Color32(15, 24, 26, 255);
-        public static readonly Color Paper = new Color32(235, 241, 230, 255);
-        public static readonly Color Muted = new Color32(160, 178, 173, 255);
-        public static readonly Color Jade = new Color32(100, 213, 175, 255);
+        public static readonly Color Ink = new Color32(23, 26, 29, 255);
+        public static readonly Color Paper = new Color32(240, 239, 232, 255);
+        public static readonly Color Muted = new Color32(171, 181, 181, 255);
+        public static readonly Color Jade = new Color32(117, 199, 181, 255);
         public static readonly Color Gold = new Color32(225, 188, 112, 255);
         public static readonly Color Red = new Color32(215, 113, 99, 255);
         public static Font Font;
@@ -48,7 +48,7 @@ namespace Lunhui
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = Math.Max(16, size - 4);
+            label.resizeTextMinSize = Math.Min(size, Math.Max(14, size - 4));
             label.resizeTextMaxSize = size;
             label.supportRichText = false;
             label.raycastTarget = false;
@@ -72,7 +72,7 @@ namespace Lunhui
         public static Button Button(Transform parent, string name, string text, float x, float y,
             float w, float h, Action click, bool primary = false)
         {
-            var rect = Panel(parent, name, x, y, w, h, primary ? new Color32(47, 97, 80, 245) : new Color32(28, 44, 45, 242));
+            var rect = Panel(parent, name, x, y, w, h, primary ? new Color32(49, 91, 83, 245) : new Color32(36, 41, 44, 242));
             var img = rect.GetComponent<Image>();
             img.raycastTarget = true;
             var button = rect.gameObject.AddComponent<Button>();
@@ -85,7 +85,7 @@ namespace Lunhui
             button.colors = colors;
             button.navigation = new Navigation { mode = Navigation.Mode.None };
             button.onClick.AddListener(() => click?.Invoke());
-            Panel(rect, "Accent", 0, h - 2, w, 2, primary ? Gold : new Color32(80, 104, 98, 190));
+            Panel(rect, "Accent", 0, h - 2, w, 2, primary ? Gold : new Color32(85, 96, 96, 130));
             if (!string.IsNullOrEmpty(text)) Label(rect, text, 12, 0, w - 24, h, 23, primary ? Paper : Muted, TextAnchor.MiddleCenter);
             return button;
         }
@@ -123,6 +123,15 @@ namespace Lunhui
         {
             var rect = Panel(parent, name, x, y, w, h, new Color32(12, 24, 25, 220));
             Panel(rect, "Fill", 0, 0, w * Mathf.Clamp01(amount), h, color);
+        }
+
+        public static RectTransform PageContent(Transform parent, string name, string context, string status = "")
+        {
+            var content = Rect(parent, name, 0, 108, 1280, 516);
+            Label(content, context, 48, 12, 690, 40, 22, Muted);
+            Label(content, status, 760, 12, 470, 40, 21, Gold, TextAnchor.MiddleRight);
+            Panel(content, "SectionRule", 48, 72, 1184, 1, new Color32(85, 96, 96, 100));
+            return content;
         }
     }
 

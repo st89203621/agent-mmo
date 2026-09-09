@@ -37,8 +37,7 @@ namespace Lunhui
                 UiKit.Label(content, "正在同步盟会……", 48, 110, 1184, 52, 27, UiKit.Muted);
                 return;
             }
-            UiKit.Label(content, "盟会 · 同赴山海", 48, 10, 580, 52, 34, UiKit.Paper);
-            UiKit.Label(content, "金币 " + (app.Native?.Currency.Gold ?? 0).ToString("N0"), 850, 18, 380, 36, 21, UiKit.Gold, TextAnchor.MiddleRight);
+            UiKit.Label(content, "同赴山海", 48, 12, 690, 40, 22, UiKit.Muted);
             UiKit.Panel(content, "Rule", 48, 72, 1184, 1, UiKit.Muted);
 
             GuildMessage guild = state?.Guild;
@@ -151,8 +150,8 @@ namespace Lunhui
             selectedMountain = Mathf.Clamp(selectedMountain, 0, Mathf.Max(0, state.Mountains.Count - 1));
             NativeMountainRun run = state.Run;
             string title = state.Mountains.FirstOrDefault(m => m.Mountain == run?.Mountain)?.Name ?? "宝山";
-            UiKit.Label(content, run != null && !run.Claimed && run.SessionId != dismissedRun ? "宝山挑战 · " + title : "六大宝山",
-                48, 10, 650, 52, 34, UiKit.Paper);
+            UiKit.Label(content, run != null && !run.Claimed && run.SessionId != dismissedRun ? "进行中 · " + title : "今日历练",
+                48, 12, 650, 40, 22, UiKit.Muted);
             UiKit.Label(content, "今日已完成 " + state.Mountains.Count(m => m.ClaimedToday) + "/" + state.Mountains.Count, 720, 18, 510, 36, 20, UiKit.Jade, TextAnchor.MiddleRight);
             UiKit.Panel(content, "Rule", 48, 72, 1184, 1, UiKit.Muted);
 
