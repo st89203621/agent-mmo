@@ -1,0 +1,323 @@
+package com.iohao.mmo.skill.service;
+
+import com.iohao.mmo.skill.entity.PlayerSkill;
+import com.iohao.mmo.skill.entity.SkillTemplate;
+import com.iohao.mmo.skill.repository.PlayerSkillRepository;
+import com.iohao.mmo.skill.repository.SkillTemplateRepository;
+import com.iohao.mmo.level.service.LevelService;
+import com.iohao.mmo.shop.service.ShopService;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+public class SkillService {
+
+    private final SkillTemplateRepository skillTemplateRepository;
+    private final PlayerSkillRepository playerSkillRepository;
+    private final LevelService levelService;
+    private final ShopService shopService;
+
+    private volatile List<SkillTemplate> cachedTemplates = List.of();
+    private volatile Map<String, SkillTemplate> templateMap = Map.of();
+    /** Serialize a player's skill mutation so a double tap cannot spend twice. */
+    private final ConcurrentHashMap<String, Object> mutationLocks = new ConcurrentHashMap<>();
+
+    public SkillService(SkillTemplateRepository skillTemplateRepository,
+                        PlayerSkillRepository playerSkillRepository,
+                        LevelService levelService,
+                        ShopService shopService) {
+        this.skillTemplateRepository = skillTemplateRepository;
+        this.playerSkillRepository = playerSkillRepository;
+        this.levelService = levelService;
+        this.shopService = shopService;
+    }
+
+    @PostConstruct
+    private void init() {
+        initSeedTemplates();
+        cachedTemplates = skillTemplateRepository.findAll();
+        templateMap = cachedTemplates.stream()
+                .collect(Collectors.toMap(SkillTemplate::getId, t -> t));
+        log.info("加载技能模板 {} 个", cachedTemplates.size());
+    }
+
+    /** 技能种子数据 — 仅在集合为空时初始化 */
+    private void initSeedTemplates() {
+        if (skillTemplateRepository.count() > 0) return;
+
+        List<SkillTemplate> seeds = new ArrayList<>();
+
+        // ── 战斗系 COMBAT · 基础 ──
+        seeds.add(buildTemplate("combat_slash", "烈火斩", "🔥", "COMBAT", "ACTIVE",
+                "释放烈焰一斩，造成1.5倍物攻伤害", 5, 1, 100, null,
+                "{\"mpCost\":15,\"multiplier\":1.5,\"effectType\":\"physical_damage\"}", 10));
+
+        seeds.add(buildTemplate("combat_frost", "冰霜新星", "❄️", "COMBAT", "ACTIVE",
+                "召唤冰霜之力，造成1.8倍魔攻伤害", 5, 5, 200, null,
+                "{\"mpCost\":20,\"multiplier\":1.8,\"effectType\":\"magic_damage\"}", 20));
+
+        seeds.add(buildTemplate("combat_heal", "治愈之光", "💚", "COMBAT", "ACTIVE",
+                "以魔力治愈伤口，恢复生命", 5, 3, 150, null,
+                "{\"mpCost\":25,\"multiplier\":1.2,\"effectType\":\"heal\"}", 30));
+
+        seeds.add(buildTemplate("combat_thunder", "雷霆一击", "⚡", "COMBAT", "ACTIVE",
+                "蓄力释放雷电，造成2.5倍物攻伤害", 3, 10, 500, List.of("combat_slash"),
+                "{\"mpCost\":35,\"multiplier\":2.5,\"effectType\":\"physical_damage\"}", 40));
+
+        seeds.add(buildTemplate("combat_iron_wall", "铁壁", "🏰", "COMBAT", "PASSIVE",
+                "增加20%物理防御", 3, 5, 200, null,
+                "{\"defenseBonus\":0.2}", 50));
+
+        seeds.add(buildTemplate("combat_magic_barrier", "魔法屏障", "🔮", "COMBAT", "PASSIVE",
+                "增加20%魔法防御", 3, 5, 200, null,
+                "{\"magicDefenseBonus\":0.2}", 60));
+
+        // ── 战斗系 COMBAT · 进阶 ──
+        seeds.add(buildTemplate("combat_shadow_strike", "影袭", "🌑", "COMBAT", "ACTIVE",
+                "从暗影中突袭，造成2.0倍物攻伤害并降低敌人防御", 5, 8, 300, List.of("combat_slash"),
+                "{\"mpCost\":25,\"multiplier\":2.0,\"effectType\":\"physical_damage\",\"debuff\":\"def_down\"}", 41));
+
+        seeds.add(buildTemplate("combat_arcane_storm", "奥术风暴", "🌀", "COMBAT", "ACTIVE",
+                "释放奥术能量风暴，造成2.2倍魔攻伤害", 5, 12, 400, List.of("combat_frost"),
+                "{\"mpCost\":30,\"multiplier\":2.2,\"effectType\":\"magic_damage\"}", 42));
+
+        seeds.add(buildTemplate("combat_life_drain", "生命汲取", "🩸", "COMBAT", "ACTIVE",
+                "吸取敌人生命力，造成1.6倍魔攻伤害并恢复等量生命", 3, 10, 350, List.of("combat_heal"),
+                "{\"mpCost\":30,\"multiplier\":1.6,\"effectType\":\"magic_damage\",\"lifesteal\":true}", 43));
+
+        seeds.add(buildTemplate("combat_berserker", "狂战", "💢", "COMBAT", "PASSIVE",
+                "HP低于30%时攻击力提升40%", 3, 15, 500, List.of("combat_iron_wall"),
+                "{\"hpThreshold\":0.3,\"atkBonus\":0.4}", 61));
+
+        seeds.add(buildTemplate("combat_heaven_strike", "天罚", "☄️", "COMBAT", "ACTIVE",
+                "召唤天雷，造成3.5倍物攻伤害（终极技）", 3, 20, 1000, List.of("combat_thunder", "combat_shadow_strike"),
+                "{\"mpCost\":50,\"multiplier\":3.5,\"effectType\":\"physical_damage\"}", 70));
+
+        seeds.add(buildTemplate("combat_absolute_zero", "绝对零度", "🧊", "COMBAT", "ACTIVE",
+                "将区域冻结，造成3.0倍魔攻伤害并冰封敌人", 3, 20, 1000, List.of("combat_arcane_storm"),
+                "{\"mpCost\":45,\"multiplier\":3.0,\"effectType\":\"magic_damage\",\"freeze\":true}", 71));
+
+        // ── 情感系 EMOTION ──
+        seeds.add(buildTemplate("emotion_empathy", "共情", "💗", "EMOTION", "PASSIVE",
+                "对话缘分提升10%", 3, 1, 80, null,
+                "{\"fateBonus\":0.1}", 10));
+
+        seeds.add(buildTemplate("emotion_insight", "洞察", "👁️", "EMOTION", "PASSIVE",
+                "探索奖励提升10%", 3, 3, 120, null,
+                "{\"exploreBonus\":0.1}", 20));
+
+        seeds.add(buildTemplate("emotion_resonance", "灵犀", "✨", "EMOTION", "ACTIVE",
+                "对话中获得额外选项", 3, 5, 300, List.of("emotion_empathy"),
+                "{\"dialogueExtra\":true}", 30));
+
+        seeds.add(buildTemplate("emotion_memory_echo", "记忆回响", "🔔", "EMOTION", "PASSIVE",
+                "转世后保留15%缘分值", 3, 8, 250, List.of("emotion_empathy"),
+                "{\"rebirthFateRetain\":0.15}", 40));
+
+        seeds.add(buildTemplate("emotion_soul_bond", "灵魂羁绊", "🔗", "EMOTION", "PASSIVE",
+                "灵侣/宠物战斗加成提升20%", 3, 10, 400, List.of("emotion_resonance"),
+                "{\"companionBonus\":0.2}", 50));
+
+        seeds.add(buildTemplate("emotion_destiny_sight", "命运之眼", "🔮", "EMOTION", "ACTIVE",
+                "预知对话走向，显示选项结果", 3, 15, 600, List.of("emotion_insight", "emotion_resonance"),
+                "{\"revealOutcome\":true}", 60));
+
+        // ── 轮回系 REBIRTH（新分支） ──
+        seeds.add(buildTemplate("rebirth_wisdom", "轮回悟性", "☯️", "REBIRTH", "PASSIVE",
+                "每次转世获得额外经验加成5%（可叠加）", 7, 1, 200, null,
+                "{\"rebirthExpBonus\":0.05}", 10));
+
+        seeds.add(buildTemplate("rebirth_karma", "因果循环", "🌀", "REBIRTH", "PASSIVE",
+                "转世后保留10%金币", 5, 5, 300, List.of("rebirth_wisdom"),
+                "{\"rebirthGoldRetain\":0.1}", 20));
+
+        seeds.add(buildTemplate("rebirth_deja_vu", "似曾相识", "💭", "REBIRTH", "PASSIVE",
+                "在新世界中可能触发前世记忆事件", 3, 8, 400, List.of("rebirth_wisdom"),
+                "{\"dejaVuChance\":0.15}", 30));
+
+        seeds.add(buildTemplate("rebirth_talent", "天赋觉醒", "⭐", "REBIRTH", "PASSIVE",
+                "每次转世随机继承一个前世被动技能", 3, 12, 600, List.of("rebirth_karma", "rebirth_deja_vu"),
+                "{\"inheritPassive\":true}", 40));
+
+        seeds.add(buildTemplate("rebirth_transcend", "超越轮回", "🌟", "REBIRTH", "PASSIVE",
+                "所有属性获得转世次数x2%的永久加成", 5, 15, 800, List.of("rebirth_talent"),
+                "{\"statBonusPerRebirth\":0.02}", 50));
+
+        skillTemplateRepository.saveAll(seeds);
+        log.info("初始化技能种子数据 {} 个", seeds.size());
+    }
+
+    private SkillTemplate buildTemplate(String id, String name, String icon, String branch, String type,
+                                         String desc, int maxLevel, int reqLevel, int costPerLevel,
+                                         List<String> prerequisites, String effectJson, int sortOrder) {
+        SkillTemplate t = new SkillTemplate();
+        t.setId(id);
+        t.setName(name);
+        t.setIcon(icon);
+        t.setBranch(branch);
+        t.setType(type);
+        t.setDescription(desc);
+        t.setMaxLevel(maxLevel);
+        t.setRequiredLevel(reqLevel);
+        t.setCostPerLevel(costPerLevel);
+        t.setPrerequisites(prerequisites);
+        t.setEffectJson(effectJson);
+        t.setSortOrder(sortOrder);
+        return t;
+    }
+
+    public List<SkillTemplate> listTemplates() {
+        return cachedTemplates;
+    }
+
+    public List<SkillTemplate> listTemplatesByBranch(String branch) {
+        return cachedTemplates.stream()
+                .filter(t -> branch.equalsIgnoreCase(t.getBranch()))
+                .sorted(Comparator.comparingInt(SkillTemplate::getSortOrder))
+                .toList();
+    }
+
+    public List<PlayerSkill> listPlayerSkills(long userId) {
+        return playerSkillRepository.findByUserId(userId);
+    }
+
+    public SkillTemplate getTemplate(String id) {
+        return templateMap.get(id);
+    }
+
+    /**
+     * 解锁技能（检查前置、消耗金币）
+     * @param goldBalance 玩家当前金币，用于校验
+     * @return 解锁成功的技能；goldCost 通过返回值的 level 判断（首次解锁 cost = costPerLevel）
+     */
+    public synchronized UnlockResult unlockSkill(long userId, String skillTemplateId, int goldBalance) {
+        SkillTemplate template = templateMap.get(skillTemplateId);
+        if (template == null) throw new IllegalArgumentException("技能模板不存在");
+
+        Optional<PlayerSkill> existing = playerSkillRepository
+                .findByUserIdAndSkillTemplateId(userId, skillTemplateId);
+        if (existing.isPresent() && existing.get().isUnlocked()) {
+            return new UnlockResult(existing.get(), 0);
+        }
+
+        // 检查前置技能
+        if (template.getPrerequisites() != null) {
+            for (String preId : template.getPrerequisites()) {
+                Optional<PlayerSkill> pre = playerSkillRepository
+                        .findByUserIdAndSkillTemplateId(userId, preId);
+                if (pre.isEmpty() || !pre.get().isUnlocked()) {
+                    throw new IllegalStateException("前置技能未解锁: " + preId);
+                }
+            }
+        }
+
+        // 检查金币消耗
+        validateLevel(userId, template);
+        int cost = template.getCostPerLevel();
+        if (cost < 0) throw new IllegalStateException("技能消耗配置无效");
+        if (cost > 0 && goldBalance < cost) {
+            throw new IllegalStateException("金币不足，需要 " + cost + " 金币");
+        }
+
+        if (cost > 0 && !shopService.trySpendGold(userId, cost)) {
+            throw new IllegalStateException("金币不足，需要" + cost + "金币");
+        }
+        PlayerSkill skill = existing.orElseGet(() -> {
+            PlayerSkill ps = new PlayerSkill();
+            ps.setUserId(userId);
+            ps.setSkillTemplateId(skillTemplateId);
+            return ps;
+        });
+        skill.setUnlocked(true);
+        skill.setLevel(Math.max(skill.getLevel(), 1));
+        try {
+            playerSkillRepository.save(skill);
+            return new UnlockResult(skill, cost);
+        } catch (RuntimeException failure) {
+            if (cost > 0) shopService.refundGold(userId, cost);
+            throw failure;
+        }
+    }
+
+    /** Convenience API that reads and charges the authoritative server balance. */
+    public PlayerSkill unlockSkill(long userId, String skillTemplateId) {
+        return unlockSkillAndCharge(userId, skillTemplateId).skill();
+    }
+
+    /** Unlocks a skill and atomically charges the server-side gold balance. */
+    public UnlockResult unlockSkillAndCharge(long userId, String skillTemplateId) {
+        synchronized (mutationLocks.computeIfAbsent(userId + ":" + skillTemplateId, key -> new Object())) {
+            return unlockSkill(userId, skillTemplateId,
+                    shopService.getPlayerCurrency(userId).getGold());
+        }
+    }
+
+    public record UnlockResult(PlayerSkill skill, int goldCost) {}
+
+    /**
+     * 升级技能
+     */
+    public PlayerSkill upgradeSkill(long userId, String skillTemplateId) {
+        synchronized (mutationLocks.computeIfAbsent(userId + ":" + skillTemplateId, key -> new Object())) {
+            return upgradeSkillLocked(userId, skillTemplateId);
+        }
+    }
+
+    private PlayerSkill upgradeSkillLocked(long userId, String skillTemplateId) {
+        SkillTemplate template = templateMap.get(skillTemplateId);
+        if (template == null) throw new IllegalArgumentException("技能模板不存在");
+        validateLevel(userId, template);
+
+        PlayerSkill skill = playerSkillRepository
+                .findByUserIdAndSkillTemplateId(userId, skillTemplateId)
+                .orElseThrow(() -> new IllegalStateException("技能未解锁"));
+
+        if (!skill.isUnlocked()) throw new IllegalStateException("技能未解锁");
+        if (template.getMaxLevel() <= 0 || skill.getLevel() >= template.getMaxLevel()) {
+            throw new IllegalStateException("已达最大等级");
+        }
+
+        int cost = template.getCostPerLevel();
+        if (cost < 0) throw new IllegalStateException("技能消耗配置无效");
+        if (cost > 0 && !shopService.trySpendGold(userId, cost)) {
+            throw new IllegalStateException("金币不足，需要" + cost + "金币");
+        }
+        skill.setLevel(skill.getLevel() + 1);
+        try {
+            return playerSkillRepository.save(skill);
+        } catch (RuntimeException failure) {
+            if (cost > 0) shopService.refundGold(userId, cost);
+            throw failure;
+        }
+    }
+
+    private void validateLevel(long userId, SkillTemplate template) {
+        if (levelService.ofLevel(userId).getLevel() < template.getRequiredLevel()) {
+            throw new IllegalStateException("等级不足，需要达到" + template.getRequiredLevel() + "级");
+        }
+    }
+
+    /** Grants a quest/drop skill without charging the player; idempotent by design. */
+    public PlayerSkill grantSkillReward(long userId, String skillTemplateId) {
+        synchronized (mutationLocks.computeIfAbsent(userId + ":" + skillTemplateId, key -> new Object())) {
+            SkillTemplate template = templateMap.get(skillTemplateId);
+            if (template == null) throw new IllegalArgumentException("技能模板不存在");
+            PlayerSkill skill = playerSkillRepository.findByUserIdAndSkillTemplateId(userId, skillTemplateId)
+                    .orElseGet(() -> {
+                        PlayerSkill ps = new PlayerSkill();
+                        ps.setUserId(userId);
+                        ps.setSkillTemplateId(skillTemplateId);
+                        return ps;
+                    });
+            skill.setUnlocked(true);
+            skill.setLevel(Math.max(skill.getLevel(), 1));
+            return playerSkillRepository.save(skill);
+        }
+    }
+}

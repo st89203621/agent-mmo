@@ -1,0 +1,1376 @@
+syntax = "proto3";
+package lunhui;
+option csharp_namespace = "Lunhui.Protocol";
+
+// Java: com.iohao.mmo.adventure.proto.AdventureRequest
+//
+message AdventureRequest {
+ string id=1;
+ string dungeonId=2;
+ string explorationId=3;
+ string mapId=4;
+ string riftId=5;
+ string realmId=6;
+ string trialId=7;
+ int32 difficulty=8;
+ int32 stageId=9;
+ int32 stars=10;
+ int32 wave=11;
+ int32 kills=12;
+ int32 damage=13;
+ bool victory=14;
+ string location=15;
+ string playerName=16;
+}
+
+// Java: com.iohao.mmo.adventure.proto.DungeonMessage
+//
+message DungeonMessage {
+ string id=1;
+ int64 userId=2;
+ string dungeonId=3;
+ string dungeonName=4;
+ string type=5;
+ int32 currentStage=6;
+ int32 maxStage=7;
+ string status=8;
+ int64 startTime=9;
+ int64 completeTime=10;
+ int32 difficulty=11;
+repeated StageProgressMessage stageProgress=12;
+ RewardMessage reward=13;
+ bool firstClear=14;
+ int32 clearCount=15;
+ int64 bestTime=16;
+}
+//
+message StageProgressMessage {
+ int32 stageId=1;
+ string stageName=2;
+ bool completed=3;
+ int32 stars=4;
+ int64 clearTime=5;
+ int32 enemiesKilled=6;
+ int32 deaths=7;
+}
+//
+message RewardMessage {
+ int32 exp=1;
+ int32 gold=2;
+repeated ItemDropMessage items=3;
+ string title=4;
+ string achievement=5;
+}
+//
+message ItemDropMessage {
+ string itemId=1;
+ string itemName=2;
+ string rarity=3;
+ int32 quantity=4;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeCombatEvent
+//
+message NativeCombatEvent {
+ int64 id=1;
+ string kind=2;
+ string sourceId=3;
+ string targetId=4;
+ string action=5;
+ int32 amount=6;
+ float x=7;
+ float z=8;
+ int64 time=9;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeCombatRequest
+//
+message NativeCombatRequest {
+ int32 realm=1;
+ int64 sequence=2;
+ string action=3;
+ string targetId=4;
+ int32 submap=5;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeCooldownMessage
+//
+message NativeCooldownMessage {
+ string action=1;
+ int64 readyAt=2;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeEnemyMessage
+//
+message NativeEnemyMessage {
+ string id=1;
+ string name=2;
+ int32 archetype=3;
+ int32 realm=4;
+ bool boss=5;
+ float x=6;
+ float z=7;
+ float spawnX=8;
+ float spawnZ=9;
+ int32 health=10;
+ int32 maxHealth=11;
+ int64 respawnAt=12;
+ int64 castEndsAt=13;
+ float castX=14;
+ float castZ=15;
+ float castRadius=16;
+ int32 castStyle=17;
+ int64 targetUserId=18;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeInteractRequest
+//
+message NativeInteractRequest {
+ int32 realm=1;
+ string targetId=2;
+ int32 submap=3;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeLandmarkMessage
+//
+message NativeLandmarkMessage {
+ string id=1;
+ string title=2;
+ float x=3;
+ float z=4;
+ bool collected=5;
+ bool available=6;
+ int32 bit=7;
+ string kind=8;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeMoveRequest
+//
+message NativeMoveRequest {
+ int32 realm=1;
+ int64 sequence=2;
+ float x=3;
+ float z=4;
+ float yaw=5;
+ int32 submap=6;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativePlayerMessage
+//
+message NativePlayerMessage {
+ int64 userId=1;
+ string nickname=2;
+ string profession=3;
+ string gender=4;
+ string appearanceJson=5;
+ float x=6;
+ float z=7;
+ float yaw=8;
+ int32 health=9;
+ int32 maxHealth=10;
+ int32 level=11;
+ string action=12;
+ int64 actionAt=13;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeRewardItem
+//
+message NativeRewardItem {
+ string itemTypeId=1;
+ string name=2;
+ int32 quantity=3;
+ bool important=4;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeRewardMessage
+//
+message NativeRewardMessage {
+ string id=1;
+ int32 gold=2;
+ int32 experience=3;
+repeated NativeRewardItem items=4;
+ string equipmentId=5;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeWorldRequest
+//
+message NativeWorldRequest {
+ int32 realm=1;
+ bool resume=2;
+ int32 submap=3;
+}
+
+// Java: com.iohao.mmo.adventure.proto.NativeWorldSnapshot
+//
+message NativeWorldSnapshot {
+ bool accepted=1;
+ string message=2;
+ int64 serverTime=3;
+ int32 realm=4;
+ string realmName=5;
+ float x=6;
+ float z=7;
+ float yaw=8;
+ int32 health=9;
+ int32 maxHealth=10;
+ int64 reviveAt=11;
+ int64 lastMoveSequence=12;
+ int64 lastActionSequence=13;
+repeated NativeEnemyMessage enemies=14;
+repeated NativePlayerMessage players=15;
+repeated NativeLandmarkMessage landmarks=16;
+repeated NativeCooldownMessage cooldowns=17;
+ int32 memoryMask=18;
+ int32 bossMask=19;
+ int32 treasureMask=20;
+ bool introComplete=21;
+repeated int32 realmKills=22;
+ string questTitle=23;
+ string questDetail=24;
+ int32 unlockedRealmMask=25;
+repeated NativeCombatEvent events=26;
+repeated NativeRewardMessage rewards=27;
+ int32 level=28;
+ int64 experience=29;
+ int32 attack=30;
+ int32 defense=31;
+ int32 activePetLevel=32;
+ int32 submap=33;
+ string submapName=34;
+ int32 submapMemoryMask=35;
+ int32 submapKills=36;
+ bool submapBossDefeated=37;
+ bool submapTreasureCollected=38;
+ int32 unlockedSubmapMask=39;
+repeated int32 mapMemoryMasks=40;
+ int32 unlockedMapMask=41;
+}
+
+// Java: com.iohao.mmo.arena.proto.ArenaPlayerMessage
+//
+message ArenaPlayerMessage {
+ int64 playerId=1;
+ string playerName=2;
+ int32 level=3;
+ int64 power=4;
+ int32 wins=5;
+ int32 losses=6;
+ int32 rating=7;
+ int32 rank=8;
+ int64 lastBattleTime=9;
+ bool canBattle=10;
+}
+
+// Java: com.iohao.mmo.arena.proto.BattleResultMessage
+//
+message BattleResultMessage {
+ bool win=1;
+ int32 reward=2;
+}
+
+// Java: com.iohao.mmo.bag.proto.BagItemMessage
+//
+message BagItemMessage {
+ string id=1;
+ string itemTypeId=2;
+ int32 quantity=3;
+}
+
+// Java: com.iohao.mmo.bag.proto.BagMessage
+//
+message BagMessage {
+ map<string, BagItemMessage> itemMap=1;
+}
+
+// Java: com.iohao.mmo.bag.proto.ItemMessage
+//
+message ItemMessage {
+ string itemTypeId=1;
+ string name=2;
+ string description=3;
+}
+
+// Java: com.iohao.mmo.bag.proto.UseItemMessage
+//
+message UseItemMessage {
+ string id=1;
+ string itemTypeId=2;
+ int32 quantity=3;
+}
+
+// Java: com.iohao.mmo.bag.proto.UseMessage
+//
+message UseMessage {
+ string scene=1;
+repeated UseItemMessage useItems=2;
+}
+
+// Java: com.iohao.mmo.bookworld.proto.BookWorldMessage
+//
+message BookWorldMessage {
+ string bookId=1;
+ string title=2;
+ string author=3;
+ string category=4;
+ string loreSummary=5;
+ string artStyle=6;
+ string colorPalette=7;
+ string languageStyle=8;
+ string coverUrl=9;
+ bool isPreprocessed=10;
+ double fateMultiplier=11;
+ double trustMultiplier=12;
+ string themeTag=13;
+}
+
+// Java: com.iohao.mmo.bookworld.proto.SelectBookRequest
+//
+message SelectBookRequest {
+ int32 worldIndex=1;
+ string bookId=2;
+}
+
+// Java: com.iohao.mmo.bookworld.proto.UploadBookRequest
+//
+message UploadBookRequest {
+ string title=1;
+ string content=2;
+ string author=3;
+}
+
+// Java: com.iohao.mmo.chat.proto.ChatMessage
+//
+message ChatMessage {
+ string messageId=1;
+ int64 senderId=2;
+ string senderName=3;
+ int64 receiverId=4;
+ string content=5;
+ int32 chatType=6;
+ int64 timestamp=7;
+}
+
+// Java: com.iohao.mmo.chat.proto.SendChatMessage
+//
+message SendChatMessage {
+ int64 receiverId=1;
+ string content=2;
+ int32 chatType=3;
+}
+
+// Java: com.iohao.mmo.coexplore.proto.CoexploreSessionMessage
+//
+message CoexploreSessionMessage {
+ string sessionId=1;
+ int64 hostId=2;
+ string hostName=3;
+ int64 guestId=4;
+ string guestName=5;
+ string status=6;
+ int32 currentRound=7;
+ string currentPhase=8;
+ int32 hostFateValue=9;
+ int32 guestFateValue=10;
+ string eventsJson=11;
+}
+
+// Java: com.iohao.mmo.common.core.flow.MyAttachment
+//
+message MyAttachment {
+ int64 userId=1;
+ string nickname=2;
+}
+
+// Java: com.iohao.mmo.common.provide.proto.AttachmentMessage
+//
+message AttachmentMessage {
+ string id=1;
+ string itemTypeId=2;
+ int32 quantity=3;
+}
+
+// Java: com.iohao.mmo.common.provide.proto.ShowItemMessage
+//
+message ShowItemMessage {
+ string itemTypeId=1;
+ int32 quantity=2;
+}
+
+// Java: com.iohao.mmo.companion.proto.CompanionMessage
+//
+message CompanionMessage {
+ string id=1;
+ string companionId=2;
+ string name=3;
+ string realm=4;
+ string type=5;
+ string quality=6;
+ int32 level=7;
+ int32 exp=8;
+ int32 bondLevel=9;
+ int32 bondExp=10;
+ int32 currentHp=11;
+ int32 maxHp=12;
+ int32 atk=13;
+ int32 def=14;
+ int32 spd=15;
+ string avatarUrl=16;
+ string avatarStyle=17;
+ bool avatarEquipped=18;
+}
+
+// Java: com.iohao.mmo.companion.proto.RecruitCompanionRequest
+//
+message RecruitCompanionRequest {
+ string companionId=1;
+}
+
+// Java: com.iohao.mmo.companion.proto.SetTeamRequest
+//
+message SetTeamRequest {
+repeated string team=1;
+}
+
+// Java: com.iohao.mmo.companion.proto.UpdateAvatarRequest
+//
+message UpdateAvatarRequest {
+ string companionId=1;
+ string avatarUrl=2;
+ string avatarStyle=3;
+}
+
+// Java: com.iohao.mmo.enchant.proto.EnchantMessage
+//
+message EnchantMessage {
+ string equipId=1;
+ string runeId=2;
+ int32 enchantLevel=3;
+ int32 attributeBonus=4;
+ bool success=5;
+ int32 guaranteeCount=6;
+}
+
+// Java: com.iohao.mmo.enchant.proto.ExchangeMessage
+//
+message ExchangeMessage {
+ string fromRuneId=1;
+ string toRuneId=2;
+ int32 quantity=3;
+ bool success=4;
+}
+
+// Java: com.iohao.mmo.equip.proto.CreateEquipMessage
+//
+message CreateEquipMessage {
+ string itemTypeId=1;
+ double excellentRate=2;
+}
+
+// Java: com.iohao.mmo.equip.proto.ElseEquipPropertyMessage
+//
+message ElseEquipPropertyMessage {
+ int32 constitution=1;
+ int32 magicPower=2;
+ int32 power=3;
+ int32 endurance=4;
+ int32 agile=5;
+}
+
+// Java: com.iohao.mmo.equip.proto.EquipMessage
+//
+message EquipMessage {
+ string id=1;
+ string itemTypeId=2;
+ int64 userId=3;
+ string name=4;
+ int32 attrTotal=5;
+ int32 undistributedAttr=6;
+ int32 position=7;
+ int32 level=8;
+ int32 identifyCount=9;
+ FixedEquipPropertyMessage fixedEquipPropertyMin=10;
+ FixedEquipPropertyMessage fixedEquipPropertyMax=11;
+ FixedEquipPropertyMessage fixedEquipProperty=12;
+ int32 quality=13;
+ int32 totalAttrMin=14;
+ int32 totalAttrMax=15;
+ string equipTemplateId=16;
+ ElseEquipPropertyMessage elseEquipProperty=17;
+ int32 grade=18;
+ int32 furnaceGrade=19;
+ bool equipped=20;
+}
+//
+message FixedEquipPropertyMessage {
+ int32 hp=1;
+ int32 mp=2;
+ int32 physicsAttack=3;
+ int32 physicsDefense=4;
+ int32 magicAttack=5;
+ int32 magicDefense=6;
+ int32 treatAttack=7;
+ int32 sealAttack=8;
+ int32 sealDefense=9;
+ int32 speed=10;
+ int32 anger=11;
+}
+
+// Java: com.iohao.mmo.equip.proto.EquipResetMessage
+//
+message EquipResetMessage {
+ string id=1;
+ string excellentRateString=2;
+}
+
+// Java: com.iohao.mmo.equip.proto.EquipTemplateMessage
+//
+message EquipTemplateMessage {
+ string id=1;
+ int32 position=2;
+ int32 level=3;
+ FixedEquipPropertyMessage fixedEquipPropertyMin=4;
+ FixedEquipPropertyMessage fixedEquipPropertyMax=5;
+ int32 totalAttrMin=6;
+ int32 totalAttrMax=7;
+}
+
+// Java: com.iohao.mmo.equip.proto.NewEquipMessage
+//
+message NewEquipMessage {
+ string equipId=1;
+ string itemTypeId=2;
+}
+
+// Java: com.iohao.mmo.fate.proto.FateChoiceRequest
+//
+message FateChoiceRequest {
+ string npcId=1;
+ int32 choiceId=2;
+ int32 fateDelta=3;
+ int32 trustDelta=4;
+ int32 worldIndex=5;
+}
+
+// Java: com.iohao.mmo.fate.proto.GlobalFateMessage
+//
+message GlobalFateMessage {
+ int32 totalFate=1;
+ int32 totalTrust=2;
+ int32 currentFate=3;
+ int32 currentTrust=4;
+ string fateGrade=5;
+ int32 worldIndex=6;
+}
+
+// Java: com.iohao.mmo.fate.proto.RelationMessage
+//
+message RelationMessage {
+ string relationId=1;
+ int64 playerId=2;
+ string npcId=3;
+ string npcName=4;
+ int32 worldIndex=5;
+ int32 fateScore=6;
+ int32 trustScore=7;
+ string lastEmotion=8;
+ string imageUrl=9;
+ string keyFacts=10;
+ int64 lastInteractTime=11;
+}
+
+// Java: com.iohao.mmo.flower.proto.FlowerMessage
+//
+message FlowerMessage {
+ int64 playerId=1;
+ string flowerName=2;
+ string stage=3;
+ string color=4;
+ int32 totalFateWatered=5;
+ int32 totalTrustInfused=6;
+ string flowerVerse=7;
+ int32 worldCount=8;
+ bool bloomed=9;
+}
+
+// Java: com.iohao.mmo.flower.proto.WaterFlowerRequest
+//
+message WaterFlowerRequest {
+ int32 fateAmount=1;
+ int32 trustAmount=2;
+}
+
+// Java: com.iohao.mmo.gift.proto.GiftBagMessage
+//
+message GiftBagMessage {
+repeated AttachmentMessage attachments=1;
+}
+
+// Java: com.iohao.mmo.gift.proto.GiftCodeMessage
+//
+message GiftCodeMessage {
+ GiftCodeType giftCodeType=1;
+ int64 lastLocalDateEpochDay=2;
+ int64 limit=3;
+ int64 userId=4;
+ string code=5;
+ int64 quantity=6;
+ string giftBagId=7;
+}
+enum GiftCodeType {
+empty=0;
+batch=1;
+batchLimit=2;
+user=3;
+}
+
+
+// Java: com.iohao.mmo.guild.proto.GuildMemberMessage
+//
+message GuildMemberMessage {
+ int64 playerId=1;
+ string playerName=2;
+ string position=3;
+ int64 contribution=4;
+ int64 construction=5;
+ int64 honor=6;
+ int64 joinTime=7;
+}
+
+// Java: com.iohao.mmo.guild.proto.GuildMessage
+//
+message GuildMessage {
+ string guildId=1;
+ string name=2;
+ int64 leaderId=3;
+ string leaderName=4;
+ int32 memberCount=5;
+ int32 maxMembers=6;
+ int32 level=7;
+ string notice=8;
+ int64 totalConstruction=9;
+ int64 totalHonor=10;
+}
+
+// Java: com.iohao.mmo.guild.proto.NativeGuildRequest
+//
+message NativeGuildRequest {
+ string operation=1;
+ string guildId=2;
+ string name=3;
+}
+
+// Java: com.iohao.mmo.guild.proto.NativeGuildState
+//
+message NativeGuildState {
+ bool success=1;
+ string message=2;
+ GuildMessage guild=3;
+repeated GuildMessage guilds=4;
+repeated GuildMemberMessage members=5;
+ int64 contribution=6;
+ int64 honor=7;
+ int64 construction=8;
+ int64 createCost=9;
+ int64 donationCost=10;
+}
+
+// Java: com.iohao.mmo.hero.proto.HeroMessage
+//
+message HeroMessage {
+ BasicPropertyMessage basicProperty=1;
+}
+//
+message BasicPropertyMessage {
+ int32 hp=1;
+ int32 mp=2;
+ int32 physicsAttack=3;
+ int32 physicsDefense=4;
+ int32 magicAttack=5;
+ int32 magicDefense=6;
+ int32 treatAttack=7;
+ int32 sealAttack=8;
+ int32 sealDefense=9;
+ int32 speed=10;
+ int32 anger=11;
+ int32 bonusAttack=12;
+ int32 bonusDefense=13;
+ int32 agility=14;
+ int32 critRate=15;
+}
+
+// Java: com.iohao.mmo.level.proto.ExpMessage
+//
+message ExpMessage {
+ int64 id=1;
+ int32 exp=2;
+}
+
+// Java: com.iohao.mmo.level.proto.LevelMessage
+//
+message LevelMessage {
+ int64 id=1;
+ int64 exp=2;
+ int32 level=3;
+}
+
+// Java: com.iohao.mmo.login.proto.LoginVerify
+//
+message LoginVerify {
+ string jwt=1;
+ string username=2;
+ string password=3;
+}
+
+// Java: com.iohao.mmo.login.proto.RegisterRequest
+//
+message RegisterRequest {
+ string username=1;
+ string password=2;
+}
+
+// Java: com.iohao.mmo.login.proto.RegisterResponse
+//
+message RegisterResponse {
+ bool success=1;
+ int64 userId=2;
+ string username=3;
+ string password=4;
+ string nickname=5;
+}
+
+// Java: com.iohao.mmo.login.proto.UserInfo
+//
+message UserInfo {
+ int64 id=1;
+ string nickname=2;
+ string username=3;
+}
+
+// Java: com.iohao.mmo.mail.proto.MailMessage
+//
+message MailMessage {
+ string id=1;
+ string senderName=2;
+ int64 senderUserId=3;
+ string subject=4;
+ string body=5;
+ int64 milliseconds=6;
+ int64 expiredMilliseconds=7;
+ MailStatusMessageEnum mailStatus=8;
+repeated AttachmentMessage attachments=9;
+}
+enum MailStatusMessageEnum {
+SEAL=0;
+OPEN=1;
+}
+
+
+// Java: com.iohao.mmo.map.proto.EnterMapMessage
+//
+message EnterMapMessage {
+ int64 mapId=1;
+repeated MapPlayerMessage players=2;
+}
+//
+message MapPlayerMessage {
+ int64 id=1;
+ string nickname=2;
+ LocationMessage location=3;
+}
+//
+message LocationMessage {
+ int32 x=1;
+ int32 y=2;
+ int32 directionH=3;
+ int32 directionV=4;
+ int64 playerId=5;
+}
+
+// Java: com.iohao.mmo.map.proto.EnterMapReq
+//
+message EnterMapReq {
+ int64 mapId=1;
+}
+
+// Java: com.iohao.mmo.memory.proto.CreateMemoryRequest
+//
+message CreateMemoryRequest {
+ string npcId=1;
+ string npcName=2;
+ int32 worldIndex=3;
+ string bookTitle=4;
+ int32 fateScore=5;
+ string dialogueSummary=6;
+}
+
+// Java: com.iohao.mmo.memory.proto.MemoryFragmentMessage
+//
+message MemoryFragmentMessage {
+ string fragmentId=1;
+ int64 playerId=2;
+ string npcId=3;
+ string npcName=4;
+ int32 worldIndex=5;
+ string title=6;
+ string excerpt=7;
+ int32 fateScore=8;
+ string imageUrl=9;
+ int64 createTime=10;
+ bool locked=11;
+ string unlockCondition=12;
+ bool activated=13;
+ int32 activateFateCost=14;
+ string bonusType=15;
+ int32 bonusValue=16;
+}
+
+// Java: com.iohao.mmo.person.proto.AllotPotentialMessage
+//
+message AllotPotentialMessage {
+ int32 hp=1;
+ int32 mp=2;
+ int32 physicsAttack=3;
+ int32 physicsDefense=4;
+ int32 magicAttack=5;
+ int32 speed=6;
+ int32 agility=7;
+}
+
+// Java: com.iohao.mmo.person.proto.PersonMessage
+//
+message PersonMessage {
+ int64 userId=1;
+ string name=2;
+ LevelMessage level=3;
+ BasicPropertyMessage basicProperty=4;
+repeated HeroMessage heroList=5;
+ HeroMessage currentHero=6;
+ string profession=7;
+ string gender=8;
+ string features=9;
+ string appearanceJson=10;
+ string portraitImageId=11;
+ int32 attributePoints=12;
+ map<string, int32> allocatedPoints=13;
+ bool customizationComplete=14;
+}
+
+// Java: com.iohao.mmo.person.proto.UpdatePersonMessage
+//
+message UpdatePersonMessage {
+ string name=1;
+ string profession=2;
+ string gender=3;
+ string features=4;
+ string portraitImageId=5;
+ string appearanceJson=6;
+}
+
+// Java: com.iohao.mmo.pet.proto.CreatePetMessage
+//
+message CreatePetMessage {
+ string petTemplateId=1;
+ string nickname=2;
+ string aiImageUrl=3;
+ string petType=4;
+ string element=5;
+ string artStyle=6;
+}
+
+// Java: com.iohao.mmo.pet.proto.DeployPetMessage
+//
+message DeployPetMessage {
+ string petId=1;
+}
+
+// Java: com.iohao.mmo.pet.proto.GeneratePetImageRequest
+//
+message GeneratePetImageRequest {
+ string petType=1;
+ string element=2;
+ string style=3;
+ string customPrompt=4;
+}
+
+// Java: com.iohao.mmo.pet.proto.GeneratePetImageResponse
+//
+message GeneratePetImageResponse {
+repeated string imageDataList=1;
+ string prompt=2;
+ bool success=3;
+ string errorMessage=4;
+}
+
+// Java: com.iohao.mmo.pet.proto.PetMessage
+//
+message PetMessage {
+ string id=1;
+ string petTemplateId=2;
+ string nickname=3;
+ int32 mutationExp=4;
+ int32 mutationNo=5;
+ string mutationSkin=6;
+ int32 propertyPointNum=7;
+ int32 constitution=8;
+ int32 magicPower=9;
+ int32 power=10;
+ int32 endurance=11;
+ int32 agile=12;
+ int32 maxSkill=13;
+ map<int32, PetSkillMessage> skillMap=14;
+ string aiImageUrl=15;
+ string petType=16;
+ string element=17;
+ string artStyle=18;
+ bool active=19;
+ int32 level=20;
+ int32 tier=21;
+}
+//
+message PetSkillMessage {
+ int32 index=1;
+ string skill=2;
+}
+
+// Java: com.iohao.mmo.pet.proto.PetSkillTemplateMessage
+//
+message PetSkillTemplateMessage {
+ string skill=1;
+ string name=2;
+ string description=3;
+}
+
+// Java: com.iohao.mmo.pet.proto.PetTemplateMessage
+//
+message PetTemplateMessage {
+ string id=1;
+ string name=2;
+ string description=3;
+repeated PetTransformationTemplateMessage transformationList=4;
+}
+//
+message PetTransformationTemplateMessage {
+ string mutationName=1;
+ int32 mutationNo=2;
+ string mutationSkin=3;
+ PetValueTemplateMessage petValueTemplate=4;
+ int32 propertyPointNum=5;
+}
+//
+message PetValueTemplateMessage {
+ int32 hp=1;
+ int32 speed=2;
+ int32 mp=3;
+ int32 physicsAttack=4;
+ int32 physicsDefense=5;
+ int32 magicAttack=6;
+ int32 magicDefense=7;
+}
+
+// Java: com.iohao.mmo.pet.proto.UpdatePetImageMessage
+//
+message UpdatePetImageMessage {
+ string petId=1;
+ string aiImageUrl=2;
+ string petType=3;
+ string element=4;
+ string artStyle=5;
+}
+
+// Java: com.iohao.mmo.pet.proto.UpdatePetPropertyMessage
+//
+message UpdatePetPropertyMessage {
+ string petId=1;
+ int32 constitution=2;
+ int32 magicPower=3;
+ int32 power=4;
+ int32 endurance=5;
+ int32 agile=6;
+}
+
+// Java: com.iohao.mmo.pet.proto.internal.EnhancePetSkillMessage
+//
+message EnhancePetSkillMessage {
+ int32 index=1;
+ string skill=2;
+ string petId=3;
+}
+
+// Java: com.iohao.mmo.quest.proto.QuestMessage
+//
+message QuestMessage {
+ string questId=1;
+ string questName=2;
+ string description=3;
+ int32 questType=4;
+ int32 status=5;
+ int32 currentProgress=6;
+ int32 targetProgress=7;
+repeated QuestRewardMessage rewards=8;
+ int32 requiredLevel=9;
+ string npcId=10;
+ int64 acceptTime=11;
+ int64 completeTime=12;
+ int32 timeLimit=13;
+}
+//
+message QuestRewardMessage {
+ int32 rewardType=1;
+ string itemId=2;
+ int32 quantity=3;
+ int32 exp=4;
+ int32 gold=5;
+}
+
+// Java: com.iohao.mmo.rank.proto.RankEntryMessage
+//
+message RankEntryMessage {
+ int32 rank=1;
+ int64 playerId=2;
+ string playerName=3;
+ int32 level=4;
+ int64 value=5;
+ string rankType=6;
+}
+
+// Java: com.iohao.mmo.rebirth.proto.GetPoemRequest
+//
+message GetPoemRequest {
+ int32 worldIndex=1;
+ string fromBook=2;
+ string toBook=3;
+}
+
+// Java: com.iohao.mmo.rebirth.proto.PlayerWorldMessage
+//
+message PlayerWorldMessage {
+ int64 userId=1;
+ int32 currentWorldIndex=2;
+ string currentBookId=3;
+ string currentBookTitle=4;
+ string currentBookArtStyle=5;
+ int32 totalRebirths=6;
+ int32 fatePointsCarried=7;
+}
+
+// Java: com.iohao.mmo.rebirth.proto.SelectWorldRequest
+//
+message SelectWorldRequest {
+ string bookId=1;
+ string bookTitle=2;
+}
+
+// Java: com.iohao.mmo.rebirth.proto.WorldHistoryMessage
+//
+message WorldHistoryMessage {
+ int32 worldIndex=1;
+ string bookId=2;
+ string bookTitle=3;
+ int64 enterTime=4;
+ int64 exitTime=5;
+ int32 finalFatePoints=6;
+ string rebirthPoem=7;
+ int32 petsCarried=8;
+ int32 equipCount=9;
+}
+
+// Java: com.iohao.mmo.shop.proto.EffectMessage
+//
+message EffectMessage {
+ string type=1;
+ int32 value=2;
+}
+
+// Java: com.iohao.mmo.shop.proto.PlayerCurrencyMessage
+//
+message PlayerCurrencyMessage {
+ int32 gold=1;
+ int32 diamond=2;
+}
+
+// Java: com.iohao.mmo.shop.proto.PurchaseHistoryMessage
+//
+message PurchaseHistoryMessage {
+ string itemId=1;
+ string itemName=2;
+ int32 quantity=3;
+ int32 price=4;
+ string currency=5;
+ int64 timestamp=6;
+}
+
+// Java: com.iohao.mmo.shop.proto.PurchaseRequest
+//
+message PurchaseRequest {
+ string itemId=1;
+ int32 quantity=2;
+}
+
+// Java: com.iohao.mmo.shop.proto.PurchaseResponse
+//
+message PurchaseResponse {
+ bool success=1;
+ string message=2;
+ int32 remainingGold=3;
+ int32 remainingDiamond=4;
+ int32 remainingStock=5;
+}
+
+// Java: com.iohao.mmo.shop.proto.ShopItemMessage
+//
+message ShopItemMessage {
+ string id=1;
+ string name=2;
+ string icon=3;
+ string description=4;
+ int32 price=5;
+ string currency=6;
+ string category=7;
+ string quality=8;
+ bool isHot=9;
+ int32 stock=10;
+repeated string contents=11;
+ map<string, int32> attributes=12;
+ EffectMessage effect=13;
+ int32 duration=14;
+}
+
+// Java: com.iohao.mmo.story.proto.DialogueMessage
+//
+message DialogueMessage {
+ string sessionId=1;
+ string speaker=2;
+ string emotion=3;
+ string text=4;
+ string choicesJson=5;
+ bool allowFreeInput=6;
+ string bookRefs=7;
+ int32 fateDelta=8;
+ int32 trustDelta=9;
+ string sceneHint=10;
+}
+
+// Java: com.iohao.mmo.story.proto.DialogueRequest
+//
+message DialogueRequest {
+ string npcId=1;
+ int32 worldIndex=2;
+ int32 choiceId=3;
+ string freeText=4;
+ string sessionId=5;
+}
+
+// Java: com.iohao.mmo.teambattle.proto.TeamBattleResultMessage
+//
+message TeamBattleResultMessage {
+ string battleId=1;
+ bool victory=2;
+ int32 fateReward=3;
+ int32 trustReward=4;
+ string mvpPlayerName=5;
+ int32 ratingChange=6;
+}
+
+// Java: com.iohao.mmo.teambattle.proto.TeamMessage
+//
+message TeamMessage {
+ string teamId=1;
+ int64 leaderId=2;
+ string leaderName=3;
+ string memberIds=4;
+ string memberNames=5;
+ int32 teamSize=6;
+ string status=7;
+ int32 totalPower=8;
+}
+
+// Java: com.iohao.mmo.title.proto.TitleMessage
+//
+message TitleMessage {
+ string titleId=1;
+ string name=2;
+ string titleType=3;
+ int32 requiredLevel=4;
+ string description=5;
+ bool equipped=6;
+ string bonusJson=7;
+}
+
+// Java: com.iohao.mmo.trade.proto.CreateTradeRequest
+//
+message CreateTradeRequest {
+ string itemId=1;
+ int32 quantity=2;
+ int32 price=3;
+ string currency=4;
+}
+
+// Java: com.iohao.mmo.trade.proto.TradeMessage
+//
+message TradeMessage {
+ string tradeId=1;
+ int64 sellerId=2;
+ string sellerName=3;
+ string itemId=4;
+ string itemName=5;
+ int32 quantity=6;
+ int32 price=7;
+ string currency=8;
+ int64 createTime=9;
+ string status=10;
+}
+
+// Java: com.iohao.mmo.treasure.proto.NativeMountainEntry
+//
+message NativeMountainEntry {
+ int32 mountain=1;
+ string name=2;
+ string description=3;
+ bool claimedToday=4;
+ bool active=5;
+ int64 rewardCoins=6;
+ int64 rewardHonor=7;
+ int32 rewardGoldenBeans=8;
+}
+
+// Java: com.iohao.mmo.treasure.proto.NativeMountainRequest
+//
+message NativeMountainRequest {
+ int32 mountain=1;
+ string operation=2;
+ string sessionId=3;
+ int32 choice=4;
+}
+
+// Java: com.iohao.mmo.treasure.proto.NativeMountainRun
+//
+message NativeMountainRun {
+ string sessionId=1;
+ int32 mountain=2;
+ string prompt=3;
+repeated string options=4;
+ int32 progress=5;
+ int32 goal=6;
+ int32 enemyHp=7;
+ int32 enemyMaxHp=8;
+ int32 playerHp=9;
+ int32 playerMaxHp=10;
+ int64 remainingMs=11;
+ int64 cooldownMs=12;
+ bool completed=13;
+ bool failed=14;
+ bool claimed=15;
+ int64 rewardCoins=16;
+ int64 rewardHonor=17;
+ int32 cellX=18;
+ int32 cellY=19;
+repeated int32 mazeWalls=20;
+ int32 rewardGoldenBeans=21;
+}
+
+// Java: com.iohao.mmo.treasure.proto.NativeMountainState
+//
+message NativeMountainState {
+ bool success=1;
+ string message=2;
+repeated NativeMountainEntry mountains=3;
+ NativeMountainRun run=4;
+}
+
+// Java: com.iohao.mmo.treasure.proto.TreasureMountainMessage
+//
+message TreasureMountainMessage {
+ string mountainId=1;
+ string name=2;
+ string type=3;
+ int32 requiredLevel=4;
+ int32 maxDigTimes=5;
+ bool active=6;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.AttackBossRequest
+//
+message AttackBossRequest {
+ string bossId=1;
+ int32 skillId=2;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.AttackBossResponse
+//
+message AttackBossResponse {
+ int64 damage=1;
+ int64 bossCurrentHp=2;
+ bool isCritical=3;
+ bool isDead=4;
+ int64 totalDamage=5;
+ int32 rank=6;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.BossSkillCastMessage
+//
+message BossSkillCastMessage {
+ string bossId=1;
+ int32 skillId=2;
+ string skillName=3;
+ double targetX=4;
+ double targetY=5;
+repeated int64 hitPlayerIds=6;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.BossSkillMessage
+//
+message BossSkillMessage {
+ int32 skillId=1;
+ string skillName=2;
+ string skillDesc=3;
+ int32 skillType=4;
+ int32 damage=5;
+ double range=6;
+ int32 cooldown=7;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.DamageRankMessage
+//
+message DamageRankMessage {
+ string bossId=1;
+repeated PlayerDamageInfo rankList=2;
+}
+//
+message PlayerDamageInfo {
+ int32 rank=1;
+ int64 userId=2;
+ string playerName=3;
+ int64 totalDamage=4;
+ double damagePercent=5;
+ int32 attackCount=6;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.DropItemMessage
+//
+message DropItemMessage {
+ int32 itemId=1;
+ string itemName=2;
+ int32 quantity=3;
+ double dropRate=4;
+}
+
+// Java: com.iohao.mmo.worldboss.proto.WorldBossMessage
+//
+message WorldBossMessage {
+ string bossId=1;
+ string bossName=2;
+ int32 bossLevel=3;
+ int64 maxHp=4;
+ int64 currentHp=5;
+ int32 attack=6;
+ int32 defense=7;
+ double x=8;
+ double y=9;
+ string mapId=10;
+ int32 status=11;
+ int64 spawnTime=12;
+ int64 nextSpawnTime=13;
+repeated BossSkillMessage skills=14;
+repeated DropItemMessage dropItems=15;
+}
+

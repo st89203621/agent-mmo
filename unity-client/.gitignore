@@ -1,0 +1,15 @@
+/Library/
+/Temp/
+/Obj/
+/Builds/
+/Logs/
+/UserSettings/
+/.vs/
+*.csproj
+*.sln
+*.pidb
+*.suo
+*.user
+*.unitypackage
+/Artifacts/
+*.log

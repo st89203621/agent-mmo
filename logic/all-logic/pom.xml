@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.iohao.mmo</groupId>
+        <artifactId>mxd-mmo</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>all-logic</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>login-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>person-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>map-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>level-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>bag-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>mail-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>equip-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>pet-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>companion-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>excel-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>gift-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>chat-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>worldboss-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>shop-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>rank-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>quest-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>enchant-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>arena-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>adventure-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>event-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>bookworld-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>rebirth-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>fate-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>story-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>memory-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>skill-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>battle-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>title-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>guild-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>treasure-mountain-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>flower-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>trade-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>team-battle-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>coexplore-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.iohao.mmo</groupId>
+            <artifactId>auction-logic</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
